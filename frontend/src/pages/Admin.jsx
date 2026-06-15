@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -590,19 +590,49 @@ function DevToolsTab({ token, showToast }) {
   const [result, setResult]       = useState(null);
 
   // ── Adjust XU state ──
-  const [users, setUsers]       = useState([]);
+  const [users, setUsers]         = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
+  const [userSearch, setUserSearch]     = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [adjAmount, setAdjAmount] = useState('');
-  const [adjNote, setAdjNote]   = useState('');
+  const [adjNote, setAdjNote]     = useState('');
   const [adjLoading, setAdjLoading] = useState(false);
   const [adjResult, setAdjResult]   = useState(null);
+  const searchRef = useRef(null);
 
-  useEffect(() => {
+  const fetchUsers = () =>
     fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : [])).catch(() => {});
-  }, [token]);
+
+  useEffect(() => { fetchUsers(); }, [token]);
+
+  // close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (searchRef.current && !searchRef.current.contains(e.target)) setDropdownOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const selectedUserObj = users.find(u => u.id === selectedUser);
+
+  const filteredUsers = userSearch.trim()
+    ? users.filter(u =>
+        u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.email.toLowerCase().includes(userSearch.toLowerCase())
+      )
+    : users;
+
+  const selectUser = (u) => {
+    setSelectedUser(u.id);
+    setUserSearch(u.username);
+    setDropdownOpen(false);
+  };
+
+  const clearUser = () => {
+    setSelectedUser('');
+    setUserSearch('');
+    setDropdownOpen(false);
+  };
 
   const adjustXu = async () => {
     if (!selectedUser || !adjAmount || adjAmount === '0') return;
@@ -672,21 +702,74 @@ function DevToolsTab({ token, showToast }) {
           Cộng (+) hoặc trừ (−) XU cho bất kỳ user nào. Ghi vào ledger với loại <code style={{ color: '#a29bfe' }}>admin_adjust</code>.
         </div>
 
-        {/* User select */}
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Chọn user</div>
-          <select
-            value={selectedUser}
-            onChange={e => setSelectedUser(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', background: '#13131f', border: '1px solid #1e1e2e', borderRadius: 8, color: selectedUser ? '#ccc' : '#444', fontSize: 13, outline: 'none' }}
-          >
-            <option value="">— chọn user —</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>
-                {u.username} ({u.email}) · {Number(u.balance || 0).toLocaleString()} XU
-              </option>
-            ))}
-          </select>
+        {/* User searchable picker */}
+        <div style={{ marginBottom: 10 }} ref={searchRef}>
+          <div style={{ fontSize: 11, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+            Tìm user <span style={{ color: '#333', textTransform: 'none', letterSpacing: 0 }}>— gõ tên hoặc email</span>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Tìm theo tên hoặc email..."
+              value={userSearch}
+              onChange={e => { setUserSearch(e.target.value); setSelectedUser(''); setDropdownOpen(true); }}
+              onFocus={() => setDropdownOpen(true)}
+              style={{
+                width: '100%', padding: '8px 36px 8px 10px', background: '#13131f',
+                border: `1px solid ${selectedUser ? '#6fcf9760' : '#1e1e2e'}`,
+                borderRadius: 8, color: '#ccc', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            {/* clear / indicator */}
+            <span
+              onClick={selectedUser || userSearch ? clearUser : undefined}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: selectedUser ? '#6fcf97' : '#333', cursor: selectedUser || userSearch ? 'pointer' : 'default', userSelect: 'none' }}
+            >
+              {selectedUser ? '✓' : userSearch ? '✕' : '▾'}
+            </span>
+
+            {/* dropdown */}
+            {dropdownOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                background: '#13131f', border: '1px solid #2e2e44', borderRadius: 8,
+                maxHeight: 220, overflowY: 'auto', boxShadow: '0 8px 32px #000a',
+              }}>
+                {filteredUsers.length === 0 ? (
+                  <div style={{ padding: '10px 14px', fontSize: 12, color: '#444' }}>Không tìm thấy user nào</div>
+                ) : filteredUsers.map(u => (
+                  <div
+                    key={u.id}
+                    onClick={() => selectUser(u)}
+                    style={{
+                      padding: '9px 14px', cursor: 'pointer', borderBottom: '1px solid #1a1a28',
+                      background: selectedUser === u.id ? '#1e2a1e' : 'transparent',
+                      transition: 'background .1s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#1a1a2e'}
+                    onMouseLeave={e => e.currentTarget.style.background = selectedUser === u.id ? '#1e2a1e' : 'transparent'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#ddd' }}>{u.username}</span>
+                        <span style={{ fontSize: 11, color: '#555', marginLeft: 8 }}>{u.email}</span>
+                      </div>
+                      <span style={{ fontSize: 12, color: '#6fcf97', fontWeight: 500, whiteSpace: 'nowrap', marginLeft: 8 }}>
+                        {Number(u.balance || 0).toLocaleString()} XU
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>
+                      <span style={{ padding: '1px 6px', borderRadius: 4, background: '#1e1e2e', color: '#666' }}>{u.role}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* count hint */}
+          <div style={{ fontSize: 11, color: '#333', marginTop: 4 }}>
+            {userSearch && !selectedUser ? `${filteredUsers.length} / ${users.length} kết quả` : selectedUser ? `✓ Đã chọn: ${selectedUserObj?.email}` : `${users.length} users`}
+          </div>
         </div>
 
         {/* Amount + note row */}
