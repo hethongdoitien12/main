@@ -600,11 +600,22 @@ function DevToolsTab({ token, showToast }) {
   const [adjResult, setAdjResult]   = useState(null);
   const searchRef = useRef(null);
 
+  // ── Adjust history state ──
+  const [history, setHistory]       = useState([]);
+  const [histLoading, setHistLoading] = useState(false);
+
+  const fetchHistory = () => {
+    setHistLoading(true);
+    fetch('/api/admin/adjust-history?limit=20', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => setHistory(Array.isArray(d) ? d : []))
+      .catch(() => {}).finally(() => setHistLoading(false));
+  };
+
   const fetchUsers = () =>
     fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : [])).catch(() => {});
 
-  useEffect(() => { fetchUsers(); }, [token]);
+  useEffect(() => { fetchUsers(); fetchHistory(); }, [token]);
 
   // close dropdown on outside click
   useEffect(() => {
@@ -648,9 +659,8 @@ function DevToolsTab({ token, showToast }) {
         setAdjResult({ ok: true, entry: d.entry });
         showToast(`✅ Đã điều chỉnh ${parseInt(adjAmount) > 0 ? '+' : ''}${adjAmount} XU cho ${selectedUserObj?.username}`);
         setAdjAmount(''); setAdjNote('');
-        // refresh user list for updated balance
-        fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : [])).catch(() => {});
+        fetchUsers();
+        fetchHistory();
       } else {
         setAdjResult({ ok: false, error: d.error });
         showToast(`❌ ${d.error}`);
@@ -831,6 +841,64 @@ function DevToolsTab({ token, showToast }) {
             ) : (
               <>❌ {adjResult.error}</>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Adjust history panel ── */}
+      <div style={{ background: '#0e0e17', border: '1px solid #1a1a2e', borderRadius: 12, padding: '1.5rem', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontWeight: 600, color: '#a29bfe' }}>📋 Lịch sử điều chỉnh XU</div>
+          <button
+            onClick={fetchHistory}
+            disabled={histLoading}
+            style={{ padding: '4px 12px', background: 'transparent', border: '1px solid #2e2e44', borderRadius: 6, color: '#555', fontSize: 12, cursor: 'pointer' }}
+          >
+            {histLoading ? '...' : '↻ Làm mới'}
+          </button>
+        </div>
+
+        {histLoading && <div style={{ fontSize: 12, color: '#333', padding: '1rem 0', textAlign: 'center' }}>Đang tải...</div>}
+
+        {!histLoading && history.length === 0 && (
+          <div style={{ fontSize: 12, color: '#333', padding: '1rem 0', textAlign: 'center' }}>Chưa có lần điều chỉnh nào</div>
+        )}
+
+        {!histLoading && history.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {history.map(h => (
+              <div key={h.id} style={{
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                padding: '9px 12px', background: '#13131f', borderRadius: 8,
+                border: `1px solid ${Number(h.amount) > 0 ? '#6fcf9720' : '#ff6b6b20'}`,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#ddd' }}>{h.username}</span>
+                    <span style={{ fontSize: 11, color: '#444' }}>{h.email}</span>
+                    {h.admin_username && (
+                      <span style={{ fontSize: 11, color: '#555', background: '#1e1e2e', borderRadius: 4, padding: '1px 6px' }}>
+                        by {h.admin_username}
+                      </span>
+                    )}
+                  </div>
+                  {h.metadata?.note && (
+                    <div style={{ fontSize: 11, color: '#555', marginTop: 3, fontStyle: 'italic' }}>"{h.metadata.note}"</div>
+                  )}
+                  <div style={{ fontSize: 11, color: '#333', marginTop: 3 }}>
+                    {Number(h.balance_before).toLocaleString()} → {Number(h.balance_after).toLocaleString()} XU
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', marginLeft: 12, flexShrink: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: Number(h.amount) > 0 ? '#6fcf97' : '#ff6b6b' }}>
+                    {Number(h.amount) > 0 ? '+' : ''}{Number(h.amount).toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#333', marginTop: 2 }}>
+                    {new Date(h.created_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

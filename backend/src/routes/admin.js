@@ -369,6 +369,28 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// GET /api/admin/adjust-history — 20 lần admin_adjust gần nhất
+router.get('/adjust-history', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const { rows } = await query(`
+      SELECT le.id, le.amount, le.balance_before, le.balance_after,
+             le.description, le.metadata, le.created_at,
+             u.username, u.email,
+             adm.username AS admin_username
+      FROM ledger_entries le
+      JOIN users u ON u.id = le.user_id
+      LEFT JOIN users adm ON adm.id = (le.metadata->>'adjustedBy')::uuid
+      WHERE le.type = 'admin_adjust'
+      ORDER BY le.created_at DESC
+      LIMIT $1
+    `, [limit]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/admin/adjust-xu — cộng/trừ XU thủ công qua ledger
 router.post('/adjust-xu', async (req, res) => {
   try {
