@@ -1,6 +1,7 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "bash", "web"]
 [agent]
 expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
 
 [nix]
 channel = "stable-25_05"
@@ -36,3 +37,15 @@ externalPort = 3001
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+PORT = "3001"
+FRONTEND_URL = "http://localhost:5000"
+NODE_ENV = "development"
+MOMO_PARTNER_CODE = "MOMO_TEST"
+MOMO_ACCESS_KEY = "F8BBA842ECF85"
+MOMO_ENDPOINT = "https://test-payment.momo.vn"
+ZALOPAY_APP_ID = "2553"
+ZALOPAY_ENDPOINT = "https://sb-openapi.zalopay.vn"
