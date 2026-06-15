@@ -583,6 +583,174 @@ function ChartsTab({ token }) {
   );
 }
 
+// ─── user management tab ────────────────────────────────────────────────────
+
+const ROLE_COLORS = { admin: '#a29bfe', creator: '#74b9ff', user: '#6fcf97' };
+
+function UserManagementTab({ token, showToast }) {
+  const [users, setUsers]       = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [loading, setLoading]   = useState(false);
+  const [search, setSearch]     = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [offset, setOffset]     = useState(0);
+  const LIMIT = 50;
+
+  // debounce search
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search); setOffset(0); }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const load = useCallback(async (off = 0, q = debouncedSearch) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: LIMIT, offset: off, ...(q ? { search: q } : {}) });
+      const r = await fetch(`/api/admin/users?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      setUsers(d.users || []);
+      setTotal(d.total || 0);
+    } catch { setUsers([]); } finally { setLoading(false); }
+  }, [token, debouncedSearch]);
+
+  useEffect(() => { load(offset); }, [offset, debouncedSearch, load]);
+
+  const changeRole = async (u, newRole) => {
+    const r = await fetch(`/api/admin/users/${u.id}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ role: newRole }),
+    });
+    const d = await r.json();
+    if (d.ok) { showToast(`✅ Đổi role ${u.username} → ${newRole}`); load(offset); }
+    else showToast(`❌ ${d.error}`);
+  };
+
+  const banUser = async (u) => {
+    const reason = prompt(`Lý do ban ${u.username}:`);
+    if (reason === null) return;
+    const r = await fetch(`/api/admin/users/${u.id}/ban`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ reason }),
+    });
+    const d = await r.json();
+    if (d.ok) { showToast(`🚫 Đã ban ${u.username}`); load(offset); }
+    else showToast(`❌ ${d.error}`);
+  };
+
+  const unbanUser = async (u) => {
+    const r = await fetch(`/api/admin/users/${u.id}/unban`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+    const d = await r.json();
+    if (d.ok) { showToast(`✅ Đã gỡ ban ${u.username}`); load(offset); }
+    else showToast(`❌ ${d.error}`);
+  };
+
+  const totalPages = Math.ceil(total / LIMIT);
+  const currentPage = Math.floor(offset / LIMIT) + 1;
+
+  return (
+    <div>
+      {/* toolbar */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          style={{ ...S.search, width: 260 }}
+          placeholder="Tìm username hoặc email..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <span style={{ fontSize: 12, color: '#444' }}>
+          {loading ? 'Đang tải...' : `${total} users`}
+        </span>
+        <button style={{ ...S.refreshBtn, marginLeft: 'auto' }} onClick={() => load(offset)}>↻ Làm mới</button>
+      </div>
+
+      <div style={S.card}>
+        <table style={S.table}>
+          <thead><tr>
+            {['User', 'Role', 'Số dư', 'Đã kiếm', 'Ngày tạo', 'Trạng thái', ''].map(h => (
+              <th key={h} style={S.th}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {!loading && users.length === 0 && (
+              <tr><td colSpan={7} style={{ ...S.td, textAlign: 'center', color: '#333' }}>Không có user nào</td></tr>
+            )}
+            {users.map(u => (
+              <tr key={u.id} style={{ opacity: u.banned_at ? 0.5 : 1 }}>
+                {/* user info */}
+                <td style={S.td}>
+                  <div style={{ fontWeight: 600, color: u.banned_at ? '#555' : '#fff' }}>{u.username}</div>
+                  <div style={{ fontSize: 11, color: '#444' }}>{u.email}</div>
+                </td>
+
+                {/* role selector */}
+                <td style={S.td}>
+                  <select
+                    value={u.role}
+                    onChange={e => changeRole(u, e.target.value)}
+                    style={{
+                      padding: '3px 8px', background: '#13131f', border: `1px solid ${ROLE_COLORS[u.role] || '#444'}40`,
+                      borderRadius: 6, color: ROLE_COLORS[u.role] || '#aaa', fontSize: 12, cursor: 'pointer', outline: 'none',
+                    }}
+                  >
+                    {['user', 'creator', 'admin'].map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </td>
+
+                {/* balances */}
+                <td style={S.td}><span style={{ color: '#6fcf97', fontWeight: 500 }}>{Number(u.balance || 0).toLocaleString()}</span></td>
+                <td style={S.td}><span style={{ color: '#555', fontSize: 12 }}>{Number(u.total_earned || 0).toLocaleString()}</span></td>
+
+                {/* date */}
+                <td style={S.td}>
+                  <span style={{ fontSize: 11, color: '#444' }}>
+                    {new Date(u.created_at).toLocaleDateString('vi-VN')}
+                  </span>
+                </td>
+
+                {/* status */}
+                <td style={S.td}>
+                  {u.banned_at ? (
+                    <div>
+                      <span style={S.badge('failed')}>banned</span>
+                      {u.ban_reason && <div style={{ fontSize: 10, color: '#555', marginTop: 2, maxWidth: 120 }}>{u.ban_reason}</div>}
+                    </div>
+                  ) : (
+                    <span style={S.badge('completed')}>active</span>
+                  )}
+                </td>
+
+                {/* actions */}
+                <td style={S.td}>
+                  {u.banned_at ? (
+                    <button style={{ ...S.approveBtn, fontSize: 11 }} onClick={() => unbanUser(u)}>Gỡ ban</button>
+                  ) : (
+                    <button style={{ ...S.rejectBtn, fontSize: 11 }} onClick={() => banUser(u)}>Ban</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderTop: '1px solid #1a1a28' }}>
+            <button style={S.refreshBtn} disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>← Trước</button>
+            <span style={{ fontSize: 12, color: '#444' }}>Trang {currentPage} / {totalPages}</span>
+            <button style={S.refreshBtn} disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)}>Tiếp →</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── main component ─────────────────────────────────────────────────────────
 
 function DevToolsTab({ token, showToast }) {
@@ -612,8 +780,8 @@ function DevToolsTab({ token, showToast }) {
   };
 
   const fetchUsers = () =>
-    fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch('/api/admin/users?limit=200', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : (d.users || []))).catch(() => {});
 
   useEffect(() => { fetchUsers(); fetchHistory(); }, [token]);
 
@@ -991,6 +1159,7 @@ export default function Admin() {
           ['transactions','≡ Giao dịch'],
           ['charts',      '📊 Biểu đồ'],
           ['kyc',         '🪪 KYC'],
+          ['users',       '👥 Users'],
           ['devtools',    '🔧 Dev Tools'],
         ].map(([k,l])=>(
           <button key={k} style={S.topTab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
@@ -1001,8 +1170,9 @@ export default function Admin() {
       {tab === 'deposits'     && <DepositTab      token={token} showToast={showToast} />}
       {tab === 'transactions' && <TransactionTab  token={token} />}
       {tab === 'charts'       && <ChartsTab       token={token} />}
-      {tab === 'kyc'          && <KycTab          token={token} showToast={showToast} />}
-      {tab === 'devtools'     && <DevToolsTab     token={token} showToast={showToast} />}
+      {tab === 'kyc'          && <KycTab             token={token} showToast={showToast} />}
+      {tab === 'users'        && <UserManagementTab token={token} showToast={showToast} />}
+      {tab === 'devtools'     && <DevToolsTab       token={token} showToast={showToast} />}
 
       {toast && <div style={S.toast}>{toast}</div>}
     </div>

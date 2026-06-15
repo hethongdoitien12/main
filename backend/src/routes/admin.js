@@ -354,16 +354,93 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// GET /api/admin/users — danh sách users + số dư ví
+// GET /api/admin/users — danh sách users + số dư ví (hỗ trợ search + pagination)
 router.get('/users', async (req, res) => {
   try {
+    const limit  = Math.min(parseInt(req.query.limit)  || 50, 200);
+    const offset = parseInt(req.query.offset) || 0;
+    const search = req.query.search?.trim() || '';
+
+    const params = [];
+    let where = '';
+    if (search) {
+      params.push(`%${search}%`);
+      where = `WHERE u.username ILIKE $1 OR u.email ILIKE $1`;
+    }
+
     const { rows } = await query(`
-      SELECT u.id, u.username, u.email, u.role, w.balance
+      SELECT u.id, u.username, u.email, u.role, u.created_at,
+             u.banned_at, u.ban_reason,
+             w.balance, w.total_earned, w.total_spent, w.total_withdrawn
       FROM users u
       LEFT JOIN wallets w ON w.user_id = u.id
-      ORDER BY u.username ASC
-    `);
-    res.json(rows);
+      ${where}
+      ORDER BY u.created_at DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `, [...params, limit, offset]);
+
+    const { rows: [{ total }] } = await query(`
+      SELECT COUNT(*)::int AS total FROM users u ${where}
+    `, params);
+
+    res.json({ users: rows, total, limit, offset });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/admin/users/:id/role — đổi role
+router.patch('/users/:id/role', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const VALID = ['user', 'creator', 'admin'];
+    if (!VALID.includes(role)) return res.status(400).json({ error: 'Role không hợp lệ' });
+    if (id === req.user.id) return res.status(400).json({ error: 'Không thể đổi role của chính mình' });
+
+    const { rows: [u] } = await query(
+      `UPDATE users SET role=$1, updated_at=NOW() WHERE id=$2 RETURNING id, username, email, role`,
+      [role, id]
+    );
+    if (!u) return res.status(404).json({ error: 'Không tìm thấy user' });
+    res.json({ ok: true, user: u });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users/:id/ban — ban user
+router.post('/users/:id/ban', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    if (id === req.user.id) return res.status(400).json({ error: 'Không thể ban chính mình' });
+
+    const { rows: [u] } = await query(
+      `UPDATE users SET banned_at=NOW(), ban_reason=$1, updated_at=NOW()
+       WHERE id=$2 AND banned_at IS NULL
+       RETURNING id, username, email, banned_at`,
+      [reason || null, id]
+    );
+    if (!u) return res.status(404).json({ error: 'Không tìm thấy hoặc đã bị ban' });
+    res.json({ ok: true, user: u });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users/:id/unban — gỡ ban
+router.post('/users/:id/unban', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows: [u] } = await query(
+      `UPDATE users SET banned_at=NULL, ban_reason=NULL, updated_at=NOW()
+       WHERE id=$1 AND banned_at IS NOT NULL
+       RETURNING id, username, email`,
+      [id]
+    );
+    if (!u) return res.status(404).json({ error: 'Không tìm thấy hoặc chưa bị ban' });
+    res.json({ ok: true, user: u });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
