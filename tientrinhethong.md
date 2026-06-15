@@ -85,9 +85,10 @@
 
 ### ⏰ Cronjob / Scheduler
 
-- [ ] **XU expiry job** — Chạy hàng ngày, expire XU loại `free` sau 90 ngày (tạo `ledger_entry` type `expire`)
-- [ ] **Stale deposit cleanup** — Hủy deposit `pending` quá 30 phút chưa thanh toán
-- [ ] **Thư viện gợi ý**: `node-cron` (npm install node-cron)
+- [x] **XU expiry job** — `node-cron` chạy 01:00 hằng ngày (GMT+7); bảng `xu_expiry_batches` theo dõi từng lô; tạo `ledger_entry` type `expire`; notify user; admin có thể trigger thủ công qua `POST /api/admin/run-expire`
+- [x] **Stale deposit cleanup** — Cron mỗi 30 phút; hủy deposit `pending` quá 30 phút; admin trigger thủ công qua `POST /api/admin/run-cleanup`
+- [x] **Backend: Expiry info API** — `GET /api/wallet/expiry-info` trả về lô XU sắp hết hạn cho user
+- [x] **Admin: Expiry dashboard** — `GET /api/admin/expiry-batches` + summary (active_count, expiring_soon, XU sắp mất)
 
 ### 🔗 Referral System
 

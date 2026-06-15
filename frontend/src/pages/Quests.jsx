@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
 
+const daysUntil = (dateStr) => {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  return Math.ceil(diff / 86400000);
+};
+
 const CAT_COLOR = { game:'#a29bfe', music:'#6fcf97', social:'#fdcb6e', content:'#fd79a8', referral:'#74b9ff' };
 const TYPE_LABEL = { daily:'Hàng ngày', weekly:'Hàng tuần', one_time:'Một lần', event:'Sự kiện' };
 
@@ -27,11 +32,17 @@ const S = {
 export default function Quests() {
   const { token, refreshWallet } = useAuth();
   const [quests, setQuests] = useState([]);
+  const [expiryBatches, setExpiryBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const load = () => api.quests.list(token).then(setQuests).catch(()=>{}).finally(()=>setLoading(false));
+  const load = () => Promise.all([
+    api.quests.list(token).then(setQuests).catch(()=>{}),
+    api.wallet.transactions({ type: 'earn_quest', limit: 10 }, token)
+      .then(() => {})
+      .catch(() => {}),
+  ]).finally(() => setLoading(false));
 
   useEffect(() => { if (token) load(); }, [token]);
 
@@ -81,7 +92,7 @@ export default function Quests() {
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <div>
                   <div style={S.reward}>+{Number(q.reward_xu).toLocaleString()} XU</div>
-                  <div style={S.rewardSub}>phần thưởng</div>
+                  <div style={S.rewardSub}>phần thưởng • hết hạn sau 90 ngày</div>
                 </div>
                 {!isClaimed && (
                   <button style={S.claimBtn(!isDone || claiming === q.id)}

@@ -53,4 +53,52 @@ router.get('/transactions', async (req, res) => {
   }
 });
 
+// GET /api/admin/expiry-batches — xem tất cả lô XU sắp/đã hết hạn
+router.get('/expiry-batches', async (req, res) => {
+  try {
+    const { status = 'active', limit = 100 } = req.query;
+    const { rows } = await query(`
+      SELECT xb.*, u.username, u.email
+      FROM xu_expiry_batches xb
+      JOIN users u ON u.id = xb.user_id
+      WHERE ($1 = 'all' OR xb.status = $1)
+      ORDER BY xb.expires_at ASC
+      LIMIT $2
+    `, [status, Math.min(parseInt(limit), 500)]);
+    const { rows: [summary] } = await query(`
+      SELECT
+        COUNT(*) FILTER (WHERE status='active') as active_count,
+        COALESCE(SUM(remaining_xu) FILTER (WHERE status='active'), 0) as total_active_xu,
+        COUNT(*) FILTER (WHERE status='active' AND expires_at <= NOW() + INTERVAL '7 days') as expiring_soon,
+        COALESCE(SUM(remaining_xu) FILTER (WHERE status='active' AND expires_at <= NOW() + INTERVAL '7 days'), 0) as expiring_soon_xu
+      FROM xu_expiry_batches
+    `);
+    res.json({ batches: rows, summary });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/run-expire — kích hoạt job expire thủ công
+router.post('/run-expire', async (req, res) => {
+  try {
+    const { expirePromotionalXu } = await import('../services/cron.js');
+    const result = await expirePromotionalXu();
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/run-cleanup — kích hoạt dọn deposit thủ công
+router.post('/run-cleanup', async (req, res) => {
+  try {
+    const { cleanupPendingDeposits } = await import('../services/cron.js');
+    const result = await cleanupPendingDeposits();
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

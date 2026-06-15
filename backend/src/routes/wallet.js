@@ -212,6 +212,30 @@ router.post('/zalopay/ipn', async (req, res) => {
   }
 });
 
+// ─── GET /api/wallet/expiry-info ─────────────────────────────────────────────
+// Trả về danh sách lô XU khuyến mãi của user sắp hết hạn
+
+router.get('/expiry-info', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await query(`
+      SELECT id, source_type, amount_xu, remaining_xu, granted_at, expires_at,
+             EXTRACT(DAY FROM (expires_at - NOW())) as days_left
+      FROM xu_expiry_batches
+      WHERE user_id = $1 AND status = 'active'
+      ORDER BY expires_at ASC
+      LIMIT 20
+    `, [req.user.id]);
+
+    const totalExpiring7d = rows
+      .filter(r => parseFloat(r.days_left) <= 7)
+      .reduce((s, r) => s + parseInt(r.remaining_xu), 0);
+
+    res.json({ batches: rows, total_expiring_7d: totalExpiring7d });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── GET /api/wallet/transactions ────────────────────────────────────────────
 
 router.get('/transactions', authMiddleware, async (req, res) => {

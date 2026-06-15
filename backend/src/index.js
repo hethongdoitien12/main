@@ -9,6 +9,7 @@ import questRoutes from './routes/quests.js';
 import withdrawalRoutes from './routes/withdrawals.js';
 import adminRoutes from './routes/admin.js';
 import notificationRoutes from './routes/notifications.js';
+import { startCronJobs } from './services/cron.js';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.listen(PORT, () => {
   console.log(`💰 Wallet: /api/wallet/balance | /api/wallet/deposit/create`);
   console.log(`🎫 Events: /api/events`);
   console.log(`🏆 Quests: /api/quests\n`);
+  startCronJobs();
 });
 
 export default app;

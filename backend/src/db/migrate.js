@@ -157,6 +157,23 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, read) WHERE read = false;
 
+-- XU Expiry Batches — theo dõi từng lô XU khuyến mãi sẽ hết hạn
+CREATE TABLE IF NOT EXISTS xu_expiry_batches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source_entry_id UUID REFERENCES ledger_entries(id),
+  source_type VARCHAR(50) NOT NULL,   -- 'quest', 'referral', 'bonus'
+  amount_xu BIGINT NOT NULL,
+  remaining_xu BIGINT NOT NULL,       -- số XU còn lại chưa expire
+  granted_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active','expired','consumed')),
+  expired_at TIMESTAMPTZ,
+  expire_entry_id UUID REFERENCES ledger_entries(id)
+);
+CREATE INDEX IF NOT EXISTS idx_expiry_user ON xu_expiry_batches(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_expiry_date ON xu_expiry_batches(expires_at) WHERE status = 'active';
+
 -- Platform stats (aggregate, updated via triggers or cron)
 CREATE TABLE IF NOT EXISTS platform_stats (
   id SERIAL PRIMARY KEY,

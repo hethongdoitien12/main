@@ -208,6 +208,15 @@ export const LedgerService = {
         description: `Hoàn thành quest: ${uq.title} (+${uq.reward_xu} XU)`
       });
 
+      // Ghi vào expiry batch — XU quest expire sau 90 ngày
+      await client.query(
+        `INSERT INTO xu_expiry_batches
+           (user_id, source_entry_id, source_type, amount_xu, remaining_xu, expires_at)
+         VALUES ($1, $2, 'quest', $3, $3, NOW() + INTERVAL '90 days')
+         ON CONFLICT DO NOTHING`,
+        [userId, entry?.id, uq.reward_xu]
+      );
+
       await client.query('COMMIT');
       return { entry, rewardXu: uq.reward_xu };
     } catch (err) {
