@@ -63,7 +63,7 @@
 
 ### 🚀 ƯU TIÊN CAO — Cần để chạy được
 
-- [ ] **Workflow config** — Cấu hình Replit chạy cả backend (port 3001) + frontend (port 5173) cùng lúc khi mở project
+- [x] **Workflow config** — Cấu hình Replit chạy cả backend (port 3001) + frontend (port 5000) cùng lúc khi mở project
 - [ ] **`.env.example`** — Tạo file mẫu liệt kê đủ biến: `DATABASE_URL`, `JWT_SECRET`, `MOMO_*`, `ZALOPAY_*`, `BACKEND_URL`, `FRONTEND_URL`
 - [ ] **MoMo IPN Webhook** (`POST /api/wallet/deposit/momo-ipn`) — Xử lý callback từ MoMo khi thanh toán xong, tự động cộng XU
 - [ ] **ZaloPay IPN Webhook** (`POST /api/wallet/deposit/zalopay-ipn`) — Tương tự cho ZaloPay
