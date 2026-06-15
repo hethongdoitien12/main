@@ -18,6 +18,17 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin ngân hàng' });
     }
 
+    // KYC check: rút > 1,000,000 XU cần KYC verified
+    if (amount_xu > 1_000_000) {
+      const { rows: [u] } = await query('SELECT kyc_status FROM users WHERE id=$1', [req.user.id]);
+      if (u?.kyc_status !== 'verified') {
+        return res.status(403).json({
+          error: 'Rút trên 1,000,000 XU yêu cầu xác minh KYC. Vào Ví → Xác minh danh tính để nộp hồ sơ.',
+          kyc_required: true,
+        });
+      }
+    }
+
     const FEE_RATE   = 0.1;
     const fee_xu     = Math.floor(amount_xu * FEE_RATE);
     const net_xu     = amount_xu - fee_xu;

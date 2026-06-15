@@ -10,6 +10,8 @@ import Admin from './pages/Admin.jsx';
 import Gifting from './pages/Gifting.jsx';
 import PaymentResult from './pages/PaymentResult.jsx';
 import Referral from './pages/Referral.jsx';
+import Profile from './pages/Profile.jsx';
+import CreatorDashboard from './pages/CreatorDashboard.jsx';
 import Layout from './components/Layout.jsx';
 
 const styles = `
@@ -54,6 +56,8 @@ export default function App() {
             <Route path="history" element={<History />} />
             <Route path="gifting" element={<Gifting />} />
             <Route path="referral" element={<Referral />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="creator" element={<CreatorDashboard />} />
             <Route path="admin" element={<Admin />} />
           </Route>
         </Routes>

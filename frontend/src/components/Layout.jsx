@@ -58,6 +58,8 @@ const NAV = [
   { to: '/gifting', label: 'Tip & Gift', icon: '♥' },
   { to: '/history', label: 'Lịch sử', icon: '≡' },
   { to: '/referral', label: 'Giới thiệu', icon: '◇' },
+  { to: '/profile', label: 'Hồ sơ', icon: '◉' },
+  { to: '/creator', label: 'Creator', icon: '★', creatorOnly: true },
   { to: '/admin', label: 'Admin', icon: '⊛', adminOnly: true },
 ];
 
@@ -73,7 +75,10 @@ export default function Layout() {
           <span style={S.logoText}>XU Economy</span>
         </div>
         <nav style={S.nav}>
-          {NAV.filter(n => !n.adminOnly || user?.role === 'admin').map(({ to, label, icon, exact }) => (
+          {NAV.filter(n =>
+            (!n.adminOnly   || user?.role === 'admin') &&
+            (!n.creatorOnly || user?.role === 'creator' || user?.role === 'admin')
+          ).map(({ to, label, icon, exact }) => (
             <NavLink key={to} to={to} end={exact} style={({ isActive }) => S.navItem(isActive)}>
               <span style={{ fontSize: 16 }}>{icon}</span> {label}
             </NavLink>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
 
@@ -38,6 +38,38 @@ export default function Wallet() {
   const [tab, setTab]       = useState('deposit');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg]       = useState(null);
+
+  // KYC state
+  const [kyc, setKyc]         = useState(null);
+  const [kycForm, setKycForm] = useState({ fullName: '', idNumber: '' });
+  const [kycLoading, setKycLoading] = useState(false);
+  const [kycMsg, setKycMsg]   = useState(null);
+
+  const loadKyc = useCallback(async () => {
+    if (!token) return;
+    try {
+      const r = await fetch('/api/user/kyc', { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setKyc(await r.json());
+    } catch {}
+  }, [token]);
+
+  useEffect(() => { loadKyc(); }, [loadKyc]);
+
+  const submitKyc = async () => {
+    if (!kycForm.fullName.trim() || !kycForm.idNumber.trim()) return;
+    setKycLoading(true); setKycMsg(null);
+    try {
+      const r = await fetch('/api/user/kyc/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ full_name: kycForm.fullName, id_number: kycForm.idNumber }),
+      });
+      const d = await r.json();
+      if (d.ok) { setKycMsg({ type: 'success', text: '✅ Hồ sơ KYC đã nộp! Admin sẽ xem xét trong 1-2 ngày.' }); loadKyc(); }
+      else setKycMsg({ type: 'error', text: d.error });
+    } catch (e) { setKycMsg({ type: 'error', text: e.message }); }
+    finally { setKycLoading(false); }
+  };
 
   // Deposit state
   const [amount, setAmount]   = useState('');
@@ -156,8 +188,26 @@ export default function Wallet() {
         </div>
       </div>
 
+      {/* KYC banner — hiện khi balance > 800k và chưa verified */}
+      {wallet?.balance > 800_000 && kyc && kyc.kyc_status !== 'verified' && (
+        <div style={{ background: kyc.kyc_status === 'pending' ? '#6C5CE715' : '#fdcb6e12', border: `1px solid ${kyc.kyc_status === 'pending' ? '#6C5CE740' : '#fdcb6e40'}`, borderRadius: 10, padding: '12px 16px', maxWidth: 500, marginBottom: '1.25rem', fontSize: 13 }}>
+          {kyc.kyc_status === 'pending' ? (
+            <div style={{ color: '#a29bfe' }}>
+              🔍 <strong>KYC đang chờ xét duyệt</strong> — Admin sẽ xem xét hồ sơ của bạn trong 1–2 ngày làm việc.
+            </div>
+          ) : (
+            <div style={{ color: '#fdcb6e' }}>
+              ⚠️ <strong>Xác minh danh tính</strong> — Số dư của bạn trên 800,000 XU. Để rút trên 1,000,000 XU cần KYC.
+              <button onClick={() => switchTab('kyc')} style={{ marginLeft: 12, padding: '3px 10px', background: '#fdcb6e20', border: '1px solid #fdcb6e60', borderRadius: 6, color: '#fdcb6e', fontSize: 12, cursor: 'pointer' }}>
+                Xác minh ngay →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={S.tabs}>
-        {[['deposit','💳 Nạp XU'],['withdraw','🏦 Rút XU'],['tip','💝 Gửi Tip'],['history','📋 Lịch sử']].map(([k, l]) => (
+        {[['deposit','💳 Nạp XU'],['withdraw','🏦 Rút XU'],['tip','💝 Gửi Tip'],['history','📋 Lịch sử'],['kyc','🪪 KYC']].map(([k, l]) => (
           <button key={k} style={S.tab(tab === k)} onClick={() => switchTab(k)}>{l}</button>
         ))}
       </div>
@@ -304,6 +354,48 @@ export default function Wallet() {
               {loading ? 'Đang gửi...' : '💝 Gửi Tip'}
             </button>
           </>
+        )}
+
+        {/* ── TAB: KYC ── */}
+        {tab === 'kyc' && (
+          <div>
+            {kycMsg && <div style={kycMsg.type === 'success' ? S.success : S.err}>{kycMsg.text}</div>}
+
+            {kyc?.kyc_status === 'verified' ? (
+              <div style={{ ...S.success, textAlign: 'center', padding: '1.5rem' }}>
+                ✅ <strong>Đã xác minh KYC</strong><br />
+                <span style={{ fontSize: 12, color: '#555', marginTop: 4, display: 'block' }}>Bạn có thể rút không giới hạn</span>
+              </div>
+            ) : kyc?.kyc_status === 'pending' ? (
+              <div style={{ background: '#6C5CE715', border: '1px solid #6C5CE740', borderRadius: 8, padding: '1.25rem', textAlign: 'center' }}>
+                🔍 <strong style={{ color: '#a29bfe' }}>Đang chờ xét duyệt</strong><br />
+                <span style={{ fontSize: 12, color: '#555', marginTop: 4, display: 'block' }}>
+                  Họ tên: <strong style={{ color: '#ccc' }}>{kyc.kyc_full_name}</strong> · 
+                  Nộp lúc: {kyc.kyc_submitted_at ? new Date(kyc.kyc_submitted_at).toLocaleString('vi-VN') : '—'}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div style={{ ...S.info, marginBottom: '1.25rem', color: '#aaa' }}>
+                  📋 Xác minh danh tính để rút trên <strong style={{ color: '#fdcb6e' }}>1,000,000 XU</strong>. Thông tin chỉ dùng để xác minh, không chia sẻ bên thứ ba.
+                </div>
+                <label style={S.label}>Họ và tên (theo CCCD/CMND)</label>
+                <input style={S.input} placeholder="NGUYEN VAN A"
+                  value={kycForm.fullName}
+                  onChange={e => setKycForm(f => ({ ...f, fullName: e.target.value }))} />
+                <label style={S.label}>Số CCCD/CMND (9-12 chữ số)</label>
+                <input style={S.input} placeholder="012345678901" maxLength={12}
+                  value={kycForm.idNumber}
+                  onChange={e => setKycForm(f => ({ ...f, idNumber: e.target.value.replace(/\D/g, '') }))} />
+                <button
+                  style={S.btn(!kycForm.fullName.trim() || kycForm.idNumber.length < 9 || kycLoading)}
+                  disabled={!kycForm.fullName.trim() || kycForm.idNumber.length < 9 || kycLoading}
+                  onClick={submitKyc}>
+                  {kycLoading ? 'Đang gửi...' : '🪪 Nộp hồ sơ KYC'}
+                </button>
+              </>
+            )}
+          </div>
         )}
 
         {/* ── TAB: LỊCH SỬ ── */}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // ─── styles ────────────────────────────────────────────────────────────────
 const S = {
@@ -182,7 +183,7 @@ function WithdrawalTab({ token, showToast }) {
   );
 }
 
-function DepositTab({ token }) {
+function DepositTab({ token, showToast }) {
   const [deposits, setDeposits]   = useState([]);
   const [loading, setLoading]     = useState(false);
   const [search, setSearch]       = useState('');
@@ -191,7 +192,7 @@ function DepositTab({ token }) {
   const fetch_ = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch('/api/admin/deposits', { headers:{ Authorization:`Bearer ${token}` } });
+      const r = await fetch('/api/admin/deposits?limit=200', { headers:{ Authorization:`Bearer ${token}` } });
       if (r.ok) { const d = await r.json(); setDeposits(Array.isArray(d) ? d : []); }
       else setDeposits([]);
     } catch { setDeposits([]); } finally { setLoading(false); }
@@ -199,19 +200,56 @@ function DepositTab({ token }) {
 
   useEffect(() => { fetch_(); }, [fetch_]);
 
+  const approve = async (id, username, amountVnd) => {
+    const notes = prompt(`Ghi chú duyệt deposit cho ${username} (${fmtVnd(amountVnd)}):`);
+    if (notes === null) return;
+    const r = await fetch(`/api/admin/deposits/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ notes }),
+    });
+    const d = await r.json();
+    if (d.ok) { showToast(`✅ Đã duyệt deposit cho ${username}`); fetch_(); }
+    else showToast(`❌ Lỗi: ${d.error}`);
+  };
+
+  const reject = async (id, username) => {
+    const reason = prompt(`Lý do từ chối deposit của ${username}:`);
+    if (!reason) return;
+    const r = await fetch(`/api/admin/deposits/${id}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ reason }),
+    });
+    const d = await r.json();
+    if (d.ok) { showToast(`↩️ Đã từ chối deposit của ${username}`); fetch_(); }
+    else showToast(`❌ Lỗi: ${d.error}`);
+  };
+
   const filtered = deposits.filter(d => {
     const matchStatus = statusFilter === 'all' || d.status === statusFilter;
     const matchSearch = !search || d.username?.toLowerCase().includes(search.toLowerCase()) || d.email?.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
 
+  const pendingCount = deposits.filter(d => d.status === 'pending').length;
   const GW_COLORS = { momo:'#d63031', zalopay:'#0984e3', vnpay:'#e17055', bank_transfer:'#00b894' };
 
   return (
     <>
+      {pendingCount > 0 && (
+        <div style={{ background:'#fdcb6e15', border:'1px solid #fdcb6e40', borderRadius:10, padding:'10px 16px', marginBottom:16, fontSize:13, color:'#fdcb6e', display:'flex', alignItems:'center', gap:8 }}>
+          ⚠️ Có <strong>{pendingCount}</strong> deposit đang chờ duyệt thủ công
+          <button style={{ marginLeft:'auto', ...S.refreshBtn, color:'#fdcb6e', border:'1px solid #fdcb6e40' }} onClick={() => setStatus('pending')}>
+            Xem ngay →
+          </button>
+        </div>
+      )}
       <div style={S.subTabs}>
-        {[['all','Tất cả'],['pending','Chờ'],['completed','Hoàn tất'],['failed','Thất bại'],['expired','Hết hạn']].map(([k,l])=>(
-          <button key={k} style={S.subTab(statusFilter===k)} onClick={()=>setStatus(k)}>{l}</button>
+        {[['all','Tất cả'],['pending','Chờ duyệt'],['completed','Hoàn tất'],['failed','Thất bại'],['expired','Hết hạn']].map(([k,l])=>(
+          <button key={k} style={S.subTab(statusFilter===k)} onClick={()=>setStatus(k)}>
+            {l}{k==='pending' && pendingCount > 0 ? ` (${pendingCount})` : ''}
+          </button>
         ))}
         <button style={{...S.refreshBtn, marginLeft:'auto'}} onClick={fetch_}>↻ Làm mới</button>
       </div>
@@ -225,7 +263,7 @@ function DepositTab({ token }) {
         ) : (
           <table style={S.table}>
             <thead><tr>
-              {['User','Gateway','Số VNĐ','Số XU','Trạng thái','Thời gian','Ref'].map(h=>(
+              {['User','Gateway','Số VNĐ','Số XU','Trạng thái','Thời gian','Ref',''].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
@@ -246,17 +284,20 @@ function DepositTab({ token }) {
                   <td style={S.td}><span style={S.badge(d.status)}>{d.status}</span></td>
                   <td style={S.td}><span style={{fontSize:12,color:'#555'}}>{fmtDate(d.created_at)}</span></td>
                   <td style={S.td}><code style={{fontSize:10,color:'#444'}}>{(d.payment_ref||d.gateway_ref||'—').slice(0,20)}</code></td>
+                  <td style={S.td}>
+                    {d.status === 'pending' && (
+                      <>
+                        <button style={S.approveBtn} onClick={()=>approve(d.id, d.username, d.amount_vnd||d.vnd_amount)}>Duyệt</button>
+                        <button style={S.rejectBtn} onClick={()=>reject(d.id, d.username)}>Từ chối</button>
+                      </>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-      {deposits.length === 0 && !loading && (
-        <div style={{...S.infoBox, marginTop:12}}>
-          ℹ️ Cần thêm route <code>GET /api/admin/deposits</code> trong backend để xem dữ liệu thực tế.
-        </div>
-      )}
     </>
   );
 }
@@ -347,6 +388,201 @@ function TransactionTab({ token }) {
   );
 }
 
+// ─── KYC tab ─────────────────────────────────────────────────────────────────
+
+function KycTab({ token, showToast }) {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/kyc/pending', { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      setList(Array.isArray(d) ? d : []);
+    } catch { setList([]); } finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const approve = async (userId, username) => {
+    const r = await fetch(`/api/admin/kyc/${userId}/approve`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }
+    });
+    const d = await r.json();
+    if (d.ok) { showToast(`✅ Đã duyệt KYC cho ${username}`); load(); }
+    else showToast(`❌ ${d.error}`);
+  };
+
+  const reject = async (userId, username) => {
+    const reason = prompt(`Lý do từ chối KYC của ${username}:`);
+    if (!reason) return;
+    const r = await fetch(`/api/admin/kyc/${userId}/reject`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ reason }),
+    });
+    const d = await r.json();
+    if (d.ok) { showToast(`↩️ Đã từ chối KYC của ${username}`); load(); }
+    else showToast(`❌ ${d.error}`);
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: '#aaa' }}>
+          {list.length > 0 ? <><strong style={{ color: '#fdcb6e' }}>{list.length}</strong> hồ sơ đang chờ xét duyệt</> : 'Không có hồ sơ KYC nào đang chờ'}
+        </div>
+        <button style={S.refreshBtn} onClick={load}>↻ Làm mới</button>
+      </div>
+
+      {loading && <div style={S.empty}>Đang tải...</div>}
+
+      {!loading && list.length === 0 && (
+        <div style={{ ...S.card, ...S.empty }}>Chưa có hồ sơ KYC nào chờ duyệt 🎉</div>
+      )}
+
+      {!loading && list.length > 0 && (
+        <div style={S.card}>
+          <table style={S.table}>
+            <thead><tr>
+              {['User','Email','Họ tên','CCCD/CMND','Nộp lúc','Role',''].map(h => (
+                <th key={h} style={S.th}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {list.map(u => (
+                <tr key={u.id}>
+                  <td style={S.td}><div style={{ fontWeight: 600, color: '#fff' }}>{u.username}</div></td>
+                  <td style={S.td}><div style={{ fontSize: 12, color: '#666' }}>{u.email}</div></td>
+                  <td style={S.td}><div style={{ color: '#ccc' }}>{u.kyc_full_name || '—'}</div></td>
+                  <td style={S.td}><code style={{ fontSize: 12, color: '#888' }}>{u.kyc_id_number || '—'}</code></td>
+                  <td style={S.td}><div style={{ fontSize: 12, color: '#555' }}>{fmtDate(u.kyc_submitted_at)}</div></td>
+                  <td style={S.td}><span style={S.badge(u.role)}>{u.role}</span></td>
+                  <td style={S.td}>
+                    <button style={S.approveBtn} onClick={() => approve(u.id, u.username)}>Duyệt</button>
+                    <button style={S.rejectBtn} onClick={() => reject(u.id, u.username)}>Từ chối</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── charts tab ─────────────────────────────────────────────────────────────
+
+function ChartsTab({ token }) {
+  const [data, setData]     = useState(null);
+  const [days, setDays]     = useState(30);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async (d) => {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/admin/chart-data?days=${d}`, { headers: { Authorization: `Bearer ${token}` } });
+      setData(await r.json());
+    } catch {} finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { load(days); }, [days, load]);
+
+  const exportCSV = (type) => {
+    const sep = type === 'transactions' ? `days=${days}&token=${token}` : `token=${token}`;
+    window.open(`/api/admin/export/${type}?${sep}`, '_blank');
+  };
+
+  // Build merged dataset for 30/7 days
+  const chartData = data ? (() => {
+    const n = data.days;
+    return Array.from({ length: n }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (n - 1 - i));
+      const key = d.toISOString().slice(0, 10);
+      const rev = data.revenue.find(r => r.date?.slice(0, 10) === key);
+      const usr = data.newUsers.find(u => u.date?.slice(0, 10) === key);
+      return {
+        date: d.toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' }),
+        'Doanh thu (nghìn đ)': rev ? Math.round(rev.vnd_deposited / 1000) : 0,
+        'User mới': usr ? usr.count : 0,
+      };
+    });
+  })() : [];
+
+  return (
+    <div>
+      {/* Export + filter toolbar */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {[7, 30, 90].map(d => (
+            <button key={d} onClick={() => setDays(d)}
+              style={{ ...S.refreshBtn, background: days === d ? '#1e1e2e' : 'transparent', color: days === d ? '#a29bfe' : '#555', border: `1px solid ${days === d ? '#6C5CE7' : '#1e1e2e'}` }}>
+              {d} ngày
+            </button>
+          ))}
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <button onClick={() => exportCSV('transactions')} style={{ ...S.refreshBtn, color: '#6fcf97', border: '1px solid #6fcf9740' }}>
+            ↓ Export giao dịch CSV
+          </button>
+          <button onClick={() => exportCSV('users')} style={{ ...S.refreshBtn, color: '#74b9ff', border: '1px solid #74b9ff40' }}>
+            ↓ Export users CSV
+          </button>
+        </div>
+      </div>
+
+      {loading && <div style={{ color: '#555', padding: '2rem', textAlign: 'center' }}>Đang tải...</div>}
+
+      {!loading && chartData.length > 0 && (
+        <>
+          {/* Revenue chart */}
+          <div style={{ ...S.card, padding: '1.5rem', marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#aaa', marginBottom: '1rem' }}>Doanh thu (VNĐ) — {days} ngày</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#6C5CE7" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#6C5CE7" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1a1a28" />
+                <XAxis dataKey="date" tick={{ fill: '#444', fontSize: 11 }} tickLine={false} axisLine={false}
+                  interval={Math.floor(chartData.length / 6)} />
+                <YAxis tick={{ fill: '#444', fontSize: 11 }} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ background: '#13131f', border: '1px solid #2e2e44', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: '#888' }} itemStyle={{ color: '#a29bfe' }} />
+                <Area type="monotone" dataKey="Doanh thu (nghìn đ)" stroke="#6C5CE7" fill="url(#revGrad)" strokeWidth={2} dot={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* New users chart */}
+          <div style={{ ...S.card, padding: '1.5rem' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#aaa', marginBottom: '1rem' }}>User mới đăng ký — {days} ngày</div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1a1a28" />
+                <XAxis dataKey="date" tick={{ fill: '#444', fontSize: 11 }} tickLine={false} axisLine={false}
+                  interval={Math.floor(chartData.length / 6)} />
+                <YAxis tick={{ fill: '#444', fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: '#13131f', border: '1px solid #2e2e44', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: '#888' }} itemStyle={{ color: '#74b9ff' }} />
+                <Bar dataKey="User mới" fill="#74b9ff" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+
+      {!loading && chartData.length === 0 && (
+        <div style={{ ...S.card, padding: '3rem', textAlign: 'center', color: '#333' }}>Chưa có dữ liệu trong khoảng thời gian này</div>
+      )}
+    </div>
+  );
+}
+
 // ─── main component ─────────────────────────────────────────────────────────
 
 export default function Admin() {
@@ -389,15 +625,19 @@ export default function Admin() {
         {[
           ['withdrawals', '↑ Rút tiền'],
           ['deposits',    '↓ Nạp tiền'],
-          ['transactions','≡ Tất cả giao dịch'],
+          ['transactions','≡ Giao dịch'],
+          ['charts',      '📊 Biểu đồ'],
+          ['kyc',         '🪪 KYC'],
         ].map(([k,l])=>(
           <button key={k} style={S.topTab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
 
       {tab === 'withdrawals'  && <WithdrawalTab   token={token} showToast={showToast} />}
-      {tab === 'deposits'     && <DepositTab      token={token} />}
+      {tab === 'deposits'     && <DepositTab      token={token} showToast={showToast} />}
       {tab === 'transactions' && <TransactionTab  token={token} />}
+      {tab === 'charts'       && <ChartsTab       token={token} />}
+      {tab === 'kyc'          && <KycTab          token={token} showToast={showToast} />}
 
       {toast && <div style={S.toast}>{toast}</div>}
     </div>

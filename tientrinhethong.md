@@ -34,13 +34,13 @@
 | Cronjob / Scheduler | ✅ Xong |
 | Notification System | ✅ Xong |
 | Referral System | ✅ Xong |
-| Real-time SSE | ❌ Chưa |
-| Trang Profile | ❌ Chưa |
-| Creator Dashboard | ❌ Chưa |
-| Admin: Charts + CSV | ❌ Chưa |
-| Admin: Approve Deposit | ❌ Chưa |
-| KYC Placeholder | ❌ Chưa |
-| Deploy | ❌ Chưa |
+| Real-time SSE | ✅ Xong |
+| Trang Profile | ✅ Xong |
+| Creator Dashboard | ✅ Xong |
+| Admin: Charts + CSV | ✅ Xong |
+| Admin: Approve Deposit | ✅ Xong |
+| KYC Placeholder | ✅ Xong |
+| Deploy | 🔄 Sẵn sàng |
 
 ---
 
@@ -49,56 +49,56 @@
 ### ✅ TASK 1 — Real-time SSE (Live gift feed + Balance auto-refresh)
 - [x] **Backend: SSE endpoint** `GET /api/stream` — giữ kết nối, push event khi có tip/gift mới
 - [x] **Backend: Gửi event SSE** khi `tip_received` — notif qua SSE thay vì chỉ polling
-- [ ] **Frontend: Live gift feed** trong `Gifting.jsx` — connect SSE, hiển thị gift cuộn realtime
-- [ ] **Frontend: Balance auto-refresh** — lắng nghe SSE event `balance_update`, cập nhật số dư không cần F5
+- [x] **Frontend: Live gift feed** trong `Gifting.jsx` — connect SSE, hiển thị gift cuộn realtime
+- [x] **Frontend: Balance auto-refresh** — lắng nghe SSE event `balance_update`, cập nhật số dư không cần F5
 
 > ⚠️ Chú ý: Replit proxy không hỗ trợ tốt SSE long-lived connection — dùng `EventSource` với `retry` tự động, set header `X-Accel-Buffering: no` ở backend.
 
 ---
 
 ### ✅ TASK 2 — Trang Profile (`/profile`)
-- [ ] **Backend: `GET /api/user/profile`** — trả về username, email, avatar_url, role, created_at, referral stats
-- [ ] **Backend: `PATCH /api/user/profile`** — cập nhật username, avatar_url (validate unique username)
-- [ ] **Frontend: Page `Profile.jsx`** — form đổi username, ô nhập avatar URL, hiển thị stats cá nhân (tổng xu đã kiếm, đã tiêu, ngày tham gia)
-- [ ] **Frontend: Thêm link `/profile`** vào sidebar `Layout.jsx`
+- [x] **Backend: `GET /api/user/profile`** — trả về username, email, avatar_url, role, created_at, referral stats
+- [x] **Backend: `PATCH /api/user/profile`** — cập nhật username, avatar_url (validate unique username)
+- [x] **Frontend: Page `Profile.jsx`** — form đổi username, ô nhập avatar URL, hiển thị stats cá nhân (tổng xu đã kiếm, đã tiêu, ngày tham gia)
+- [x] **Frontend: Thêm link `/profile`** vào sidebar `Layout.jsx`
 
 ---
 
 ### ✅ TASK 3 — Creator Dashboard (`/creator`)
-- [ ] **Backend: `GET /api/creator/stats`** — tổng xu nhận, top 10 người tip, tip theo ngày (7 ngày gần nhất), withdrawal history
-- [ ] **Frontend: Page `CreatorDashboard.jsx`** — chỉ hiển thị nếu `role === 'creator'`, bảng top tippers, biểu đồ thu nhập 7 ngày, nút rút tiền nhanh
-- [ ] **Frontend: Thêm link `/creator`** vào sidebar (chỉ hiện với creator)
+- [x] **Backend: `GET /api/creator/stats`** — tổng xu nhận, top 10 người tip, tip theo ngày (7 ngày gần nhất), withdrawal history
+- [x] **Frontend: Page `CreatorDashboard.jsx`** — chỉ hiển thị nếu `role === 'creator'`, bảng top tippers, biểu đồ thu nhập 7 ngày, nút rút tiền nhanh
+- [x] **Frontend: Thêm link `/creator`** vào sidebar (chỉ hiện với creator)
 
 ---
 
 ### ✅ TASK 4 — Admin: Biểu đồ + Export CSV
-- [ ] **Backend: `GET /api/admin/chart-data`** — doanh thu theo ngày 30 ngày gần nhất, số user mới theo ngày
-- [ ] **Frontend: Chart trong `Admin.jsx`** — dùng `recharts` (`npm install recharts`), 2 chart: doanh thu VND + user mới
-- [ ] **Backend: `GET /api/admin/export/transactions`** — xuất CSV ledger entries (filter by date range)
-- [ ] **Backend: `GET /api/admin/export/users`** — xuất CSV danh sách users
-- [ ] **Frontend: Nút Export CSV** trong Admin — download file thẳng từ API
+- [x] **Backend: `GET /api/admin/chart-data`** — doanh thu theo ngày 30 ngày gần nhất, số user mới theo ngày
+- [x] **Frontend: Chart trong `Admin.jsx`** — dùng `recharts` (`npm install recharts`), 2 chart: doanh thu VND + user mới
+- [x] **Backend: `GET /api/admin/export/transactions`** — xuất CSV ledger entries (filter by date range)
+- [x] **Backend: `GET /api/admin/export/users`** — xuất CSV danh sách users
+- [x] **Frontend: Nút Export CSV** trong Admin — download file thẳng từ API
 
 ---
 
 ### ✅ TASK 5 — Admin: Approve Deposit Thủ Công
-- [ ] **Backend: `POST /api/admin/deposits/:id/approve`** — admin confirm deposit ngân hàng thủ công, cộng XU vào ví
-- [ ] **Backend: `POST /api/admin/deposits/:id/reject`** — từ chối, cập nhật status
-- [ ] **Frontend: Tab "Nạp chờ duyệt"** trong `Admin.jsx` — danh sách deposit pending, nút Approve/Reject từng cái
+- [x] **Backend: `POST /api/admin/deposits/:id/approve`** — admin confirm deposit ngân hàng thủ công, cộng XU vào ví
+- [x] **Backend: `POST /api/admin/deposits/:id/reject`** — từ chối, cập nhật status
+- [x] **Frontend: Tab "Nạp chờ duyệt"** trong `Admin.jsx` — danh sách deposit pending, nút Approve/Reject từng cái
 
 ---
 
 ### ✅ TASK 6 — KYC Placeholder
-- [ ] **Backend: Thêm cột `kyc_status`** vào bảng `users` — `'none' | 'pending' | 'verified'`, default `'none'`
-- [ ] **Backend: Chặn rút** nếu `amount_xu > 1_000_000` và `kyc_status !== 'verified'` — trả lỗi rõ ràng
-- [ ] **Backend: `POST /api/user/kyc/submit`** — user nộp thông tin (tên, CCCD mock), set `kyc_status = 'pending'`
-- [ ] **Backend: `POST /api/admin/kyc/:userId/approve`** — admin duyệt KYC, set `kyc_status = 'verified'`
-- [ ] **Frontend: Banner KYC** trong trang Wallet khi số dư > 800,000 XU — nhắc user xác minh trước khi rút lớn
+- [x] **Backend: Thêm cột `kyc_status`** vào bảng `users` — `'none' | 'pending' | 'verified'`, default `'none'`
+- [x] **Backend: Chặn rút** nếu `amount_xu > 1_000_000` và `kyc_status !== 'verified'` — trả lỗi rõ ràng
+- [x] **Backend: `POST /api/user/kyc/submit`** — user nộp thông tin (tên, CCCD mock), set `kyc_status = 'pending'`
+- [x] **Backend: `POST /api/admin/kyc/:userId/approve`** — admin duyệt KYC, set `kyc_status = 'verified'`
+- [x] **Frontend: Banner KYC** trong trang Wallet khi số dư > 800,000 XU — nhắc user xác minh trước khi rút lớn
 
 ---
 
 ### ✅ TASK 7 — Deploy
-- [ ] **Frontend build test** — chạy `npm run build` trong `frontend/`, fix lỗi nếu có
-- [ ] **Backend production config** — khi `NODE_ENV=production`: tắt stack trace trong error handler, bật `trust proxy`
+- [x] **Frontend build test** — chạy `npm run build` trong `frontend/`, fix lỗi nếu có
+- [x] **Backend production config** — khi `NODE_ENV=production`: tắt stack trace trong error handler, bật `trust proxy`
 - [ ] **Deploy trên Replit** — nhấn **Publish** trong Replit UI → app lên `.replit.app`
 - [ ] **Kiểm tra IPN webhook URL** — sau khi deploy, cập nhật `BACKEND_URL` trong Secrets thành URL production
 

@@ -5,6 +5,7 @@ import { LedgerService } from '../services/ledger.js';
 import { createPayment as momoCreate, verifyIPN as momoVerify } from '../services/gateways/momo.js';
 import { createPayment as zaloCreate, verifyIPN as zaloVerify } from '../services/gateways/zalopay.js';
 import { notify } from '../services/notifier.js';
+import { sendToUser, broadcast } from '../services/sse.js';
 
 const router = Router();
 
@@ -271,6 +272,25 @@ router.post('/tip', authMiddleware, async (req, res) => {
       body: `+${result.receiverAmount?.toLocaleString() || amount_xu} XU${message ? ` — "${message}"` : ''}`,
       metadata: { sender_id: req.user.id, amount: result.receiverAmount },
     });
+
+    // SSE: cập nhật số dư realtime cho người nhận
+    const receiverWallet = await LedgerService.getWallet(receiver_id);
+    sendToUser(receiver_id, 'balance_update', { balance: parseInt(receiverWallet?.balance || 0) });
+    sendToUser(receiver_id, 'tip_received', {
+      amount: result.receiverAmount,
+      senderName: req.user.username,
+      message,
+    });
+
+    // SSE: broadcast gift feed cho tất cả user đang xem trang gifting
+    broadcast('gift_feed', {
+      senderName: req.user.username,
+      amount: parseInt(amount_xu),
+      receiverAmount: result.receiverAmount,
+      message,
+      time: new Date().toISOString(),
+    });
+
     res.json({ success: true, tip: result.tip, receiver_amount: result.receiverAmount, platform_fee: result.platformFee });
   } catch (err) {
     console.error(err);

@@ -9,10 +9,11 @@ export const generateToken = (userId, role) =>
 export const authMiddleware = async (req, res, next) => {
   try {
     const auth = req.headers.authorization;
-    if (!auth?.startsWith('Bearer ')) {
+    const rawToken = auth?.startsWith('Bearer ') ? auth.slice(7) : req.query.token;
+    if (!rawToken) {
       return res.status(401).json({ error: 'No token provided' });
     }
-    const token = auth.slice(7);
+    const token = rawToken;
     const decoded = jwt.verify(token, JWT_SECRET);
     const { rows: [user] } = await query(
       'SELECT id, username, email, role FROM users WHERE id = $1',

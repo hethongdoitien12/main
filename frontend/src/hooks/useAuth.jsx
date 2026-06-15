@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api.js';
+import { useSSE } from './useSSE.js';
 
 const AuthContext = createContext(null);
 
@@ -12,10 +13,16 @@ export const AuthProvider = ({ children }) => {
   const refreshWallet = useCallback(async (t = token) => {
     if (!t) return;
     try {
-      const w = await api.wallet.get(t);
+      const w = await api.wallet.balance(t);
       setWallet(w);
     } catch {}
   }, [token]);
+
+  useSSE(token, {
+    balance_update: ({ balance }) => {
+      setWallet(prev => prev ? { ...prev, balance } : { balance });
+    },
+  });
 
   useEffect(() => {
     const savedUser = localStorage.getItem('xu_user');

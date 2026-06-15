@@ -13,8 +13,14 @@ import adminRoutes from './routes/admin.js';
 import notificationRoutes from './routes/notifications.js';
 import { startCronJobs } from './services/cron.js';
 import referralRoutes from './routes/referral.js';
+import streamRoutes from './routes/stream.js';
+import userRoutes from './routes/user.js';
+import creatorRoutes from './routes/creator.js';
 
 const app = express();
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
@@ -44,6 +50,9 @@ app.use('/api/withdrawals', generalLimiter, withdrawalRoutes);
 app.use('/api/admin',       generalLimiter, adminRoutes);
 app.use('/api/notifications', generalLimiter, notificationRoutes);
 app.use('/api/referral',    generalLimiter, referralRoutes);
+app.use('/api/stream',     streamRoutes);
+app.use('/api/user',      generalLimiter, userRoutes);
+app.use('/api/creator',   generalLimiter, creatorRoutes);
 
 app.get('/health', async (req, res) => {
   try {
@@ -57,7 +66,11 @@ app.get('/health', async (req, res) => {
 app.use((req, res) => res.status(404).json({ error: `Route ${req.method} ${req.path} không tồn tại` }));
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Lỗi server nội bộ' });
+  const isProd = process.env.NODE_ENV === 'production';
+  res.status(500).json({
+    error: 'Lỗi server nội bộ',
+    ...(isProd ? {} : { detail: err.message, stack: err.stack }),
+  });
 });
 
 const PORT = process.env.PORT || 3001;

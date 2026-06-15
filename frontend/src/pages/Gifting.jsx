@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useSSE } from '../hooks/useSSE.js';
 import api from '../api.js';
 
 const GIFT_PRESETS = [
@@ -45,6 +46,25 @@ function FloatingGift({ gift, onDone }) {
   );
 }
 
+const GIFT_EMOJI_MAP = {
+  50: { label: '🌟 Sao', color: '#fdcb6e' },
+  200: { label: '💎 Kim cương', color: '#74b9ff' },
+  500: { label: '🚀 Rocket', color: '#a29bfe' },
+  1000: { label: '👑 Vương miện', color: '#fd79a8' },
+  2000: { label: '🔥 Fire', color: '#e17055' },
+  5000: { label: '💝 Super Love', color: '#ff6b6b' },
+};
+
+function resolveGiftStyle(amount) {
+  const preset = GIFT_EMOJI_MAP[amount];
+  if (preset) return preset;
+  if (amount >= 2000) return { label: '💝 Super Love', color: '#ff6b6b' };
+  if (amount >= 1000) return { label: '👑 Vương miện', color: '#fd79a8' };
+  if (amount >= 500)  return { label: '🚀 Rocket', color: '#a29bfe' };
+  if (amount >= 200)  return { label: '💎 Kim cương', color: '#74b9ff' };
+  return { label: '🌟 Sao', color: '#fdcb6e' };
+}
+
 export default function Gifting() {
   const { wallet, token, refreshWallet } = useAuth();
   const [selected, setSelected] = useState(GIFT_PRESETS[0]);
@@ -55,41 +75,43 @@ export default function Gifting() {
   const [msg, setMsg] = useState(null);
   const [feed, setFeed] = useState([]);
   const [floaters, setFloaters] = useState([]);
+  const [liveCount, setLiveCount] = useState(0);
 
-  const finalAmount = customAmount ? parseInt(customAmount) : selected.amount;
+  const finalAmount = customAmount ? parseInt(customAmount) : selected?.amount ?? 0;
 
   const addToFeed = (item) => {
     setFeed(prev => [...prev.slice(-9), item]);
   };
+
+  useSSE(token, {
+    gift_feed: (data) => {
+      const style = resolveGiftStyle(data.amount);
+      addToFeed({
+        ...style,
+        amount: data.amount,
+        senderName: data.senderName,
+        message: data.message,
+        time: new Date(data.time),
+        live: true,
+      });
+      setLiveCount(c => c + 1);
+      setFloaters(f => [...f, { id: Date.now(), ...style }]);
+    },
+  });
 
   const send = async () => {
     if (!receiverId || finalAmount < 10) return;
     setLoading(true); setMsg(null);
     try {
       const r = await api.wallet.tip({ receiverId, amountXu: finalAmount, message }, token);
-      setMsg({ type:'success', text:`Đã gửi ${selected.label} ${finalAmount.toLocaleString()} XU! Creator nhận ${r.receiverAmount.toLocaleString()} XU` });
-      addToFeed({ label: selected.label, amount: finalAmount, color: selected.color, time: new Date() });
-      setFloaters(f => [...f, { id: Date.now(), ...selected }]);
+      const receiverAmt = r.receiver_amount ?? r.receiverAmount ?? finalAmount;
+      setMsg({ type:'success', text:`Đã gửi ${selected?.label ?? '🎁'} ${finalAmount.toLocaleString()} XU! Creator nhận ${receiverAmt.toLocaleString()} XU` });
       setMessage('');
       await refreshWallet();
     } catch (err) {
       setMsg({ type:'error', text: err.message });
     } finally { setLoading(false); }
   };
-
-  // Demo: simulate incoming gifts
-  useEffect(() => {
-    const gifts = [
-      { label:'🌟 Sao', amount:50, color:'#fdcb6e' },
-      { label:'💎 Kim cương', amount:200, color:'#74b9ff' },
-      { label:'🚀 Rocket', amount:500, color:'#a29bfe' },
-    ];
-    const interval = setInterval(() => {
-      const g = gifts[Math.floor(Math.random() * gifts.length)];
-      addToFeed({ ...g, demo: true, time: new Date() });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div>
@@ -149,19 +171,29 @@ export default function Gifting() {
 
         <div>
           <div style={{ ...S.card, marginBottom:14 }}>
-            <div style={S.sectionTitle}>Live Gift Feed</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1rem' }}>
+              <div style={S.sectionTitle}>Live Gift Feed</div>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <span style={{ width:7, height:7, borderRadius:'50%', background:'#6fcf97', display:'inline-block', animation:'pulse 1.5s infinite' }}/>
+                <span style={{ fontSize:11, color:'#6fcf97' }}>LIVE{liveCount > 0 ? ` · ${liveCount} gift` : ''}</span>
+              </div>
+            </div>
+            <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
             <div style={S.feedBox}>
               <div style={S.feedInner}>
-                {feed.length === 0 && <div style={{ color:'#333', fontSize:12, textAlign:'center', marginTop:'6rem' }}>Chưa có gift nào...</div>}
+                {feed.length === 0 && <div style={{ color:'#333', fontSize:12, textAlign:'center', marginTop:'6rem' }}>Chờ gift realtime...</div>}
                 {feed.map((f, i) => (
                   <div key={i} style={S.feedItem(f.color)}>
                     <span style={{ fontSize:20 }}>{f.label.split(' ')[0]}</span>
-                    <div style={{ flex:1 }}>
-                      <span style={{ fontSize:12, color:'#aaa' }}>{f.demo ? 'Someone' : 'Bạn'} gửi </span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <span style={{ fontSize:12, color:'#aaa' }}>
+                        {f.senderName || 'Bạn'} gửi{' '}
+                      </span>
                       <span style={{ fontSize:13, fontWeight:600, color: f.color }}>{f.amount.toLocaleString()} XU</span>
+                      {f.message && <div style={{ fontSize:11, color:'#555', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>"{f.message}"</div>}
                     </div>
-                    <span style={{ fontSize:10, color:'#444' }}>
-                      {f.time.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' })}
+                    <span style={{ fontSize:10, color:'#444', flexShrink:0 }}>
+                      {f.time instanceof Date ? f.time.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' }) : ''}
                     </span>
                   </div>
                 ))}
