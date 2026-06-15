@@ -354,6 +354,44 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// GET /api/admin/users — danh sách users + số dư ví
+router.get('/users', async (req, res) => {
+  try {
+    const { rows } = await query(`
+      SELECT u.id, u.username, u.email, u.role, w.balance
+      FROM users u
+      LEFT JOIN wallets w ON w.user_id = u.id
+      ORDER BY u.username ASC
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/adjust-xu — cộng/trừ XU thủ công qua ledger
+router.post('/adjust-xu', async (req, res) => {
+  try {
+    const { userId, amount, note } = req.body;
+    if (!userId) return res.status(400).json({ error: 'Thiếu userId' });
+    const parsed = parseInt(amount);
+    if (!parsed || parsed === 0) return res.status(400).json({ error: 'Số XU không hợp lệ (khác 0)' });
+
+    const { LedgerService } = await import('../services/ledger.js');
+    const entry = await LedgerService.transact({
+      userId,
+      amount: parsed,
+      type: 'admin_adjust',
+      description: note ? `[Admin] ${note}` : `[Admin] Điều chỉnh thủ công ${parsed > 0 ? '+' : ''}${parsed} XU`,
+      metadata: { adjustedBy: req.user.id, note: note || '' },
+    });
+
+    res.json({ ok: true, entry });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/admin/reset-seed — xóa dữ liệu test và seed lại (chỉ xóa test accounts)
 router.post('/reset-seed', async (req, res) => {
   const TEST_EMAILS = ['admin@xu.vn', 'nam@creator.vn', 'linh@user.vn'];

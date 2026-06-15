@@ -589,6 +589,47 @@ function DevToolsTab({ token, showToast }) {
   const [resetting, setResetting] = useState(false);
   const [result, setResult]       = useState(null);
 
+  // ── Adjust XU state ──
+  const [users, setUsers]       = useState([]);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [adjAmount, setAdjAmount] = useState('');
+  const [adjNote, setAdjNote]   = useState('');
+  const [adjLoading, setAdjLoading] = useState(false);
+  const [adjResult, setAdjResult]   = useState(null);
+
+  useEffect(() => {
+    fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : [])).catch(() => {});
+  }, [token]);
+
+  const selectedUserObj = users.find(u => u.id === selectedUser);
+
+  const adjustXu = async () => {
+    if (!selectedUser || !adjAmount || adjAmount === '0') return;
+    setAdjLoading(true); setAdjResult(null);
+    try {
+      const r = await fetch('/api/admin/adjust-xu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId: selectedUser, amount: parseInt(adjAmount), note: adjNote }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setAdjResult({ ok: true, entry: d.entry });
+        showToast(`✅ Đã điều chỉnh ${parseInt(adjAmount) > 0 ? '+' : ''}${adjAmount} XU cho ${selectedUserObj?.username}`);
+        setAdjAmount(''); setAdjNote('');
+        // refresh user list for updated balance
+        fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : [])).catch(() => {});
+      } else {
+        setAdjResult({ ok: false, error: d.error });
+        showToast(`❌ ${d.error}`);
+      }
+    } catch (err) {
+      setAdjResult({ ok: false, error: err.message });
+    } finally { setAdjLoading(false); }
+  };
+
   const resetSeed = async () => {
     const confirmed = window.confirm(
       '⚠️ Thao tác này sẽ XÓA 3 tài khoản test (admin@xu.vn, nam@creator.vn, linh@user.vn) và toàn bộ quests, sau đó seed lại.\n\nUser thật sẽ KHÔNG bị ảnh hưởng.\n\nTiếp tục?'
@@ -621,9 +662,97 @@ function DevToolsTab({ token, showToast }) {
     <div style={{ maxWidth: 560 }}>
       <div style={{ fontSize: 13, color: '#555', marginBottom: 20, lineHeight: 1.7 }}>
         Công cụ dành cho môi trường <strong style={{ color: '#fdcb6e' }}>development</strong>.
-        Dùng để reset dữ liệu test mà không ảnh hưởng user thật.
+        Dùng để điều chỉnh XU và reset dữ liệu test.
       </div>
 
+      {/* ── Adjust XU panel ── */}
+      <div style={{ background: '#0e0e17', border: '1px solid #1e2a0e', borderRadius: 12, padding: '1.5rem', marginBottom: 16 }}>
+        <div style={{ fontWeight: 600, color: '#6fcf97', marginBottom: 8 }}>💰 Điều chỉnh XU thủ công</div>
+        <div style={{ fontSize: 12, color: '#555', marginBottom: 16 }}>
+          Cộng (+) hoặc trừ (−) XU cho bất kỳ user nào. Ghi vào ledger với loại <code style={{ color: '#a29bfe' }}>admin_adjust</code>.
+        </div>
+
+        {/* User select */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Chọn user</div>
+          <select
+            value={selectedUser}
+            onChange={e => setSelectedUser(e.target.value)}
+            style={{ width: '100%', padding: '8px 10px', background: '#13131f', border: '1px solid #1e1e2e', borderRadius: 8, color: selectedUser ? '#ccc' : '#444', fontSize: 13, outline: 'none' }}
+          >
+            <option value="">— chọn user —</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.username} ({u.email}) · {Number(u.balance || 0).toLocaleString()} XU
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Amount + note row */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Số XU (âm để trừ)</div>
+            <input
+              type="number"
+              placeholder="vd: 500 hoặc -200"
+              value={adjAmount}
+              onChange={e => setAdjAmount(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', background: '#13131f', border: `1px solid ${adjAmount && parseInt(adjAmount) < 0 ? '#ff6b6b60' : adjAmount ? '#6fcf9760' : '#1e1e2e'}`, borderRadius: 8, color: '#ccc', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ flex: 2 }}>
+            <div style={{ fontSize: 11, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Ghi chú (tùy chọn)</div>
+            <input
+              type="text"
+              placeholder="vd: Thưởng sự kiện tháng 6"
+              value={adjNote}
+              onChange={e => setAdjNote(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', background: '#13131f', border: '1px solid #1e1e2e', borderRadius: 8, color: '#ccc', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
+
+        {/* Preview */}
+        {selectedUser && adjAmount && parseInt(adjAmount) !== 0 && (
+          <div style={{ fontSize: 12, background: '#13131f', borderRadius: 8, padding: '8px 12px', marginBottom: 12, color: '#888', lineHeight: 1.7 }}>
+            👤 <strong style={{ color: '#ccc' }}>{selectedUserObj?.username}</strong>
+            {' · '}số dư hiện tại: <strong style={{ color: '#fdcb6e' }}>{Number(selectedUserObj?.balance || 0).toLocaleString()} XU</strong>
+            {' → '}sau điều chỉnh:{' '}
+            <strong style={{ color: parseInt(adjAmount) > 0 ? '#6fcf97' : '#ff6b6b' }}>
+              {Math.max(0, Number(selectedUserObj?.balance || 0) + parseInt(adjAmount || 0)).toLocaleString()} XU
+            </strong>
+          </div>
+        )}
+
+        <button
+          onClick={adjustXu}
+          disabled={adjLoading || !selectedUser || !adjAmount || parseInt(adjAmount) === 0}
+          style={{
+            padding: '8px 20px', borderRadius: 8, border: '1px solid #6fcf9760',
+            background: adjLoading || !selectedUser || !adjAmount ? '#0a1a0a' : '#0e2a1e',
+            color: adjLoading || !selectedUser || !adjAmount ? '#333' : '#6fcf97',
+            fontSize: 13, fontWeight: 600, cursor: adjLoading || !selectedUser || !adjAmount ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {adjLoading ? '⏳ Đang xử lý...' : parseInt(adjAmount || 0) >= 0 ? '➕ Cộng XU' : '➖ Trừ XU'}
+        </button>
+
+        {adjResult && (
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.8,
+            background: adjResult.ok ? '#0e2a1e' : '#2a0e0e',
+            border: `1px solid ${adjResult.ok ? '#00b89440' : '#ff6b6b40'}`,
+            color: adjResult.ok ? '#6fcf97' : '#ff6b6b' }}>
+            {adjResult.ok ? (
+              <>✅ Thành công! Số dư sau: <strong>{Number(adjResult.entry?.balance_after || 0).toLocaleString()} XU</strong></>
+            ) : (
+              <>❌ {adjResult.error}</>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Reset seed panel ── */}
       <div style={{ background: '#0e0e17', border: '1px solid #2a1e0e', borderRadius: 12, padding: '1.5rem' }}>
         <div style={{ fontWeight: 600, color: '#fdcb6e', marginBottom: 8 }}>🔄 Reset dữ liệu test</div>
         <div style={{ fontSize: 12, color: '#555', marginBottom: 16, lineHeight: 1.7 }}>
