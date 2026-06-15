@@ -65,9 +65,9 @@
 
 - [x] **Workflow config** — Cấu hình Replit chạy cả backend (port 3001) + frontend (port 5000) cùng lúc khi mở project
 - [ ] **`.env.example`** — Tạo file mẫu liệt kê đủ biến: `DATABASE_URL`, `JWT_SECRET`, `MOMO_*`, `ZALOPAY_*`, `BACKEND_URL`, `FRONTEND_URL`
-- [ ] **MoMo IPN Webhook** (`POST /api/wallet/deposit/momo-ipn`) — Xử lý callback từ MoMo khi thanh toán xong, tự động cộng XU
-- [ ] **ZaloPay IPN Webhook** (`POST /api/wallet/deposit/zalopay-ipn`) — Tương tự cho ZaloPay
-- [ ] **Frontend: Trang nạp tiền thực** — Hiện `Wallet.jsx` chưa có flow tạo payment link → redirect MoMo/ZaloPay → callback confirm
+- [x] **MoMo IPN Webhook** (`POST /api/wallet/momo/ipn`) — Xử lý callback từ MoMo, xác thực chữ ký HMAC, tự động cộng XU
+- [x] **ZaloPay IPN Webhook** (`POST /api/wallet/zalopay/ipn`) — Tương tự, xác thực KEY2, cộng XU
+- [x] **Frontend: Flow nạp tiền đầy đủ** — Chọn gateway → tạo đơn → redirect pay_url → trang `/payment/result` → confirm thủ công (dev)
 
 ### 🔔 Notification System
 

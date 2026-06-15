@@ -17,23 +17,38 @@ const req = async (method, path, body, token) => {
 export const api = {
   auth: {
     register: (b) => req('POST', '/auth/register', b),
-    login: (b) => req('POST', '/auth/login', b),
+    login:    (b) => req('POST', '/auth/login', b),
   },
   wallet: {
-    get: (t) => req('GET', '/wallet', null, t),
-    deposit: (b, t) => req('POST', '/wallet/deposit', b, t),
-    withdraw: (b, t) => req('POST', '/wallet/withdraw', b, t),
-    spend: (b, t) => req('POST', '/wallet/spend', b, t),
-    tip: (b, t) => req('POST', '/wallet/tip', b, t),
-    history: (params, t) => req('GET', `/wallet/history?${new URLSearchParams(params)}`, null, t),
-    deposits: (t) => req('GET', '/wallet/deposits', null, t),
-    withdrawals: (t) => req('GET', '/wallet/withdrawals', null, t),
-    platformStats: (t) => req('GET', '/wallet/platform-stats', null, t),
+    balance:        (t)    => req('GET',  '/wallet/balance', null, t),
+    depositCreate:  (b, t) => req('POST', '/wallet/deposit/create', b, t),
+    depositConfirm: (b, t) => req('POST', '/wallet/deposit/confirm', b, t),
+    tip:            (b, t) => req('POST', '/wallet/tip', b, t),
+    bonus:          (b, t) => req('POST', '/wallet/bonus', b, t),
+    transactions:   (p, t) => req('GET',  `/wallet/transactions?${new URLSearchParams(p || {})}`, null, t),
+    platformStats:  (t)    => req('GET',  '/wallet/platform-stats', null, t),
+  },
+  withdrawals: {
+    create: (b, t) => req('POST', '/withdrawals', b, t),
+    mine:   (t)    => req('GET',  '/withdrawals/mine', null, t),
+    queue:  (t)    => req('GET',  '/withdrawals/queue', null, t),
+    approve:(id,t) => req('POST', `/withdrawals/${id}/approve`, {}, t),
+    reject: (id,b,t)=>req('POST', `/withdrawals/${id}/reject`, b, t),
   },
   quests: {
-    list: (t) => req('GET', '/quests', null, t),
-    claim: (id, t) => req('POST', `/quests/${id}/claim`, {}, t),
-  }
+    list:     (t)     => req('GET',  '/quests', null, t),
+    progress: (id,b,t)=> req('POST', `/quests/${id}/progress`, b, t),
+    claim:    (id, t) => req('POST', `/quests/${id}/claim`, {}, t),
+    create:   (b, t)  => req('POST', '/quests', b, t),
+  },
+  events: {
+    trigger: (b, t) => req('POST', '/events/trigger', b, t),
+  },
+  admin: {
+    stats:      (t)    => req('GET',  '/admin/stats', null, t),
+    users:      (t)    => req('GET',  '/admin/users', null, t),
+    adjustBalance:(b,t)=> req('POST', '/admin/adjust-balance', b, t),
+  },
 };
 
 export default api;

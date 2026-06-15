@@ -36,7 +36,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (token) {
-      api.wallet.history({ limit: 6 }, token).then(setHistory).catch(() => {});
+      api.wallet.transactions({ limit: 6 }, token).then(r => setHistory(r.transactions || [])).catch(() => {});
     }
   }, [token]);
 

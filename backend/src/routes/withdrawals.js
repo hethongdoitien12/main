@@ -6,6 +6,48 @@ import { LedgerService } from '../services/ledger.js';
 const router = Router();
 router.use(authMiddleware);
 
+// POST /api/withdrawals — tạo yêu cầu rút tiền
+router.post('/', async (req, res) => {
+  try {
+    const { amount_xu, bank_name, bank_account, account_name } = req.body;
+    if (!amount_xu || amount_xu < 50000) {
+      return res.status(400).json({ error: 'Số XU tối thiểu để rút là 50,000' });
+    }
+    if (!bank_name || !bank_account || !account_name) {
+      return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin ngân hàng' });
+    }
+
+    const FEE_RATE   = 0.1;
+    const fee_xu     = Math.floor(amount_xu * FEE_RATE);
+    const net_xu     = amount_xu - fee_xu;
+    const amount_vnd = net_xu;
+
+    await LedgerService.transact({
+      userId: req.user.id,
+      amount: -amount_xu,
+      type: 'withdrawal',
+      idempotencyKey: `withdrawal:${req.user.id}:${Date.now()}`,
+      description: `Rút ${amount_xu.toLocaleString()} XU → ${amount_vnd.toLocaleString()} VNĐ`,
+    });
+
+    const { rows: [wr] } = await query(`
+      INSERT INTO withdrawal_requests
+        (user_id, amount_xu, fee_xu, amount_vnd, bank_name, bank_account, account_name, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+      RETURNING *
+    `, [req.user.id, amount_xu, fee_xu, amount_vnd, bank_name, bank_account, account_name]);
+
+    res.status(201).json({
+      withdrawal: wr,
+      amount_vnd,
+      fee_xu,
+      message: `Đã gửi yêu cầu rút. Bạn sẽ nhận ${amount_vnd.toLocaleString()} VNĐ sau khi admin duyệt.`
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // GET /api/withdrawals/mine — creator xem yêu cầu rút của mình
 router.get('/mine', async (req, res) => {
   try {

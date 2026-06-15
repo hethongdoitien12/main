@@ -8,6 +8,7 @@ import Quests from './pages/Quests.jsx';
 import History from './pages/History.jsx';
 import Admin from './pages/Admin.jsx';
 import Gifting from './pages/Gifting.jsx';
+import PaymentResult from './pages/PaymentResult.jsx';
 import Layout from './components/Layout.jsx';
 
 const styles = `
@@ -44,6 +45,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/payment/result" element={<PaymentResult />} />
           <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="wallet" element={<Wallet />} />

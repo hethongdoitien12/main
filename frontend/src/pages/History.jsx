@@ -55,7 +55,7 @@ export default function History() {
       const params = { limit: LIMIT, offset: o };
       // For earn/spend we fetch all types via prefix match workaround
       if (f) params.type = f;
-      const data = await api.wallet.history(params, token);
+      const data = await api.wallet.transactions(params, token);
       setTxs(append ? prev => [...prev, ...data] : data);
       setHasMore(data.length === LIMIT);
     } catch {}
