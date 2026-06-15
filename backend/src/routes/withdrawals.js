@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import { query } from '../db/pool.js';
 import { LedgerService } from '../services/ledger.js';
+import { notify } from '../services/notifier.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -95,6 +96,13 @@ router.post('/:id/approve', adminOnly, async (req, res) => {
       WHERE id = $1 RETURNING *
     `, [req.params.id, req.body.notes || 'Đã duyệt và chuyển tiền']);
 
+    await notify({
+      userId: wr.user_id,
+      type: 'withdrawal_approved',
+      title: '✅ Yêu cầu rút tiền được duyệt',
+      body: `${parseInt(wr.amount_vnd).toLocaleString()} VNĐ sẽ được chuyển vào tài khoản của bạn`,
+      metadata: { withdrawal_id: req.params.id, amount_vnd: wr.amount_vnd },
+    });
     res.json({ withdrawal: updated, message: `Đã duyệt ${wr.amount_vnd.toLocaleString()}đ cho user` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -128,6 +136,13 @@ router.post('/:id/reject', adminOnly, async (req, res) => {
       WHERE id = $1
     `, [req.params.id, req.body.reason || 'Từ chối']);
 
+    await notify({
+      userId: wr.user_id,
+      type: 'withdrawal_rejected',
+      title: '❌ Yêu cầu rút tiền bị từ chối',
+      body: `${parseInt(wr.amount_xu).toLocaleString()} XU đã được hoàn về ví. Lý do: ${req.body.reason || 'Không đủ điều kiện'}`,
+      metadata: { withdrawal_id: req.params.id, amount_xu: wr.amount_xu },
+    });
     res.json({ message: `Đã từ chối và hoàn ${wr.amount_xu.toLocaleString()} XU về ví` });
   } catch (err) {
     res.status(500).json({ error: err.message });

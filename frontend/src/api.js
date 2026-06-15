@@ -41,6 +41,12 @@ export const api = {
     claim:    (id, t) => req('POST', `/quests/${id}/claim`, {}, t),
     create:   (b, t)  => req('POST', '/quests', b, t),
   },
+  notifications: {
+    list:    (t)    => req('GET',   '/notifications', null, t),
+    readOne: (id,t) => req('PATCH', `/notifications/${id}/read`, {}, t),
+    readAll: (t)    => req('PATCH', '/notifications/read-all', {}, t),
+    remove:  (id,t) => req('DELETE',`/notifications/${id}`, null, t),
+  },
   events: {
     trigger: (b, t) => req('POST', '/events/trigger', b, t),
   },

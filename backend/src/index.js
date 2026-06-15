@@ -8,6 +8,7 @@ import eventRoutes from './routes/events.js';
 import questRoutes from './routes/quests.js';
 import withdrawalRoutes from './routes/withdrawals.js';
 import adminRoutes from './routes/admin.js';
+import notificationRoutes from './routes/notifications.js';
 
 const app = express();
 
@@ -19,7 +20,8 @@ app.use('/api/wallet',      walletRoutes);
 app.use('/api/events',      eventRoutes);
 app.use('/api/quests',      questRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
-app.use('/api/admin',       adminRoutes);
+app.use('/api/admin',         adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/health', async (req, res) => {
   try {

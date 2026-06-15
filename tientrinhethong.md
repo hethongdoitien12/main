@@ -71,11 +71,11 @@
 
 ### 🔔 Notification System
 
-- [ ] **Backend: Bảng notifications** — Schema: `(id, user_id, type, title, body, read, created_at)`
-- [ ] **Backend: API notifications** — `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `PATCH /api/notifications/read-all`
-- [ ] **Backend: Tự tạo notification** khi: withdrawal approved/rejected, quest completed, tip received
-- [ ] **Frontend: Bell icon** trong Layout — hiển thị unread count badge
-- [ ] **Frontend: Notification dropdown** — danh sách thông báo, click để mark read
+- [x] **Backend: Bảng notifications** — Schema `(id, user_id, type, title, body, read, metadata, created_at)` + 2 index
+- [x] **Backend: API notifications** — GET list, PATCH read-one, PATCH read-all, DELETE
+- [x] **Backend: Tự tạo notification** khi: deposit confirmed, tip received, withdrawal approved/rejected
+- [x] **Frontend: Bell icon** trong Layout — badge đỏ hiện unread count, poll mỗi 30 giây
+- [x] **Frontend: Notification dropdown** — danh sách, click mark read, xoá từng cái, nút "Đọc tất cả"
 
 ### ⚡ Real-time (WebSocket / SSE)
 

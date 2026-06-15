@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { LedgerService } from '../services/ledger.js';
 import { createPayment as momoCreate, verifyIPN as momoVerify } from '../services/gateways/momo.js';
 import { createPayment as zaloCreate, verifyIPN as zaloVerify } from '../services/gateways/zalopay.js';
+import { notify } from '../services/notifier.js';
 
 const router = Router();
 
@@ -135,6 +136,13 @@ router.post('/deposit/confirm', authMiddleware, async (req, res) => {
         expired: 'Yêu cầu đã hết hạn',
       }[result.reason] || result.reason });
     }
+    const { rows: [dep] } = await query(`SELECT amount_vnd FROM deposit_requests WHERE id=$1`, [deposit_id]);
+    await notify({
+      userId: req.user.id,
+      type: 'deposit_confirmed',
+      title: '💰 Nạp tiền thành công',
+      body: `+${parseInt(dep?.amount_vnd || 0).toLocaleString()} XU đã vào ví của bạn`,
+    });
     res.json({ success: true, message: 'Nạp thành công!', entry: result.entry });
   } catch (err) {
     console.error(err);
@@ -231,6 +239,13 @@ router.post('/tip', authMiddleware, async (req, res) => {
       senderId: req.user.id, receiverId: receiver_id,
       amountXu: parseInt(amount_xu), message,
       refType: ref_type, refId: ref_id,
+    });
+    await notify({
+      userId: receiver_id,
+      type: 'tip_received',
+      title: '💝 Bạn nhận được tip!',
+      body: `+${result.receiverAmount?.toLocaleString() || amount_xu} XU${message ? ` — "${message}"` : ''}`,
+      metadata: { sender_id: req.user.id, amount: result.receiverAmount },
     });
     res.json({ success: true, tip: result.tip, receiver_amount: result.receiverAmount, platform_fee: result.platformFee });
   } catch (err) {

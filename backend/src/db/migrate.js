@@ -143,6 +143,20 @@ CREATE TABLE IF NOT EXISTS tips (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Notifications
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL DEFAULT 'system',
+  title VARCHAR(200) NOT NULL,
+  body TEXT,
+  read BOOLEAN DEFAULT false,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, read) WHERE read = false;
+
 -- Platform stats (aggregate, updated via triggers or cron)
 CREATE TABLE IF NOT EXISTS platform_stats (
   id SERIAL PRIMARY KEY,

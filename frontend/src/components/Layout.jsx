@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
+import NotificationBell from './NotificationBell.jsx';
 
 const S = {
   shell: { display:'flex', minHeight:'100vh' },
@@ -42,7 +43,12 @@ const S = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 13, fontWeight: 600, color: '#fff', flexShrink: 0
   },
-  main: { flex: 1, padding: '2rem', overflowY: 'auto' }
+  topbar: {
+    height: 52, borderBottom: '1px solid #1a1a28', display: 'flex',
+    alignItems: 'center', justifyContent: 'flex-end', padding: '0 1.5rem',
+    gap: 8, flexShrink: 0
+  },
+  main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
 };
 
 const NAV = [
@@ -85,9 +91,16 @@ export default function Layout() {
           <button onClick={() => { logout(); navigate('/login'); }} style={{ background: 'none', border: 'none', color: '#555', fontSize: 16, padding: 4 }} title="Đăng xuất">⏻</button>
         </div>
       </aside>
-      <main style={S.main}>
-        <Outlet />
-      </main>
+
+      <div style={S.main}>
+        {/* Top bar với bell */}
+        <div style={S.topbar}>
+          <NotificationBell />
+        </div>
+        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
