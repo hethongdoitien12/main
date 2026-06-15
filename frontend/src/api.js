@@ -51,6 +51,10 @@ export const api = {
   events: {
     trigger: (b, t) => req('POST', '/events/trigger', b, t),
   },
+  referral: {
+    myCode: (t)       => req('GET',  '/referral/my-code', null, t),
+    use:    (code, t) => req('POST', '/referral/use', { code }, t),
+  },
   admin: {
     stats:          (t)    => req('GET',  '/admin/stats', null, t),
     users:          (t)    => req('GET',  '/admin/users', null, t),

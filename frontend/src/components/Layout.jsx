@@ -57,6 +57,7 @@ const NAV = [
   { to: '/quests', label: 'Nhiệm vụ', icon: '◆' },
   { to: '/gifting', label: 'Tip & Gift', icon: '♥' },
   { to: '/history', label: 'Lịch sử', icon: '≡' },
+  { to: '/referral', label: 'Giới thiệu', icon: '◇' },
   { to: '/admin', label: 'Admin', icon: '⊛', adminOnly: true },
 ];
 

@@ -92,11 +92,12 @@
 
 ### 🔗 Referral System
 
-- [ ] **Backend: Cột `referral_code`** trong bảng `users` — random 8 ký tự unique
-- [ ] **Backend: Cột `referred_by`** trong bảng `users` — FK tới user đã giới thiệu
-- [ ] **Backend: API** — `GET /api/referral/my-code`, `POST /api/referral/use` (nhập code khi đăng ký)
-- [ ] **Backend: Tự thưởng XU** khi referral hợp lệ (trigger `earn_referral` cho cả 2 bên)
-- [ ] **Frontend: Tab Referral** trong Wallet hoặc trang riêng — hiển thị code, copy link, thống kê
+- [x] **Backend: Cột `referral_code`** — auto-gen 8 ký tự khi đăng ký, unique index
+- [x] **Backend: Cột `referred_by`** + `referral_reward_claimed` — FK + flag chống dùng 2 lần
+- [x] **Backend: API** — `GET /api/referral/my-code` (code + invite_link + stats + danh sách), `POST /api/referral/use` (idempotent, chống tự dùng)
+- [x] **Backend: Tự thưởng XU** — người mời +200 XU, người được mời +500 XU; cả hai ghi vào `xu_expiry_batches` (expire 90 ngày); notify realtime
+- [x] **Frontend: Trang `/referral`** — hiển thị code, copy 1-click, invite link, bảng thống kê người đã mời, ô nhập mã của người khác
+- [x] **Frontend: Register page** — nhận `?ref=CODE` từ URL, auto-fill + banner thông báo thưởng; áp dụng referral ngay sau khi tạo tài khoản
 
 ### 🛡️ Security Layer
 

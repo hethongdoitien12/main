@@ -70,6 +70,21 @@ CREATE INDEX IF NOT EXISTS idx_ledger_user_id ON ledger_entries(user_id, created
 CREATE INDEX IF NOT EXISTS idx_ledger_type ON ledger_entries(type);
 CREATE INDEX IF NOT EXISTS idx_ledger_idempotency ON ledger_entries(idempotency_key);
 
+-- Referral columns (thêm vào users nếu chưa có)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='referral_code') THEN
+    ALTER TABLE users ADD COLUMN referral_code VARCHAR(10) UNIQUE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='referred_by') THEN
+    ALTER TABLE users ADD COLUMN referred_by UUID REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='referral_reward_claimed') THEN
+    ALTER TABLE users ADD COLUMN referral_reward_claimed BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by) WHERE referred_by IS NOT NULL;
+
 -- Quests
 CREATE TABLE IF NOT EXISTS quests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -10,6 +10,7 @@ import withdrawalRoutes from './routes/withdrawals.js';
 import adminRoutes from './routes/admin.js';
 import notificationRoutes from './routes/notifications.js';
 import { startCronJobs } from './services/cron.js';
+import referralRoutes from './routes/referral.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/quests',      questRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/admin',         adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/referral',     referralRoutes);
 
 app.get('/health', async (req, res) => {
   try {

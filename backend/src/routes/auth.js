@@ -9,20 +9,30 @@ const router = Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, role = 'user' } = req.body;
+    const { username, email, password, role = 'user', referral_code } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'username, email, password required' });
     }
     const hash = await bcrypt.hash(password, 10);
+
+    // Tạo referral_code cho user mới (8 ký tự ngẫu nhiên)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let newCode = '';
+    for (let i = 0; i < 8; i++) newCode += chars[Math.floor(Math.random() * chars.length)];
+
     const { rows: [user] } = await query(
-      `INSERT INTO users (username, email, password_hash, role)
-       VALUES ($1,$2,$3,$4) RETURNING id, username, email, role, created_at`,
-      [username, email, hash, role]
+      `INSERT INTO users (username, email, password_hash, role, referral_code)
+       VALUES ($1,$2,$3,$4,$5) RETURNING id, username, email, role, referral_code, created_at`,
+      [username, email, hash, role, newCode]
     );
-    // Create wallet
+
+    // Tạo ví
     await LedgerService.createWallet(user.id);
+
+    // Nếu có referral_code của người khác — sẽ xử lý qua POST /api/referral/use sau khi login
+    // Trả code về để frontend tự gọi nếu cần
     const token = generateToken(user.id, user.role);
-    res.status(201).json({ user, token });
+    res.status(201).json({ user, token, pending_referral: referral_code || null });
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Username or email already exists' });

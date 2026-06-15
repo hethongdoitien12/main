@@ -9,6 +9,7 @@ import History from './pages/History.jsx';
 import Admin from './pages/Admin.jsx';
 import Gifting from './pages/Gifting.jsx';
 import PaymentResult from './pages/PaymentResult.jsx';
+import Referral from './pages/Referral.jsx';
 import Layout from './components/Layout.jsx';
 
 const styles = `
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="quests" element={<Quests />} />
             <Route path="history" element={<History />} />
             <Route path="gifting" element={<Gifting />} />
+            <Route path="referral" element={<Referral />} />
             <Route path="admin" element={<Admin />} />
           </Route>
         </Routes>
