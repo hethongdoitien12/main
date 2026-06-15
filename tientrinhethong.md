@@ -1,7 +1,24 @@
 # 🗺️ TIẾN TRÌNH HỆ THỐNG — XU Economy
 
-> **Mở file này đầu tiên mỗi khi vào project.**
-> Tick `[x]` khi hoàn thành. Chưa cần API key thật — dùng sandbox/test key.
+---
+
+## 🤖 HƯỚNG DẪN CHO AI AGENT
+
+> **ĐỌC FILE NÀY ĐẦU TIÊN KHI MỞ PROJECT.**
+>
+> Sau khi đọc xong, hãy:
+> 1. Kiểm tra bảng **THỨ TỰ BUILD** bên dưới
+> 2. Tìm task đầu tiên còn `[ ]` (chưa build)
+> 3. Build task đó hoàn chỉnh, test lại
+> 4. Tick `[x]` vào task vừa xong trong file này
+> 5. Cập nhật bảng **TỔNG QUAN** tương ứng
+> 6. Lặp lại từ bước 2 — build tiếp task tiếp theo cho đến khi hết
+
+**Quy tắc:**
+- Không hỏi lại — cứ build theo thứ tự, task nào chưa `[x]` thì làm
+- Sau mỗi task: restart workflow, chạy thử, xác nhận không lỗi rồi mới tick
+- Nếu task phụ thuộc task trước chưa xong → build task trước trước
+- Sandbox/test key đã có sẵn, không cần key thật
 
 ---
 
@@ -12,132 +29,146 @@
 | Backend Core | ✅ Xong |
 | Frontend Core | ✅ Xong |
 | Workflow / Dev Runner | ✅ Xong |
-| Real-time (WebSocket) | ❌ Chưa |
+| Security Layer | ✅ Xong |
 | Payment IPN Webhooks | ✅ Xong |
 | Cronjob / Scheduler | ✅ Xong |
 | Notification System | ✅ Xong |
 | Referral System | ✅ Xong |
-| Security Layer | ✅ Xong |
+| Real-time SSE | ❌ Chưa |
+| Trang Profile | ❌ Chưa |
+| Creator Dashboard | ❌ Chưa |
+| Admin: Charts + CSV | ❌ Chưa |
+| Admin: Approve Deposit | ❌ Chưa |
+| KYC Placeholder | ❌ Chưa |
 | Deploy | ❌ Chưa |
 
 ---
 
-## ✅ ĐÃ BUILD XONG
+## 🔢 THỨ TỰ BUILD — LÀM THEO THỨ TỰ NÀY
 
-### 🔧 Backend (`backend/`)
-- [x] Express server (`src/index.js`) — port 3001, CORS, error handler
-- [x] PostgreSQL pool (`src/db/pool.js`)
-- [x] DB schema migrate (`src/db/migrate.js`) — users, wallets, ledger, quests, deposits, withdrawals
-- [x] Seed data (`src/db/seed.js`) — 3 tài khoản test (admin / creator / user)
-- [x] JWT auth middleware (`src/middleware/auth.js`) — `authMiddleware` + `adminOnly`
-- [x] Route: Auth (`src/routes/auth.js`) — register, login
-- [x] Route: Wallet (`src/routes/wallet.js`) — balance, deposit/create, spend, tip, history, deposits, withdrawals, platform-stats
-- [x] Route: Quests (`src/routes/quests.js`) — list, progress, claim, admin-create
-- [x] Route: Events (`src/routes/events.js`) — trigger system (10 loại action)
-- [x] Route: Withdrawals (`src/routes/withdrawals.js`) — mine, queue, approve/reject
-- [x] Route: Admin (`src/routes/admin.js`) — stats, user list, adjust balance
-- [x] Service: Ledger (`src/services/ledger.js`) — double-entry bookkeeping, idempotency key
-- [x] Service: QuestTrigger (`src/services/questTrigger.js`) — tự động award XU khi đủ điều kiện
-- [x] Gateway: MoMo (`src/services/gateways/momo.js`) — sandbox test keys có sẵn
-- [x] Gateway: ZaloPay (`src/services/gateways/zalopay.js`) — sandbox test keys có sẵn
-- [x] File `.env.example` — tạo xong, liệt kê đủ biến
+### ✅ TASK 1 — Real-time SSE (Live gift feed + Balance auto-refresh)
+- [x] **Backend: SSE endpoint** `GET /api/stream` — giữ kết nối, push event khi có tip/gift mới
+- [x] **Backend: Gửi event SSE** khi `tip_received` — notif qua SSE thay vì chỉ polling
+- [ ] **Frontend: Live gift feed** trong `Gifting.jsx` — connect SSE, hiển thị gift cuộn realtime
+- [ ] **Frontend: Balance auto-refresh** — lắng nghe SSE event `balance_update`, cập nhật số dư không cần F5
 
-### 🎨 Frontend (`frontend/`)
-- [x] React + Vite setup (`vite.config.js`) — proxy `/api` → `localhost:3001`
-- [x] App routing (`src/App.jsx`) — React Router v6, PrivateRoute
-- [x] API client (`src/api.js`) — fetch wrapper với Bearer token
-- [x] Hook: `useAuth` (`src/hooks/useAuth.jsx`) — context, login, logout, persist token
-- [x] Layout: `Layout.jsx` — sidebar nav
-- [x] Page: `Login.jsx` — đăng nhập
-- [x] Page: `Register.jsx` — đăng ký
-- [x] Page: `Dashboard.jsx` — tổng quan số dư, quick actions
-- [x] Page: `Wallet.jsx` — nạp/rút/tiêu XU, lịch sử
-- [x] Page: `Quests.jsx` — danh sách quest, tiến trình, claim thưởng
-- [x] Page: `History.jsx` — lịch sử giao dịch toàn bộ
-- [x] Page: `Admin.jsx` — quản lý users, withdrawals, platform stats
-- [x] Page: `Gifting.jsx` — gửi gift XU cho creator (preset amounts)
-
-### 🚀 Đã hoàn thiện trong Replit Migration
-- [x] **Workflow config** — Replit chạy cả backend (port 3001) + frontend (port 5000) cùng lúc
-- [x] **`.env.example`** — Tạo file mẫu liệt kê đủ biến
-- [x] **MoMo IPN Webhook** (`POST /api/wallet/momo/ipn`) — xác thực HMAC, tự động cộng XU
-- [x] **ZaloPay IPN Webhook** (`POST /api/wallet/zalopay/ipn`) — xác thực KEY2, cộng XU
-- [x] **Frontend: Flow nạp tiền đầy đủ** — Chọn gateway → tạo đơn → redirect pay_url → `/payment/result`
-- [x] **Notification System** — Backend API + Frontend bell icon + dropdown
-- [x] **Cronjob** — XU expiry 01:00 hằng ngày + cleanup pending deposits mỗi 30 phút
-- [x] **Referral System** — code tự động, thưởng XU, trang `/referral`
-- [x] **Security Layer** — `helmet` (HTTP headers) + rate limiting (auth: 5/phút, API: 100/phút)
-- [x] **DB migrate + seed** — Chạy xong, 3 tài khoản test sẵn sàng
-- [x] **Secrets** — JWT_SECRET, MOMO_SECRET_KEY, ZALOPAY_KEY1/KEY2 lưu trong Replit Secrets
-- [x] **`type: "module"`** — Thêm vào `backend/package.json`, xóa warning ES module
+> ⚠️ Chú ý: Replit proxy không hỗ trợ tốt SSE long-lived connection — dùng `EventSource` với `retry` tự động, set header `X-Accel-Buffering: no` ở backend.
 
 ---
 
-## ❌ CÒN THIẾU — CẦN BUILD
-
-### ⚡ Real-time (WebSocket / SSE)
-
-- [ ] **Backend: SSE endpoint** (`GET /api/stream`) — Server-Sent Events cho live gift feed
-- [ ] **Frontend: Live gift feed** trong `Gifting.jsx` — hiển thị gift realtime khi streamer đang live
-- [ ] **Frontend: Balance auto-refresh** — cập nhật số dư khi nhận tip/gift mà không cần F5
-
-### 👤 User Features còn thiếu
-
-- [ ] **Trang Profile** (`/profile`) — đổi username, avatar, xem stats cá nhân
-- [ ] **Creator Dashboard** — trang riêng cho creator xem revenue, top tippers, withdrawal history
-- [ ] **KYC placeholder** — khi rút > 1,000,000 XU yêu cầu xác minh CCCD (có thể mock ở giai đoạn này)
-
-### 📊 Admin nâng cao
-
-- [ ] **Export CSV** — Admin xuất danh sách giao dịch / users ra file CSV
-- [ ] **Admin: Approve deposit thủ công** — Khi user chuyển khoản ngân hàng, admin confirm và cộng XU
-- [ ] **Biểu đồ** — Thêm chart (doanh thu theo ngày, số user mới) vào trang Admin
-
-### 🚢 Deploy
-
-- [ ] **Frontend build test** — Chạy `npm run build` trong `frontend/`, đảm bảo không lỗi
-- [ ] **Backend production config** — Kiểm tra `NODE_ENV=production`, tắt logs debug
-- [ ] **Deploy trên Replit** — Nhấn "Publish" trong Replit để deploy lên `.replit.app`
+### ✅ TASK 2 — Trang Profile (`/profile`)
+- [ ] **Backend: `GET /api/user/profile`** — trả về username, email, avatar_url, role, created_at, referral stats
+- [ ] **Backend: `PATCH /api/user/profile`** — cập nhật username, avatar_url (validate unique username)
+- [ ] **Frontend: Page `Profile.jsx`** — form đổi username, ô nhập avatar URL, hiển thị stats cá nhân (tổng xu đã kiếm, đã tiêu, ngày tham gia)
+- [ ] **Frontend: Thêm link `/profile`** vào sidebar `Layout.jsx`
 
 ---
 
-## 🔑 ENV VARS ĐÃ CÀI (Replit Secrets)
+### ✅ TASK 3 — Creator Dashboard (`/creator`)
+- [ ] **Backend: `GET /api/creator/stats`** — tổng xu nhận, top 10 người tip, tip theo ngày (7 ngày gần nhất), withdrawal history
+- [ ] **Frontend: Page `CreatorDashboard.jsx`** — chỉ hiển thị nếu `role === 'creator'`, bảng top tippers, biểu đồ thu nhập 7 ngày, nút rút tiền nhanh
+- [ ] **Frontend: Thêm link `/creator`** vào sidebar (chỉ hiện với creator)
+
+---
+
+### ✅ TASK 4 — Admin: Biểu đồ + Export CSV
+- [ ] **Backend: `GET /api/admin/chart-data`** — doanh thu theo ngày 30 ngày gần nhất, số user mới theo ngày
+- [ ] **Frontend: Chart trong `Admin.jsx`** — dùng `recharts` (`npm install recharts`), 2 chart: doanh thu VND + user mới
+- [ ] **Backend: `GET /api/admin/export/transactions`** — xuất CSV ledger entries (filter by date range)
+- [ ] **Backend: `GET /api/admin/export/users`** — xuất CSV danh sách users
+- [ ] **Frontend: Nút Export CSV** trong Admin — download file thẳng từ API
+
+---
+
+### ✅ TASK 5 — Admin: Approve Deposit Thủ Công
+- [ ] **Backend: `POST /api/admin/deposits/:id/approve`** — admin confirm deposit ngân hàng thủ công, cộng XU vào ví
+- [ ] **Backend: `POST /api/admin/deposits/:id/reject`** — từ chối, cập nhật status
+- [ ] **Frontend: Tab "Nạp chờ duyệt"** trong `Admin.jsx` — danh sách deposit pending, nút Approve/Reject từng cái
+
+---
+
+### ✅ TASK 6 — KYC Placeholder
+- [ ] **Backend: Thêm cột `kyc_status`** vào bảng `users` — `'none' | 'pending' | 'verified'`, default `'none'`
+- [ ] **Backend: Chặn rút** nếu `amount_xu > 1_000_000` và `kyc_status !== 'verified'` — trả lỗi rõ ràng
+- [ ] **Backend: `POST /api/user/kyc/submit`** — user nộp thông tin (tên, CCCD mock), set `kyc_status = 'pending'`
+- [ ] **Backend: `POST /api/admin/kyc/:userId/approve`** — admin duyệt KYC, set `kyc_status = 'verified'`
+- [ ] **Frontend: Banner KYC** trong trang Wallet khi số dư > 800,000 XU — nhắc user xác minh trước khi rút lớn
+
+---
+
+### ✅ TASK 7 — Deploy
+- [ ] **Frontend build test** — chạy `npm run build` trong `frontend/`, fix lỗi nếu có
+- [ ] **Backend production config** — khi `NODE_ENV=production`: tắt stack trace trong error handler, bật `trust proxy`
+- [ ] **Deploy trên Replit** — nhấn **Publish** trong Replit UI → app lên `.replit.app`
+- [ ] **Kiểm tra IPN webhook URL** — sau khi deploy, cập nhật `BACKEND_URL` trong Secrets thành URL production
+
+---
+
+## 📦 ĐÃ BUILD XONG (tham khảo)
+
+<details>
+<summary>Xem chi tiết các thứ đã hoàn thành</summary>
+
+### Backend
+- Express server, CORS, error handler — port 3001
+- PostgreSQL pool + migrate + seed (3 tài khoản test)
+- JWT auth middleware (`authMiddleware` + `adminOnly`)
+- Route Auth: register, login
+- Route Wallet: balance, deposit/create, spend, tip, history, platform-stats
+- Route Quests: list, progress, claim, admin-create
+- Route Events: trigger 10 loại action
+- Route Withdrawals: mine, queue, approve/reject
+- Route Admin: stats, user list, adjust balance
+- Route Notifications: list, read, delete
+- Route Referral: my-code, use, stats
+- Service Ledger: double-entry, idempotency key
+- Service QuestTrigger: auto-award XU
+- Gateway MoMo + ZaloPay (sandbox)
+- MoMo IPN Webhook (`POST /api/wallet/momo/ipn`)
+- ZaloPay IPN Webhook (`POST /api/wallet/zalopay/ipn`)
+- Cronjob: XU expiry 01:00 GMT+7 + cleanup pending mỗi 30 phút
+- Security: `helmet` + rate limit (auth 5/phút, API 100/phút)
+
+### Frontend
+- React + Vite, proxy `/api` → port 3001
+- React Router v6, PrivateRoute
+- API client với Bearer token
+- Hook `useAuth` — context, login, logout, persist
+- Layout + sidebar nav
+- Pages: Login, Register, Dashboard, Wallet, Quests, History, Admin, Gifting, Referral, PaymentResult
+
+### Replit
+- Workflow tự chạy khi mở project
+- Tất cả secrets trong Replit Secrets (không có trong code)
+- DB đã migrate + seed xong
+
+</details>
+
+---
+
+## 🔑 ENV VARS (Replit Secrets)
 
 | Biến | Trạng thái |
 |------|-----------|
 | DATABASE_URL | ✅ Replit tự quản lý |
-| JWT_SECRET | ✅ Đã set trong Secrets |
-| MOMO_SECRET_KEY | ✅ Đã set (sandbox) |
-| ZALOPAY_KEY1 | ✅ Đã set (sandbox) |
-| ZALOPAY_KEY2 | ✅ Đã set (sandbox) |
+| JWT_SECRET | ✅ Đã set |
+| MOMO_SECRET_KEY | ✅ Sandbox |
+| ZALOPAY_KEY1 | ✅ Sandbox |
+| ZALOPAY_KEY2 | ✅ Sandbox |
 | PORT | ✅ 3001 |
 | FRONTEND_URL | ✅ http://localhost:5000 |
 | MOMO_PARTNER_CODE | ✅ MOMO_TEST |
 | MOMO_ACCESS_KEY | ✅ F8BBA842ECF85 |
-| MOMO_ENDPOINT | ✅ sandbox |
+| MOMO_ENDPOINT | ✅ https://test-payment.momo.vn |
 | ZALOPAY_APP_ID | ✅ 2553 |
-| ZALOPAY_ENDPOINT | ✅ sandbox |
+| ZALOPAY_ENDPOINT | ✅ https://sb-openapi.zalopay.vn |
 
 ---
 
-## 🏃 CHẠY PROJECT (dev)
+## 🧪 Tài khoản test
 
-Replit tự động chạy cả hai service khi mở project. Lần đầu cần migrate + seed (đã xong).
-
-**Tài khoản test:**
 | Email | Mật khẩu | Role |
 |-------|----------|------|
 | admin@xu.vn | password123 | Admin |
 | nam@creator.vn | password123 | Creator |
 | linh@user.vn | password123 | User |
-
----
-
-## 📅 GỢI Ý THỨ TỰ BUILD TIẾP
-
-1. ⚡ SSE real-time feed → live gift / balance auto-refresh
-2. 👤 Trang Profile → đổi username, avatar
-3. 👑 Creator Dashboard → revenue, top tippers
-4. 📊 Admin charts → biểu đồ doanh thu
-5. 📤 Export CSV → xuất dữ liệu
-6. 🚢 Deploy → Publish trên Replit
