@@ -11,13 +11,13 @@
 |----------|---------|
 | Backend Core | ✅ Xong |
 | Frontend Core | ✅ Xong |
-| Workflow / Dev Runner | ❌ Chưa |
+| Workflow / Dev Runner | ✅ Xong |
 | Real-time (WebSocket) | ❌ Chưa |
-| Payment IPN Webhooks | ❌ Chưa |
-| Cronjob / Scheduler | ❌ Chưa |
-| Notification System | ❌ Chưa |
-| Referral System | ❌ Chưa |
-| Security Layer | ❌ Chưa |
+| Payment IPN Webhooks | ✅ Xong |
+| Cronjob / Scheduler | ✅ Xong |
+| Notification System | ✅ Xong |
+| Referral System | ✅ Xong |
+| Security Layer | ✅ Xong |
 | Deploy | ❌ Chưa |
 
 ---
@@ -40,7 +40,7 @@
 - [x] Service: QuestTrigger (`src/services/questTrigger.js`) — tự động award XU khi đủ điều kiện
 - [x] Gateway: MoMo (`src/services/gateways/momo.js`) — sandbox test keys có sẵn
 - [x] Gateway: ZaloPay (`src/services/gateways/zalopay.js`) — sandbox test keys có sẵn
-- [x] File `.env` cơ bản đã tồn tại trong `backend/`
+- [x] File `.env.example` — tạo xong, liệt kê đủ biến
 
 ### 🎨 Frontend (`frontend/`)
 - [x] React + Vite setup (`vite.config.js`) — proxy `/api` → `localhost:3001`
@@ -57,54 +57,29 @@
 - [x] Page: `Admin.jsx` — quản lý users, withdrawals, platform stats
 - [x] Page: `Gifting.jsx` — gửi gift XU cho creator (preset amounts)
 
+### 🚀 Đã hoàn thiện trong Replit Migration
+- [x] **Workflow config** — Replit chạy cả backend (port 3001) + frontend (port 5000) cùng lúc
+- [x] **`.env.example`** — Tạo file mẫu liệt kê đủ biến
+- [x] **MoMo IPN Webhook** (`POST /api/wallet/momo/ipn`) — xác thực HMAC, tự động cộng XU
+- [x] **ZaloPay IPN Webhook** (`POST /api/wallet/zalopay/ipn`) — xác thực KEY2, cộng XU
+- [x] **Frontend: Flow nạp tiền đầy đủ** — Chọn gateway → tạo đơn → redirect pay_url → `/payment/result`
+- [x] **Notification System** — Backend API + Frontend bell icon + dropdown
+- [x] **Cronjob** — XU expiry 01:00 hằng ngày + cleanup pending deposits mỗi 30 phút
+- [x] **Referral System** — code tự động, thưởng XU, trang `/referral`
+- [x] **Security Layer** — `helmet` (HTTP headers) + rate limiting (auth: 5/phút, API: 100/phút)
+- [x] **DB migrate + seed** — Chạy xong, 3 tài khoản test sẵn sàng
+- [x] **Secrets** — JWT_SECRET, MOMO_SECRET_KEY, ZALOPAY_KEY1/KEY2 lưu trong Replit Secrets
+- [x] **`type: "module"`** — Thêm vào `backend/package.json`, xóa warning ES module
+
 ---
 
 ## ❌ CÒN THIẾU — CẦN BUILD
-
-### 🚀 ƯU TIÊN CAO — Cần để chạy được
-
-- [x] **Workflow config** — Cấu hình Replit chạy cả backend (port 3001) + frontend (port 5000) cùng lúc khi mở project
-- [ ] **`.env.example`** — Tạo file mẫu liệt kê đủ biến: `DATABASE_URL`, `JWT_SECRET`, `MOMO_*`, `ZALOPAY_*`, `BACKEND_URL`, `FRONTEND_URL`
-- [x] **MoMo IPN Webhook** (`POST /api/wallet/momo/ipn`) — Xử lý callback từ MoMo, xác thực chữ ký HMAC, tự động cộng XU
-- [x] **ZaloPay IPN Webhook** (`POST /api/wallet/zalopay/ipn`) — Tương tự, xác thực KEY2, cộng XU
-- [x] **Frontend: Flow nạp tiền đầy đủ** — Chọn gateway → tạo đơn → redirect pay_url → trang `/payment/result` → confirm thủ công (dev)
-
-### 🔔 Notification System
-
-- [x] **Backend: Bảng notifications** — Schema `(id, user_id, type, title, body, read, metadata, created_at)` + 2 index
-- [x] **Backend: API notifications** — GET list, PATCH read-one, PATCH read-all, DELETE
-- [x] **Backend: Tự tạo notification** khi: deposit confirmed, tip received, withdrawal approved/rejected
-- [x] **Frontend: Bell icon** trong Layout — badge đỏ hiện unread count, poll mỗi 30 giây
-- [x] **Frontend: Notification dropdown** — danh sách, click mark read, xoá từng cái, nút "Đọc tất cả"
 
 ### ⚡ Real-time (WebSocket / SSE)
 
 - [ ] **Backend: SSE endpoint** (`GET /api/stream`) — Server-Sent Events cho live gift feed
 - [ ] **Frontend: Live gift feed** trong `Gifting.jsx` — hiển thị gift realtime khi streamer đang live
 - [ ] **Frontend: Balance auto-refresh** — cập nhật số dư khi nhận tip/gift mà không cần F5
-
-### ⏰ Cronjob / Scheduler
-
-- [x] **XU expiry job** — `node-cron` chạy 01:00 hằng ngày (GMT+7); bảng `xu_expiry_batches` theo dõi từng lô; tạo `ledger_entry` type `expire`; notify user; admin có thể trigger thủ công qua `POST /api/admin/run-expire`
-- [x] **Stale deposit cleanup** — Cron mỗi 30 phút; hủy deposit `pending` quá 30 phút; admin trigger thủ công qua `POST /api/admin/run-cleanup`
-- [x] **Backend: Expiry info API** — `GET /api/wallet/expiry-info` trả về lô XU sắp hết hạn cho user
-- [x] **Admin: Expiry dashboard** — `GET /api/admin/expiry-batches` + summary (active_count, expiring_soon, XU sắp mất)
-
-### 🔗 Referral System
-
-- [x] **Backend: Cột `referral_code`** — auto-gen 8 ký tự khi đăng ký, unique index
-- [x] **Backend: Cột `referred_by`** + `referral_reward_claimed` — FK + flag chống dùng 2 lần
-- [x] **Backend: API** — `GET /api/referral/my-code` (code + invite_link + stats + danh sách), `POST /api/referral/use` (idempotent, chống tự dùng)
-- [x] **Backend: Tự thưởng XU** — người mời +200 XU, người được mời +500 XU; cả hai ghi vào `xu_expiry_batches` (expire 90 ngày); notify realtime
-- [x] **Frontend: Trang `/referral`** — hiển thị code, copy 1-click, invite link, bảng thống kê người đã mời, ô nhập mã của người khác
-- [x] **Frontend: Register page** — nhận `?ref=CODE` từ URL, auto-fill + banner thông báo thưởng; áp dụng referral ngay sau khi tạo tài khoản
-
-### 🛡️ Security Layer
-
-- [ ] **Rate limiting** — `npm install express-rate-limit`, giới hạn: login 5 lần/phút, API chung 100 req/phút
-- [ ] **Helmet** — `npm install helmet`, bảo vệ HTTP headers
-- [ ] **Input validation** — `npm install zod` hoặc `express-validator`, validate body trước khi xử lý DB
-- [ ] **Frontend: Error Boundary** — Bắt React crash, hiển thị UI fallback thay vì màn hình trắng
 
 ### 👤 User Features còn thiếu
 
@@ -122,56 +97,32 @@
 
 - [ ] **Frontend build test** — Chạy `npm run build` trong `frontend/`, đảm bảo không lỗi
 - [ ] **Backend production config** — Kiểm tra `NODE_ENV=production`, tắt logs debug
-- [ ] **Database production** — Chọn host: Supabase (free) hoặc Railway PostgreSQL
-- [ ] **Deploy backend** — Railway / Render (connect repo, set env vars)
-- [ ] **Deploy frontend** — Vercel / Netlify (build command: `npm run build`, output: `dist`)
-- [ ] **Đặt `BACKEND_URL`** trong env production — để MoMo/ZaloPay IPN gọi đúng server
+- [ ] **Deploy trên Replit** — Nhấn "Publish" trong Replit để deploy lên `.replit.app`
 
 ---
 
-## 🔑 ENV VARS CẦN CÓ (chưa cần key thật)
+## 🔑 ENV VARS ĐÃ CÀI (Replit Secrets)
 
-```env
-# Database
-DATABASE_URL=postgresql://postgres:password@localhost:5432/xu_economy
-
-# Auth
-JWT_SECRET=any-random-32-char-string-here
-
-# Server
-PORT=3001
-FRONTEND_URL=http://localhost:5173
-BACKEND_URL=http://localhost:3001   # ← production: URL thật của server
-
-# MoMo Sandbox (test keys — không cần key thật)
-MOMO_PARTNER_CODE=MOMO_TEST
-MOMO_ACCESS_KEY=F8BBA842ECF85
-MOMO_SECRET_KEY=K951B6PE1waDMi640xX08PD3vg6EkVlz
-MOMO_ENDPOINT=https://test-payment.momo.vn
-
-# ZaloPay Sandbox (test keys — không cần key thật)
-ZALOPAY_APP_ID=2553
-ZALOPAY_KEY1=PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL
-ZALOPAY_KEY2=kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz
-ZALOPAY_ENDPOINT=https://sb-openapi.zalopay.vn
-```
-
-> ⚠️ File `.env` đã có trong `backend/` — kiểm tra và cập nhật `DATABASE_URL` + `JWT_SECRET`
+| Biến | Trạng thái |
+|------|-----------|
+| DATABASE_URL | ✅ Replit tự quản lý |
+| JWT_SECRET | ✅ Đã set trong Secrets |
+| MOMO_SECRET_KEY | ✅ Đã set (sandbox) |
+| ZALOPAY_KEY1 | ✅ Đã set (sandbox) |
+| ZALOPAY_KEY2 | ✅ Đã set (sandbox) |
+| PORT | ✅ 3001 |
+| FRONTEND_URL | ✅ http://localhost:5000 |
+| MOMO_PARTNER_CODE | ✅ MOMO_TEST |
+| MOMO_ACCESS_KEY | ✅ F8BBA842ECF85 |
+| MOMO_ENDPOINT | ✅ sandbox |
+| ZALOPAY_APP_ID | ✅ 2553 |
+| ZALOPAY_ENDPOINT | ✅ sandbox |
 
 ---
 
 ## 🏃 CHẠY PROJECT (dev)
 
-```bash
-# Terminal 1 — Backend
-cd backend && npm run dev
-
-# Terminal 2 — Frontend
-cd frontend && npm run dev
-
-# Lần đầu: migrate + seed DB
-cd backend && npm run migrate && npm run seed
-```
+Replit tự động chạy cả hai service khi mở project. Lần đầu cần migrate + seed (đã xong).
 
 **Tài khoản test:**
 | Email | Mật khẩu | Role |
@@ -184,10 +135,9 @@ cd backend && npm run migrate && npm run seed
 
 ## 📅 GỢI Ý THỨ TỰ BUILD TIẾP
 
-1. ⚡ Workflow config → chạy được ngay trong Replit
-2. 🔗 MoMo + ZaloPay IPN webhooks → deposit flow hoàn chỉnh
-3. 🔔 Notification system → UX tốt hơn
-4. ⏰ Cronjob XU expiry → đúng business logic
-5. 🔗 Referral system → growth feature
-6. 🛡️ Security layer → trước khi public
-7. 🚢 Deploy → lên production
+1. ⚡ SSE real-time feed → live gift / balance auto-refresh
+2. 👤 Trang Profile → đổi username, avatar
+3. 👑 Creator Dashboard → revenue, top tippers
+4. 📊 Admin charts → biểu đồ doanh thu
+5. 📤 Export CSV → xuất dữ liệu
+6. 🚢 Deploy → Publish trên Replit

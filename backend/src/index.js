@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import pool from './db/pool.js';
 import authRoutes from './routes/auth.js';
 import walletRoutes from './routes/wallet.js';
@@ -14,17 +16,34 @@ import referralRoutes from './routes/referral.js';
 
 const app = express();
 
+app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
 app.use(express.json());
 
-app.use('/api/auth',        authRoutes);
-app.use('/api/wallet',      walletRoutes);
-app.use('/api/events',      eventRoutes);
-app.use('/api/quests',      questRoutes);
-app.use('/api/withdrawals', withdrawalRoutes);
-app.use('/api/admin',         adminRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/referral',     referralRoutes);
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Quá nhiều lần thử, vui lòng thử lại sau 1 phút.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/auth',        authLimiter, authRoutes);
+app.use('/api/wallet',      generalLimiter, walletRoutes);
+app.use('/api/events',      generalLimiter, eventRoutes);
+app.use('/api/quests',      generalLimiter, questRoutes);
+app.use('/api/withdrawals', generalLimiter, withdrawalRoutes);
+app.use('/api/admin',       generalLimiter, adminRoutes);
+app.use('/api/notifications', generalLimiter, notificationRoutes);
+app.use('/api/referral',    generalLimiter, referralRoutes);
 
 app.get('/health', async (req, res) => {
   try {
