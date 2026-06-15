@@ -585,6 +585,89 @@ function ChartsTab({ token }) {
 
 // ─── main component ─────────────────────────────────────────────────────────
 
+function DevToolsTab({ token, showToast }) {
+  const [resetting, setResetting] = useState(false);
+  const [result, setResult]       = useState(null);
+
+  const resetSeed = async () => {
+    const confirmed = window.confirm(
+      '⚠️ Thao tác này sẽ XÓA 3 tài khoản test (admin@xu.vn, nam@creator.vn, linh@user.vn) và toàn bộ quests, sau đó seed lại.\n\nUser thật sẽ KHÔNG bị ảnh hưởng.\n\nTiếp tục?'
+    );
+    if (!confirmed) return;
+    setResetting(true);
+    setResult(null);
+    try {
+      const r = await fetch('/api/admin/reset-seed', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setResult({ ok: true, data: d });
+        showToast('✅ Reset & seed thành công!');
+      } else {
+        setResult({ ok: false, error: d.error });
+        showToast(`❌ Lỗi: ${d.error}`);
+      }
+    } catch (err) {
+      setResult({ ok: false, error: err.message });
+      showToast(`❌ ${err.message}`);
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <div style={{ fontSize: 13, color: '#555', marginBottom: 20, lineHeight: 1.7 }}>
+        Công cụ dành cho môi trường <strong style={{ color: '#fdcb6e' }}>development</strong>.
+        Dùng để reset dữ liệu test mà không ảnh hưởng user thật.
+      </div>
+
+      <div style={{ background: '#0e0e17', border: '1px solid #2a1e0e', borderRadius: 12, padding: '1.5rem' }}>
+        <div style={{ fontWeight: 600, color: '#fdcb6e', marginBottom: 8 }}>🔄 Reset dữ liệu test</div>
+        <div style={{ fontSize: 12, color: '#555', marginBottom: 16, lineHeight: 1.7 }}>
+          Xóa 3 tài khoản test + toàn bộ quests rồi seed lại từ đầu.<br />
+          Mật khẩu sau reset: <code style={{ color: '#a29bfe' }}>password123</code>
+        </div>
+        <div style={{ fontSize: 12, color: '#444', marginBottom: 16, background: '#13131f', borderRadius: 8, padding: '10px 14px', lineHeight: 1.8 }}>
+          📧 admin@xu.vn → <span style={{ color: '#888' }}>admin</span><br />
+          📧 nam@creator.vn → <span style={{ color: '#888' }}>creator, 10.000 XU</span><br />
+          📧 linh@user.vn → <span style={{ color: '#888' }}>user, 10.000 XU</span>
+        </div>
+        <button
+          onClick={resetSeed}
+          disabled={resetting}
+          style={{
+            padding: '8px 20px', borderRadius: 8, border: '1px solid #fdcb6e60',
+            background: resetting ? '#1a1410' : '#2a1e0e', color: resetting ? '#666' : '#fdcb6e',
+            fontSize: 13, fontWeight: 600, cursor: resetting ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {resetting ? '⏳ Đang reset...' : '🔄 Reset & Seed lại'}
+        </button>
+
+        {result && (
+          <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.8,
+            background: result.ok ? '#0e2a1e' : '#2a0e0e',
+            border: `1px solid ${result.ok ? '#00b89440' : '#ff6b6b40'}`,
+            color: result.ok ? '#6fcf97' : '#ff6b6b' }}>
+            {result.ok ? (
+              <>
+                ✅ Reset thành công!<br />
+                Đã xóa: {result.data.deleted.join(', ')}<br />
+                Đã seed: {result.data.seeded.users.length} users, {result.data.seeded.quests} quests
+              </>
+            ) : (
+              <>❌ Lỗi: {result.error}</>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { token, user } = useAuth();
   const [tab, setTab]       = useState('withdrawals');
@@ -628,6 +711,7 @@ export default function Admin() {
           ['transactions','≡ Giao dịch'],
           ['charts',      '📊 Biểu đồ'],
           ['kyc',         '🪪 KYC'],
+          ['devtools',    '🔧 Dev Tools'],
         ].map(([k,l])=>(
           <button key={k} style={S.topTab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
@@ -638,6 +722,7 @@ export default function Admin() {
       {tab === 'transactions' && <TransactionTab  token={token} />}
       {tab === 'charts'       && <ChartsTab       token={token} />}
       {tab === 'kyc'          && <KycTab          token={token} showToast={showToast} />}
+      {tab === 'devtools'     && <DevToolsTab     token={token} showToast={showToast} />}
 
       {toast && <div style={S.toast}>{toast}</div>}
     </div>
