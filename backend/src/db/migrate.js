@@ -70,6 +70,36 @@ CREATE INDEX IF NOT EXISTS idx_ledger_user_id ON ledger_entries(user_id, created
 CREATE INDEX IF NOT EXISTS idx_ledger_type ON ledger_entries(type);
 CREATE INDEX IF NOT EXISTS idx_ledger_idempotency ON ledger_entries(idempotency_key);
 
+-- Thêm earn_checkin vào constraint nếu chưa có
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'ledger_entries_type_check'
+      AND check_clause LIKE '%earn_checkin%'
+  ) THEN
+    ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check;
+    ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK (type IN (
+      'deposit','withdrawal',
+      'earn_quest','earn_game','earn_referral','earn_content','earn_checkin',
+      'spend_ticket','spend_item','spend_agent','spend_music','spend_boost',
+      'tip_sent','tip_received',
+      'expire','refund','admin_adjust'
+    ));
+  END IF;
+END $$;
+
+-- Daily check-in records
+CREATE TABLE IF NOT EXISTS daily_checkins (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  checked_in_date  DATE NOT NULL,
+  streak_day       INTEGER NOT NULL DEFAULT 1,
+  xu_earned        BIGINT NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, checked_in_date)
+);
+CREATE INDEX IF NOT EXISTS idx_checkins_user ON daily_checkins(user_id, checked_in_date DESC);
+
 -- Referral columns (thêm vào users nếu chưa có)
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='referral_code') THEN

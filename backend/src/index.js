@@ -16,6 +16,7 @@ import referralRoutes from './routes/referral.js';
 import streamRoutes from './routes/stream.js';
 import userRoutes from './routes/user.js';
 import creatorRoutes from './routes/creator.js';
+import checkinRoutes from './routes/checkin.js';
 
 const app = express();
 if (process.env.NODE_ENV === 'production') {
@@ -53,6 +54,7 @@ app.use('/api/referral',    generalLimiter, referralRoutes);
 app.use('/api/stream',     streamRoutes);
 app.use('/api/user',      generalLimiter, userRoutes);
 app.use('/api/creator',   generalLimiter, creatorRoutes);
+app.use('/api/checkin',   generalLimiter, checkinRoutes);
 
 app.get('/health', async (req, res) => {
   try {

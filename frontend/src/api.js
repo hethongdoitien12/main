@@ -61,6 +61,10 @@ export const api = {
     myCode: (t)       => req('GET',  '/referral/my-code', null, t),
     use:    (code, t) => req('POST', '/referral/use', { code }, t),
   },
+  checkin: {
+    status: (t) => req('GET',  '/checkin/status', null, t),
+    doIt:   (t) => req('POST', '/checkin', {}, t),
+  },
   admin: {
     stats:          (t)    => req('GET',  '/admin/stats', null, t),
     users:          (t)    => req('GET',  '/admin/users', null, t),
