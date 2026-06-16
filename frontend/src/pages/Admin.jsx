@@ -583,6 +583,192 @@ function ChartsTab({ token }) {
   );
 }
 
+// ─── notification broadcast tab ─────────────────────────────────────────────
+
+const NOTIF_TYPES = [
+  { value:'system',  label:'🔔 System',  color:'#74b9ff' },
+  { value:'promo',   label:'🎁 Promo',   color:'#f6c90e' },
+  { value:'warning', label:'⚠️ Warning', color:'#ff6b6b' },
+  { value:'info',    label:'ℹ️ Info',    color:'#6fcf97' },
+];
+const TARGET_OPTS = [
+  { value:'all',     label:'🌐 Tất cả users' },
+  { value:'user',    label:'👤 Chỉ role: user' },
+  { value:'creator', label:'🎨 Chỉ role: creator' },
+  { value:'admin',   label:'🔑 Chỉ role: admin' },
+];
+
+function NotificationTab({ token, showToast }) {
+  const [title,    setTitle]    = useState('');
+  const [body,     setBody]     = useState('');
+  const [type,     setType]     = useState('system');
+  const [target,   setTarget]   = useState('all');
+  const [preview,  setPreview]  = useState(null);
+  const [sending,  setSending]  = useState(false);
+  const [logs,     setLogs]     = useState([]);
+  const [logsLoad, setLogsLoad] = useState(false);
+
+  // live preview count when target changes
+  useEffect(() => {
+    fetch(`/api/admin/notifications/preview?target=${target}`, {
+      headers:{ Authorization:`Bearer ${token}` },
+    }).then(r=>r.json()).then(d=>setPreview(d.count)).catch(()=>{});
+  }, [target, token]);
+
+  const loadLogs = useCallback(async () => {
+    setLogsLoad(true);
+    const r = await fetch('/api/admin/notifications/broadcasts', { headers:{ Authorization:`Bearer ${token}` } });
+    const d = await r.json();
+    setLogs(Array.isArray(d) ? d : []);
+    setLogsLoad(false);
+  }, [token]);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  const send = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSending(true);
+    try {
+      const r = await fetch('/api/admin/notifications/broadcast', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body: JSON.stringify({ title: title.trim(), body: body.trim()||null, type, target }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        showToast(`✅ Đã gửi cho ${d.sent} users`);
+        setTitle(''); setBody(''); setType('system'); setTarget('all');
+        loadLogs();
+      } else showToast(`❌ ${d.error}`);
+    } finally { setSending(false); }
+  };
+
+  const typeInfo   = NOTIF_TYPES.find(t => t.value === type) || NOTIF_TYPES[0];
+  const targetInfo = TARGET_OPTS.find(t => t.value === target) || TARGET_OPTS[0];
+
+  const inp = { width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'#13131f', border:'1px solid #2e2e44', borderRadius:8, color:'#ddd', fontSize:13, outline:'none' };
+  const lbl = { display:'block', fontSize:11, color:'#555', marginBottom:5 };
+
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, alignItems:'start' }}>
+
+      {/* ── left: compose form ── */}
+      <div style={S.card}>
+        <div style={{ fontWeight:700, color:'#ddd', fontSize:14, marginBottom:16 }}>📣 Soạn thông báo</div>
+
+        <form onSubmit={send}>
+          {/* type selector */}
+          <div style={{ marginBottom:14 }}>
+            <label style={lbl}>Loại thông báo</label>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {NOTIF_TYPES.map(t => (
+                <button key={t.value} type="button" onClick={()=>setType(t.value)} style={{
+                  padding:'5px 12px', borderRadius:20, border:`1px solid ${t.color}${type===t.value?'':'40'}`,
+                  background: type===t.value ? `${t.color}20` : 'transparent',
+                  color: type===t.value ? t.color : '#555', fontSize:12, cursor:'pointer',
+                }}>{t.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* target selector */}
+          <div style={{ marginBottom:14 }}>
+            <label style={lbl}>Gửi đến</label>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {TARGET_OPTS.map(t => (
+                <button key={t.value} type="button" onClick={()=>setTarget(t.value)} style={{
+                  padding:'5px 12px', borderRadius:20, border:`1px solid ${target===t.value?'#a29bfe':'#2e2e44'}`,
+                  background: target===t.value ? '#a29bfe20' : 'transparent',
+                  color: target===t.value ? '#a29bfe' : '#555', fontSize:12, cursor:'pointer',
+                }}>{t.label}</button>
+              ))}
+            </div>
+            {preview !== null && (
+              <div style={{ marginTop:7, fontSize:11, color:'#6fcf97' }}>
+                → Sẽ gửi cho <b>{preview}</b> user{preview !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+
+          {/* title */}
+          <div style={{ marginBottom:12 }}>
+            <label style={lbl}>Tiêu đề *</label>
+            <input style={inp} value={title} onChange={e=>setTitle(e.target.value)}
+              placeholder="VD: 🎁 Ưu đãi đặc biệt hôm nay!" maxLength={200} required />
+            <div style={{ fontSize:10, color:'#333', marginTop:3, textAlign:'right' }}>{title.length}/200</div>
+          </div>
+
+          {/* body */}
+          <div style={{ marginBottom:16 }}>
+            <label style={lbl}>Nội dung (tuỳ chọn)</label>
+            <textarea style={{ ...inp, height:90, resize:'vertical' }} value={body}
+              onChange={e=>setBody(e.target.value)} placeholder="Mô tả chi tiết thêm..." />
+          </div>
+
+          {/* preview card */}
+          {title && (
+            <div style={{ marginBottom:16, padding:'10px 14px', background:'#0a0a15', border:`1px solid ${typeInfo.color}30`, borderLeft:`3px solid ${typeInfo.color}`, borderRadius:8 }}>
+              <div style={{ fontSize:11, color: typeInfo.color, marginBottom:4 }}>{typeInfo.label} preview</div>
+              <div style={{ fontWeight:600, color:'#ddd', fontSize:13 }}>{title}</div>
+              {body && <div style={{ fontSize:12, color:'#555', marginTop:4 }}>{body}</div>}
+            </div>
+          )}
+
+          <button type="submit" disabled={sending||!title.trim()} style={{
+            width:'100%', padding:'10px', background:'#a29bfe', border:'none', borderRadius:8,
+            color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer',
+            opacity: (sending||!title.trim()) ? 0.5 : 1,
+          }}>
+            {sending ? 'Đang gửi...' : `📣 Gửi thông báo${preview !== null ? ` (${preview})` : ''}`}
+          </button>
+        </form>
+      </div>
+
+      {/* ── right: broadcast history ── */}
+      <div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontWeight:700, color:'#ddd', fontSize:14 }}>📋 Lịch sử gửi</div>
+          <button onClick={loadLogs} style={S.refreshBtn}>{logsLoad?'...':'↻ Làm mới'}</button>
+        </div>
+
+        {logsLoad && <div style={{ fontSize:12, color:'#333', textAlign:'center', padding:'1rem' }}>Đang tải...</div>}
+
+        {!logsLoad && logs.length === 0 && (
+          <div style={{ fontSize:12, color:'#333', textAlign:'center', padding:'1rem' }}>Chưa gửi broadcast nào</div>
+        )}
+
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {logs.map(log => {
+            const t = NOTIF_TYPES.find(x=>x.value===log.type)||NOTIF_TYPES[0];
+            return (
+              <div key={log.id} style={{
+                padding:'10px 14px', background:'#0d0d1a',
+                border:`1px solid ${t.color}20`, borderLeft:`3px solid ${t.color}`,
+                borderRadius:8,
+              }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:600, color:'#ddd', fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{log.title}</div>
+                    {log.body && <div style={{ fontSize:11, color:'#444', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{log.body}</div>}
+                  </div>
+                  <span style={{ ...S.badge(''), background:'transparent', border:`1px solid ${t.color}40`, color:t.color, fontSize:10, whiteSpace:'nowrap', padding:'2px 6px', flexShrink:0 }}>{t.label}</span>
+                </div>
+                <div style={{ display:'flex', gap:10, marginTop:6, fontSize:11, color:'#333' }}>
+                  <span>👤 {log.recipient_count} users</span>
+                  <span>→ {TARGET_OPTS.find(x=>x.value===log.target)?.label||log.target}</span>
+                  <span style={{ marginLeft:'auto' }}>by {log.admin_username}</span>
+                  <span>{new Date(log.created_at).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'})}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── quest management tab ───────────────────────────────────────────────────
 
 const TYPE_COLORS = { daily:'#6fcf97', weekly:'#74b9ff', one_time:'#a29bfe', event:'#f6c90e' };
@@ -1418,6 +1604,7 @@ export default function Admin() {
           ['transactions','≡ Giao dịch'],
           ['charts',      '📊 Biểu đồ'],
           ['kyc',         '🪪 KYC'],
+          ['notify',      '📣 Thông báo'],
           ['quests',      '🏆 Quests'],
           ['users',       '👥 Users'],
           ['devtools',    '🔧 Dev Tools'],
@@ -1431,6 +1618,7 @@ export default function Admin() {
       {tab === 'transactions' && <TransactionTab  token={token} />}
       {tab === 'charts'       && <ChartsTab       token={token} />}
       {tab === 'kyc'          && <KycTab              token={token} showToast={showToast} />}
+      {tab === 'notify'       && <NotificationTab    token={token} showToast={showToast} />}
       {tab === 'quests'       && <QuestManagementTab token={token} showToast={showToast} />}
       {tab === 'users'        && <UserManagementTab  token={token} showToast={showToast} />}
       {tab === 'devtools'     && <DevToolsTab       token={token} showToast={showToast} />}

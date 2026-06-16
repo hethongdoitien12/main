@@ -573,6 +573,73 @@ router.delete('/quests/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Notification broadcast ───────────────────────────────────────────────────
+
+// GET /api/admin/notifications/preview — đếm số user theo target
+router.get('/notifications/preview', async (req, res) => {
+  try {
+    const { target } = req.query; // 'all' | 'user' | 'creator' | 'admin'
+    let where = `WHERE banned_at IS NULL`;
+    if (target && target !== 'all') where += ` AND role = '${target}'`;
+    const { rows: [{ cnt }] } = await query(`SELECT COUNT(*)::int AS cnt FROM users ${where}`);
+    res.json({ count: cnt });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/admin/notifications/broadcast — gửi thông báo hàng loạt
+router.post('/notifications/broadcast', async (req, res) => {
+  try {
+    const { title, body, type = 'system', target = 'all' } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Thiếu tiêu đề' });
+
+    const VALID_TYPES  = ['system','promo','warning','info'];
+    const VALID_TARGET = ['all','user','creator','admin'];
+    if (!VALID_TYPES.includes(type))   return res.status(400).json({ error: 'type không hợp lệ' });
+    if (!VALID_TARGET.includes(target)) return res.status(400).json({ error: 'target không hợp lệ' });
+
+    // Lấy danh sách user_id theo target
+    let where = `WHERE banned_at IS NULL`;
+    const params = [];
+    if (target !== 'all') { params.push(target); where += ` AND role = $1`; }
+    const { rows: users } = await query(`SELECT id FROM users ${where}`, params);
+
+    if (users.length === 0) return res.status(400).json({ error: 'Không có user nào phù hợp' });
+
+    // Batch insert notifications (metadata uses DB default '{}')
+    const placeholders = users.map((_, i) => `($${i*4+1},$${i*4+2},$${i*4+3},$${i*4+4})`).join(',');
+    const vals = users.flatMap(u => [u.id, type, title.trim(), body?.trim() || null]);
+    await query(
+      `INSERT INTO notifications (user_id, type, title, body)
+       VALUES ${placeholders}`,
+      vals
+    );
+
+    // Lưu bản ghi broadcast vào bảng riêng
+    await query(
+      `INSERT INTO broadcast_logs (admin_id, title, body, type, target, recipient_count)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [req.user.id, title.trim(), body?.trim()||null, type, target, users.length]
+    );
+
+    res.json({ ok: true, sent: users.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/admin/notifications/broadcasts — lịch sử broadcast
+router.get('/notifications/broadcasts', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit)||20, 100);
+    const { rows } = await query(`
+      SELECT bl.*, u.username AS admin_username
+      FROM broadcast_logs bl
+      JOIN users u ON u.id = bl.admin_id
+      ORDER BY bl.created_at DESC
+      LIMIT $1
+    `, [limit]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // POST /api/admin/reset-seed — xóa dữ liệu test và seed lại (chỉ xóa test accounts)
 router.post('/reset-seed', async (req, res) => {
   const TEST_EMAILS = ['admin@xu.vn', 'nam@creator.vn', 'linh@user.vn'];

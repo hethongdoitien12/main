@@ -178,6 +178,18 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, read) WHERE read = false;
 
+-- Broadcast logs — lịch sử gửi thông báo hàng loạt
+CREATE TABLE IF NOT EXISTS broadcast_logs (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id       UUID NOT NULL REFERENCES users(id),
+  title          VARCHAR(200) NOT NULL,
+  body           TEXT,
+  type           VARCHAR(50) NOT NULL DEFAULT 'system',
+  target         VARCHAR(20) NOT NULL DEFAULT 'all',
+  recipient_count INTEGER NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- XU Expiry Batches — theo dõi từng lô XU khuyến mãi sẽ hết hạn
 CREATE TABLE IF NOT EXISTS xu_expiry_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
