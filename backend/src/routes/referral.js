@@ -52,14 +52,34 @@ router.get('/my-code', async (req, res) => {
       WHERE u.referred_by = $1
     `, [req.user.id]);
 
-    // Danh sách người đã dùng code
+    // Danh sách người đã dùng code — kèm chi tiết
     const { rows: referrals } = await query(`
-      SELECT username, created_at
-      FROM users
-      WHERE referred_by = $1
-      ORDER BY created_at DESC
-      LIMIT 20
+      SELECT
+        u.username, u.role, u.created_at,
+        u.banned_at IS NOT NULL                     AS is_banned,
+        COALESCE(w.total_earned, 0)::bigint          AS invitee_total_earned,
+        COALESCE(w.balance, 0)::bigint               AS invitee_balance,
+        (
+          SELECT COALESCE(SUM(le.amount), 0)::bigint
+          FROM ledger_entries le
+          WHERE le.user_id = $1
+            AND le.type = 'earn_referral'
+            AND le.metadata->>'invitee' IS NOT NULL
+            AND (le.idempotency_key LIKE 'referral_referrer:' || u.id::text || ':%'
+              OR le.description LIKE '%' || u.username || '%')
+        )                                            AS xu_from_this_referral
+      FROM users u
+      LEFT JOIN wallets w ON w.user_id = u.id
+      WHERE u.referred_by = $1
+      ORDER BY u.created_at DESC
+      LIMIT 50
     `, [req.user.id]);
+
+    // XU từng referral = REWARD_REFERRER (cố định), fallback nếu query phức tạp
+    const referralsWithXu = referrals.map(r => ({
+      ...r,
+      xu_from_this_referral: Number(r.xu_from_this_referral) || REWARD_REFERRER,
+    }));
 
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
     res.json({
@@ -68,7 +88,7 @@ router.get('/my-code', async (req, res) => {
       reward_referrer: REWARD_REFERRER,
       reward_invitee:  REWARD_INVITEE,
       stats,
-      referrals,
+      referrals: referralsWithXu,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
