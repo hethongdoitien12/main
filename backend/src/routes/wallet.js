@@ -318,4 +318,61 @@ router.post('/bonus', authMiddleware, async (req, res) => {
   }
 });
 
+// ─── GET /api/wallet/leaderboard — bảng xếp hạng ────────────────────────────
+router.get('/leaderboard', authMiddleware, async (req, res) => {
+  try {
+    const period = req.query.period || 'alltime'; // 'alltime' | 'month' | 'week'
+    const limit  = Math.min(parseInt(req.query.limit) || 20, 50);
+
+    let rows;
+
+    if (period === 'alltime') {
+      ({ rows } = await query(`
+        SELECT u.id, u.username, u.role, u.avatar_url,
+               w.total_earned AS xu_earned,
+               w.balance      AS xu_balance,
+               RANK() OVER (ORDER BY w.total_earned DESC) AS rank
+        FROM wallets w
+        JOIN users u ON u.id = w.user_id
+        WHERE u.banned_at IS NULL
+        ORDER BY w.total_earned DESC
+        LIMIT $1
+      `, [limit]));
+    } else {
+      const interval = period === 'week' ? '7 days' : '30 days';
+      ({ rows } = await query(`
+        SELECT u.id, u.username, u.role, u.avatar_url,
+               COALESCE(SUM(le.amount) FILTER (WHERE le.amount > 0), 0)::bigint AS xu_earned,
+               w.balance AS xu_balance,
+               RANK() OVER (ORDER BY COALESCE(SUM(le.amount) FILTER (WHERE le.amount > 0), 0) DESC) AS rank
+        FROM users u
+        JOIN wallets w ON w.user_id = u.id
+        LEFT JOIN ledger_entries le
+          ON le.user_id = u.id
+          AND le.created_at >= NOW() - INTERVAL '${interval}'
+          AND le.amount > 0
+        WHERE u.banned_at IS NULL
+        GROUP BY u.id, u.username, u.role, u.avatar_url, w.balance
+        ORDER BY xu_earned DESC
+        LIMIT $1
+      `, [limit]));
+    }
+
+    // Vị trí của người dùng hiện tại
+    let myRank = null;
+    if (period === 'alltime') {
+      const { rows: [me] } = await query(`
+        SELECT RANK() OVER (ORDER BY w.total_earned DESC) AS rank,
+               w.total_earned AS xu_earned
+        FROM wallets w
+        JOIN users u ON u.id = w.user_id
+        WHERE u.id = $1 AND u.banned_at IS NULL
+      `, [req.user.id]);
+      myRank = me || null;
+    }
+
+    res.json({ entries: rows, myRank, period });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 export default router;
