@@ -583,6 +583,265 @@ function ChartsTab({ token }) {
   );
 }
 
+// ─── quest management tab ───────────────────────────────────────────────────
+
+const TYPE_COLORS = { daily:'#6fcf97', weekly:'#74b9ff', one_time:'#a29bfe', event:'#f6c90e' };
+const CAT_LABELS  = { game:'🎮 Game', music:'🎵 Music', social:'📣 Social', content:'📝 Content', referral:'👥 Referral', '':'—' };
+
+const EMPTY_FORM = {
+  title:'', description:'', type:'one_time', category:'',
+  reward_xu:'', action:'', count:'1', expires_at:'',
+};
+
+function QuestModal({ initial, onSave, onClose, saving }) {
+  const [f, setF] = useState(initial || EMPTY_FORM);
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const isEdit = !!initial?.id;
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!f.title.trim()) return;
+    if (!f.reward_xu || Number(f.reward_xu) <= 0) return;
+    if (!f.action.trim() || !f.count || Number(f.count) < 1) return;
+    onSave({
+      title: f.title.trim(),
+      description: f.description.trim() || null,
+      type: f.type,
+      category: f.category || null,
+      reward_xu: Number(f.reward_xu),
+      requirement: { action: f.action.trim(), count: Number(f.count) },
+      expires_at: f.expires_at || null,
+    });
+  };
+
+  const overlay = { position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center' };
+  const box     = { background:'#0d0d1a', border:'1px solid #2e2e44', borderRadius:12, padding:'1.5rem', width:'100%', maxWidth:480, maxHeight:'90vh', overflowY:'auto' };
+  const inp     = { width:'100%', boxSizing:'border-box', padding:'8px 12px', background:'#13131f', border:'1px solid #2e2e44', borderRadius:8, color:'#ddd', fontSize:13, outline:'none' };
+  const lbl     = { display:'block', fontSize:11, color:'#555', marginBottom:4 };
+  const row     = { marginBottom:14 };
+  const sel     = { ...inp, cursor:'pointer' };
+
+  return (
+    <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={box}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.2rem' }}>
+          <span style={{ fontWeight:700, color:'#ddd', fontSize:15 }}>{isEdit ? '✏️ Sửa quest' : '➕ Tạo quest mới'}</span>
+          <button onClick={onClose} style={{ background:'none', border:'none', color:'#555', fontSize:18, cursor:'pointer' }}>✕</button>
+        </div>
+        <form onSubmit={submit}>
+          <div style={row}>
+            <label style={lbl}>Tên quest *</label>
+            <input style={inp} value={f.title} onChange={e=>set('title',e.target.value)} placeholder="VD: Nghe 3 bài hát hôm nay" required />
+          </div>
+          <div style={row}>
+            <label style={lbl}>Mô tả</label>
+            <textarea style={{ ...inp, height:64, resize:'vertical' }} value={f.description} onChange={e=>set('description',e.target.value)} placeholder="Mô tả ngắn..." />
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+            <div>
+              <label style={lbl}>Loại *</label>
+              <select style={sel} value={f.type} onChange={e=>set('type',e.target.value)}>
+                {['daily','weekly','one_time','event'].map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>Danh mục</label>
+              <select style={sel} value={f.category} onChange={e=>set('category',e.target.value)}>
+                <option value="">— Không —</option>
+                {['game','music','social','content','referral'].map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+            <div>
+              <label style={lbl}>Thưởng XU *</label>
+              <input style={inp} type="number" min="1" value={f.reward_xu} onChange={e=>set('reward_xu',e.target.value)} placeholder="500" required />
+            </div>
+            <div>
+              <label style={lbl}>Hết hạn (tuỳ chọn)</label>
+              <input style={inp} type="datetime-local" value={f.expires_at} onChange={e=>set('expires_at',e.target.value)} />
+            </div>
+          </div>
+          <div style={{ background:'#0a0a15', border:'1px solid #2e2e44', borderRadius:8, padding:'12px', marginBottom:14 }}>
+            <div style={{ fontSize:11, color:'#a29bfe', marginBottom:8 }}>⚙️ Điều kiện hoàn thành</div>
+            <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:8 }}>
+              <div>
+                <label style={lbl}>Action *</label>
+                <input style={inp} value={f.action} onChange={e=>set('action',e.target.value)} placeholder="VD: play_game, listen_music" required />
+              </div>
+              <div>
+                <label style={lbl}>Số lần *</label>
+                <input style={inp} type="number" min="1" value={f.count} onChange={e=>set('count',e.target.value)} required />
+              </div>
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <button type="button" onClick={onClose} style={{ padding:'8px 18px', background:'transparent', border:'1px solid #2e2e44', borderRadius:8, color:'#555', cursor:'pointer' }}>Huỷ</button>
+            <button type="submit" disabled={saving} style={{ padding:'8px 22px', background:'#a29bfe', border:'none', borderRadius:8, color:'#fff', fontWeight:600, cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Tạo quest'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function QuestManagementTab({ token, showToast }) {
+  const [quests, setQuests]   = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modal, setModal]     = useState(null); // null | 'create' | quest object
+  const [saving, setSaving]   = useState(false);
+  const [filter, setFilter]   = useState('all'); // 'all' | 'active' | 'inactive'
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/quests', { headers:{ Authorization:`Bearer ${token}` } });
+      const d = await r.json();
+      setQuests(Array.isArray(d) ? d : []);
+    } catch { setQuests([]); } finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = async (q) => {
+    const r = await fetch(`/api/admin/quests/${q.id}/toggle`, {
+      method:'PATCH', headers:{ Authorization:`Bearer ${token}` },
+    });
+    const d = await r.json();
+    if (d.id) { showToast(`${d.is_active ? '✅ Bật' : '⏸️ Tắt'}: ${d.title}`); load(); }
+    else showToast(`❌ ${d.error}`);
+  };
+
+  const deleteQuest = async (q) => {
+    if (!window.confirm(`Xóa quest "${q.title}"?\nChỉ xóa được nếu chưa có user tham gia.`)) return;
+    const r = await fetch(`/api/admin/quests/${q.id}`, {
+      method:'DELETE', headers:{ Authorization:`Bearer ${token}` },
+    });
+    const d = await r.json();
+    if (d.ok) { showToast('🗑️ Đã xóa quest'); load(); }
+    else showToast(`❌ ${d.error}`);
+  };
+
+  const saveQuest = async (payload) => {
+    setSaving(true);
+    const isEdit = !!modal?.id;
+    const url    = isEdit ? `/api/admin/quests/${modal.id}` : '/api/admin/quests';
+    const method = isEdit ? 'PATCH' : 'POST';
+    try {
+      const r = await fetch(url, {
+        method, headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const d = await r.json();
+      if (d.id || d.ok) {
+        showToast(isEdit ? '✅ Đã cập nhật quest' : '✅ Tạo quest thành công');
+        setModal(null); load();
+      } else showToast(`❌ ${d.error}`);
+    } finally { setSaving(false); }
+  };
+
+  const displayed = quests.filter(q =>
+    filter === 'all' ? true : filter === 'active' ? q.is_active : !q.is_active
+  );
+
+  const toEditForm = (q) => ({
+    id: q.id,
+    title: q.title,
+    description: q.description || '',
+    type: q.type,
+    category: q.category || '',
+    reward_xu: q.reward_xu,
+    action: q.requirement?.action || '',
+    count: q.requirement?.count || 1,
+    expires_at: q.expires_at ? q.expires_at.slice(0,16) : '',
+  });
+
+  return (
+    <div>
+      {/* toolbar */}
+      <div style={{ display:'flex', gap:10, marginBottom:16, alignItems:'center', flexWrap:'wrap' }}>
+        {['all','active','inactive'].map(f => (
+          <button key={f} onClick={()=>setFilter(f)} style={{
+            padding:'4px 12px', borderRadius:6, border:'1px solid',
+            borderColor: filter===f ? '#a29bfe' : '#2e2e44',
+            background: filter===f ? '#a29bfe20' : 'transparent',
+            color: filter===f ? '#a29bfe' : '#555', fontSize:12, cursor:'pointer',
+          }}>{f==='all'?`Tất cả (${quests.length})`:f==='active'?`Đang bật (${quests.filter(q=>q.is_active).length})`:`Đã tắt (${quests.filter(q=>!q.is_active).length})`}</button>
+        ))}
+        <button onClick={()=>setModal('create')} style={{ marginLeft:'auto', padding:'6px 16px', background:'#a29bfe', border:'none', borderRadius:8, color:'#fff', fontWeight:600, fontSize:13, cursor:'pointer' }}>➕ Tạo quest</button>
+        <button onClick={load} style={S.refreshBtn}>↻ Làm mới</button>
+      </div>
+
+      <div style={S.card}>
+        <table style={S.table}>
+          <thead><tr>
+            {['Quest', 'Loại / Danh mục', 'Thưởng', 'Điều kiện', 'Thống kê', 'Trạng thái', ''].map(h => (
+              <th key={h} style={S.th}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {loading && (
+              <tr><td colSpan={7} style={{ ...S.td, textAlign:'center', color:'#333' }}>Đang tải...</td></tr>
+            )}
+            {!loading && displayed.length === 0 && (
+              <tr><td colSpan={7} style={{ ...S.td, textAlign:'center', color:'#333' }}>Không có quest nào</td></tr>
+            )}
+            {displayed.map(q => (
+              <tr key={q.id} style={{ opacity: q.is_active ? 1 : 0.5 }}>
+                {/* title + desc */}
+                <td style={S.td}>
+                  <div style={{ fontWeight:600, color: q.is_active ? '#ddd' : '#555', maxWidth:180 }}>{q.title}</div>
+                  {q.description && <div style={{ fontSize:11, color:'#444', marginTop:2, maxWidth:180 }}>{q.description.slice(0,60)}{q.description.length>60?'…':''}</div>}
+                  {q.expires_at && <div style={{ fontSize:10, color:'#f6c90e', marginTop:2 }}>⏰ {new Date(q.expires_at).toLocaleDateString('vi-VN')}</div>}
+                </td>
+                {/* type/category */}
+                <td style={S.td}>
+                  <span style={{ ...S.badge(''), background:'transparent', border:`1px solid ${TYPE_COLORS[q.type]||'#444'}40`, color: TYPE_COLORS[q.type]||'#aaa', padding:'2px 7px' }}>{q.type}</span>
+                  {q.category && <div style={{ fontSize:11, color:'#444', marginTop:4 }}>{CAT_LABELS[q.category]||q.category}</div>}
+                </td>
+                {/* reward */}
+                <td style={S.td}><span style={{ color:'#f6c90e', fontWeight:600 }}>+{Number(q.reward_xu).toLocaleString()} XU</span></td>
+                {/* requirement */}
+                <td style={S.td}>
+                  <div style={{ fontSize:11, color:'#74b9ff' }}>{q.requirement?.action}</div>
+                  <div style={{ fontSize:11, color:'#444' }}>× {q.requirement?.count}</div>
+                </td>
+                {/* stats */}
+                <td style={S.td}>
+                  <div style={{ fontSize:11, color:'#555' }}>👤 {q.total_participants}</div>
+                  <div style={{ fontSize:11, color:'#6fcf97' }}>✓ {q.total_completed}</div>
+                  <div style={{ fontSize:11, color:'#a29bfe' }}>🏆 {q.total_claimed}</div>
+                </td>
+                {/* status */}
+                <td style={S.td}><span style={S.badge(q.is_active ? 'completed' : 'failed')}>{q.is_active ? 'active' : 'inactive'}</span></td>
+                {/* actions */}
+                <td style={{ ...S.td, whiteSpace:'nowrap' }}>
+                  <button onClick={()=>setModal(toEditForm(q))} style={{ ...S.refreshBtn, marginRight:4 }}>✏️</button>
+                  <button onClick={()=>toggle(q)} style={{ ...S.refreshBtn, marginRight:4 }}>{q.is_active ? '⏸️' : '▶️'}</button>
+                  {q.total_participants === 0 && (
+                    <button onClick={()=>deleteQuest(q)} style={{ ...S.rejectBtn, fontSize:11, padding:'3px 8px' }}>🗑️</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {modal && (
+        <QuestModal
+          initial={modal === 'create' ? null : modal}
+          saving={saving}
+          onSave={saveQuest}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── user management tab ────────────────────────────────────────────────────
 
 const ROLE_COLORS = { admin: '#a29bfe', creator: '#74b9ff', user: '#6fcf97' };
@@ -1159,6 +1418,7 @@ export default function Admin() {
           ['transactions','≡ Giao dịch'],
           ['charts',      '📊 Biểu đồ'],
           ['kyc',         '🪪 KYC'],
+          ['quests',      '🏆 Quests'],
           ['users',       '👥 Users'],
           ['devtools',    '🔧 Dev Tools'],
         ].map(([k,l])=>(
@@ -1170,8 +1430,9 @@ export default function Admin() {
       {tab === 'deposits'     && <DepositTab      token={token} showToast={showToast} />}
       {tab === 'transactions' && <TransactionTab  token={token} />}
       {tab === 'charts'       && <ChartsTab       token={token} />}
-      {tab === 'kyc'          && <KycTab             token={token} showToast={showToast} />}
-      {tab === 'users'        && <UserManagementTab token={token} showToast={showToast} />}
+      {tab === 'kyc'          && <KycTab              token={token} showToast={showToast} />}
+      {tab === 'quests'       && <QuestManagementTab token={token} showToast={showToast} />}
+      {tab === 'users'        && <UserManagementTab  token={token} showToast={showToast} />}
       {tab === 'devtools'     && <DevToolsTab       token={token} showToast={showToast} />}
 
       {toast && <div style={S.toast}>{toast}</div>}

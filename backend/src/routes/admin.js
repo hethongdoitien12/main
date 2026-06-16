@@ -491,6 +491,88 @@ router.post('/adjust-xu', async (req, res) => {
   }
 });
 
+// ─── Quest management ────────────────────────────────────────────────────────
+
+// GET /api/admin/quests — all quests with completion stats
+router.get('/quests', async (req, res) => {
+  try {
+    const { rows } = await query(`
+      SELECT q.*,
+        COUNT(uq.id)::int                                             AS total_participants,
+        COUNT(uq.id) FILTER (WHERE uq.status IN ('completed','claimed'))::int AS total_completed,
+        COUNT(uq.id) FILTER (WHERE uq.status = 'claimed')::int        AS total_claimed
+      FROM quests q
+      LEFT JOIN user_quests uq ON uq.quest_id = q.id
+      GROUP BY q.id
+      ORDER BY q.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/admin/quests — tạo quest mới
+router.post('/quests', async (req, res) => {
+  try {
+    const { title, description, type, category, reward_xu, requirement, expires_at } = req.body;
+    if (!title || !type || !reward_xu || !requirement)
+      return res.status(400).json({ error: 'Thiếu title / type / reward_xu / requirement' });
+    const VALID_TYPES = ['daily','weekly','one_time','event'];
+    if (!VALID_TYPES.includes(type))
+      return res.status(400).json({ error: 'type không hợp lệ' });
+    const { rows: [q] } = await query(`
+      INSERT INTO quests (title, description, type, category, reward_xu, requirement, expires_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *
+    `, [title, description||null, type, category||null, reward_xu, requirement, expires_at||null]);
+    res.status(201).json(q);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/admin/quests/:id — sửa quest
+router.patch('/quests/:id', async (req, res) => {
+  try {
+    const { title, description, type, category, reward_xu, requirement, expires_at, is_active } = req.body;
+    const { rows: [q] } = await query(`
+      UPDATE quests SET
+        title       = COALESCE($2, title),
+        description = COALESCE($3, description),
+        type        = COALESCE($4, type),
+        category    = COALESCE($5, category),
+        reward_xu   = COALESCE($6, reward_xu),
+        requirement = COALESCE($7, requirement),
+        expires_at  = CASE WHEN $8::text IS NOT NULL THEN $8::timestamptz ELSE expires_at END,
+        is_active   = COALESCE($9, is_active)
+      WHERE id = $1 RETURNING *
+    `, [req.params.id, title||null, description||null, type||null, category||null,
+        reward_xu||null, requirement||null, expires_at||null, is_active??null]);
+    if (!q) return res.status(404).json({ error: 'Không tìm thấy quest' });
+    res.json(q);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/admin/quests/:id/toggle — bật/tắt quest
+router.patch('/quests/:id/toggle', async (req, res) => {
+  try {
+    const { rows: [q] } = await query(
+      `UPDATE quests SET is_active = NOT is_active WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    if (!q) return res.status(404).json({ error: 'Không tìm thấy quest' });
+    res.json(q);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/admin/quests/:id — xóa quest (chỉ khi chưa có user tham gia)
+router.delete('/quests/:id', async (req, res) => {
+  try {
+    const { rows: [{ cnt }] } = await query(
+      `SELECT COUNT(*)::int AS cnt FROM user_quests WHERE quest_id = $1`, [req.params.id]
+    );
+    if (cnt > 0) return res.status(400).json({ error: `Không thể xóa — đã có ${cnt} user tham gia. Tắt quest thay vì xóa.` });
+    await query(`DELETE FROM quests WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // POST /api/admin/reset-seed — xóa dữ liệu test và seed lại (chỉ xóa test accounts)
 router.post('/reset-seed', async (req, res) => {
   const TEST_EMAILS = ['admin@xu.vn', 'nam@creator.vn', 'linh@user.vn'];
