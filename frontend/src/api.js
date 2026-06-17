@@ -16,6 +16,7 @@ const req = async (method, path, body, token) => {
 
 export const api = {
   auth: {
+    sendOtp:  (b) => req('POST', '/auth/send-otp', b),
     register: (b) => req('POST', '/auth/register', b),
     login:    (b) => req('POST', '/auth/login', b),
   },

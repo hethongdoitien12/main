@@ -237,6 +237,17 @@ CREATE TABLE IF NOT EXISTS xu_expiry_batches (
 CREATE INDEX IF NOT EXISTS idx_expiry_user ON xu_expiry_batches(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_expiry_date ON xu_expiry_batches(expires_at) WHERE status = 'active';
 
+-- Email OTPs for registration verification
+CREATE TABLE IF NOT EXISTS email_otps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) NOT NULL,
+  otp_code VARCHAR(6) NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email, created_at DESC);
+
 -- Platform stats (aggregate, updated via triggers or cron)
 CREATE TABLE IF NOT EXISTS platform_stats (
   id SERIAL PRIMARY KEY,
