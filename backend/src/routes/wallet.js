@@ -375,4 +375,26 @@ router.get('/leaderboard', authMiddleware, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── GET /api/wallet/search-creators ─────────────────────────────────────────
+// Tìm creator/user theo username để gửi tip
+
+router.get('/search-creators', authMiddleware, async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q || q.length < 2) return res.json([]);
+    const { rows } = await query(`
+      SELECT u.id, u.username, u.avatar_url, u.role,
+             COALESCE(w.total_earned, 0) AS total_earned
+      FROM users u
+      LEFT JOIN wallets w ON w.user_id = u.id
+      WHERE (u.username ILIKE $1 OR u.email ILIKE $1)
+        AND u.id != $2
+        AND u.role IN ('creator', 'user')
+      ORDER BY u.role = 'creator' DESC, u.username ASC
+      LIMIT 10
+    `, [`%${q}%`, req.user.id]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 export default router;
