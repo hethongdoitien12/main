@@ -97,6 +97,54 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// POST /api/auth/forgot-password — gửi OTP reset mật khẩu
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email bắt buộc' });
+
+    const { rows: [user] } = await query('SELECT id, username FROM users WHERE email=$1', [email]);
+    if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản với email này' });
+
+    await query('DELETE FROM email_otps WHERE email=$1', [email]);
+
+    const otp = genOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await query('INSERT INTO email_otps (email, otp_code, expires_at) VALUES ($1,$2,$3)', [email, otp, expiresAt]);
+
+    const result = await sendOtpEmail(email, otp, user.username);
+
+    if (result.dev) return res.json({ sent: true, dev: true, otp });
+    res.json({ sent: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auth/reset-password — xác nhận OTP + đặt mật khẩu mới
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp_code, new_password } = req.body;
+    if (!email || !otp_code || !new_password) return res.status(400).json({ error: 'Thiếu thông tin' });
+    if (new_password.length < 6) return res.status(400).json({ error: 'Mật khẩu ít nhất 6 ký tự' });
+
+    const { rows: [otpRow] } = await query(
+      `SELECT * FROM email_otps WHERE email=$1 AND otp_code=$2 AND used=false AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`,
+      [email, otp_code]
+    );
+    if (!otpRow) return res.status(400).json({ error: 'Mã OTP không đúng hoặc đã hết hạn' });
+
+    await query('UPDATE email_otps SET used=true WHERE id=$1', [otpRow.id]);
+
+    const hash = await bcrypt.hash(new_password, 10);
+    await query('UPDATE users SET password_hash=$1, updated_at=NOW() WHERE email=$2', [hash, email]);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {

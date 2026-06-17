@@ -59,6 +59,9 @@ export default function Login() {
         <button style={{ ...S.btn, opacity: loading ? .7 : 1 }} disabled={loading} type="submit">
           {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
+        <div style={S.link}>
+          <Link to="/forgot-password" style={{ color:'#a29bfe', fontSize:13 }}>Quên mật khẩu?</Link>
+        </div>
         <div style={S.link}>Chưa có tài khoản? <Link to="/register" style={{ color: '#a29bfe' }}>Đăng ký</Link></div>
         <div style={{ ...S.link, marginTop: '.75rem', fontSize: 12 }}>
           Test: <span style={{ color: '#a29bfe' }}>linh@user.vn</span> / password123

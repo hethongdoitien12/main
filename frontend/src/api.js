@@ -16,9 +16,11 @@ const req = async (method, path, body, token) => {
 
 export const api = {
   auth: {
-    sendOtp:  (b) => req('POST', '/auth/send-otp', b),
-    register: (b) => req('POST', '/auth/register', b),
-    login:    (b) => req('POST', '/auth/login', b),
+    sendOtp:       (b) => req('POST', '/auth/send-otp', b),
+    register:      (b) => req('POST', '/auth/register', b),
+    login:         (b) => req('POST', '/auth/login', b),
+    forgotPassword:(b) => req('POST', '/auth/forgot-password', b),
+    resetPassword: (b) => req('POST', '/auth/reset-password', b),
   },
   wallet: {
     balance:        (t)    => req('GET',  '/wallet/balance', null, t),
