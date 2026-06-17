@@ -324,6 +324,55 @@ CREATE INDEX IF NOT EXISTS idx_shop_purchases_item ON shop_purchases(item_id);
 -- Unique constraint on shop item name
 CREATE UNIQUE INDEX IF NOT EXISTS idx_shop_items_name ON shop_items(name);
 
+-- Thêm transfer_sent, transfer_received, gift_redeem vào ledger constraint
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'ledger_entries_type_check'
+      AND check_clause LIKE '%transfer_sent%'
+  ) THEN
+    ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check;
+    ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK (type IN (
+      'deposit','withdrawal',
+      'earn_quest','earn_game','earn_referral','earn_content','earn_checkin','earn_bonus',
+      'spend_ticket','spend_item','spend_agent','spend_music','spend_boost',
+      'tip_sent','tip_received',
+      'transfer_sent','transfer_received',
+      'gift_redeem',
+      'expire','refund','admin_adjust'
+    ));
+  END IF;
+END $$;
+
+-- Gift codes (mã quà tặng)
+CREATE TABLE IF NOT EXISTS gift_codes (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code        VARCHAR(50) UNIQUE NOT NULL,
+  amount_xu   BIGINT NOT NULL,
+  max_uses    INT DEFAULT 1,
+  uses        INT DEFAULT 0,
+  expires_at  TIMESTAMPTZ,
+  note        TEXT,
+  created_by  UUID REFERENCES users(id),
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS gift_code_redemptions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code_id     UUID NOT NULL REFERENCES gift_codes(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  redeemed_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(code_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_gift_redemptions_user ON gift_code_redemptions(user_id);
+
+-- Seed gift codes mẫu
+INSERT INTO gift_codes (code, amount_xu, max_uses, note) VALUES
+  ('WELCOME500',  500,  100, 'Quà tặng chào mừng'),
+  ('TEST1000',   1000,   50, 'Code test nội bộ'),
+  ('VIP5000',    5000,   10, 'Code VIP giới hạn')
+ON CONFLICT (code) DO NOTHING;
+
 -- Seed default shop items
 INSERT INTO shop_items (name, description, category, icon, price_mt, is_limited) VALUES
   ('Badge Người Dùng Vàng',   'Hiển thị huy hiệu ✨ bên cạnh tên của bạn',           'badge',     '🏅', 5000,   false),

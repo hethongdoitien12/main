@@ -375,6 +375,220 @@ router.get('/leaderboard', authMiddleware, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── GET /api/wallet/deposits ────────────────────────────────────────────────
+// Lịch sử nạp tiền của user
+
+router.get('/deposits', authMiddleware, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const { rows } = await query(`
+      SELECT id, amount_vnd, amount_xu, payment_method, status, payment_ref, created_at, updated_at
+      FROM deposit_requests
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `, [req.user.id, limit]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── POST /api/wallet/transfer ───────────────────────────────────────────────
+// Chuyển MT trực tiếp cho user khác (0% phí)
+
+router.post('/transfer', authMiddleware, async (req, res) => {
+  const client = await getClient();
+  try {
+    const { receiver_id, amount_xu, note } = req.body;
+    if (!receiver_id || !amount_xu || amount_xu < 1) {
+      return res.status(400).json({ error: 'Thiếu receiver_id hoặc amount_xu' });
+    }
+    if (receiver_id === req.user.id) {
+      return res.status(400).json({ error: 'Không thể chuyển MT cho chính mình' });
+    }
+    const amt = parseInt(amount_xu);
+    if (amt < 1) return res.status(400).json({ error: 'Số MT phải lớn hơn 0' });
+
+    const { rows: [receiver] } = await query(
+      `SELECT id, username FROM users WHERE id = $1 AND banned_at IS NULL`, [receiver_id]
+    );
+    if (!receiver) return res.status(404).json({ error: 'Người nhận không tồn tại' });
+
+    const { rows: [senderWallet] } = await query(
+      `SELECT balance FROM wallets WHERE user_id = $1`, [req.user.id]
+    );
+    if (!senderWallet || parseInt(senderWallet.balance) < amt) {
+      return res.status(400).json({ error: 'Số dư không đủ' });
+    }
+
+    const ts = Date.now();
+    await client.query('BEGIN');
+
+    // Trừ người gửi
+    await client.query(`SELECT * FROM update_wallet_balance($1,$2,$3,$4,$5,$6,$7,$8)`, [
+      req.user.id, -amt, 'transfer_sent',
+      `transfer:${req.user.id}:${receiver_id}:${ts}`,
+      null, 'transfer',
+      `Chuyển ${amt.toLocaleString()} MT cho ${receiver.username}${note ? ` — ${note}` : ''}`,
+      JSON.stringify({ receiver_id, receiver_username: receiver.username, note }),
+    ]);
+
+    // Cộng người nhận
+    await client.query(`SELECT * FROM update_wallet_balance($1,$2,$3,$4,$5,$6,$7,$8)`, [
+      receiver_id, amt, 'transfer_received',
+      `transfer_recv:${req.user.id}:${receiver_id}:${ts}`,
+      null, 'transfer',
+      `Nhận ${amt.toLocaleString()} MT từ ${req.user.username || req.user.id}${note ? ` — ${note}` : ''}`,
+      JSON.stringify({ sender_id: req.user.id, note }),
+    ]);
+
+    await client.query('COMMIT');
+
+    await notify({
+      userId: receiver_id,
+      type: 'transfer_received',
+      title: '💸 Bạn nhận được MT!',
+      body: `+${amt.toLocaleString()} MT từ ${req.user.username || 'người dùng'}${note ? ` — "${note}"` : ''}`,
+      metadata: { sender_id: req.user.id, amount: amt },
+    });
+
+    // SSE realtime
+    const receiverWallet = await LedgerService.getWallet(receiver_id);
+    sendToUser(receiver_id, 'balance_update', { balance: parseInt(receiverWallet?.balance || 0) });
+
+    res.json({ ok: true, receiver_username: receiver.username, amount_xu: amt });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ─── GET /api/wallet/chart ────────────────────────────────────────────────────
+// Dữ liệu biểu đồ 7 ngày gần nhất (thu/chi theo ngày)
+
+router.get('/chart', authMiddleware, async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days) || 7, 30);
+    const { rows } = await query(`
+      SELECT
+        (created_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS day,
+        COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0)::bigint   AS earned,
+        ABS(COALESCE(SUM(amount) FILTER (WHERE amount < 0 AND type != 'withdrawal'), 0))::bigint AS spent
+      FROM ledger_entries
+      WHERE user_id = $1
+        AND created_at >= NOW() - ($2 || ' days')::interval
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `, [req.user.id, days]);
+
+    // Điền các ngày không có giao dịch với 0
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const found = rows.find(r => r.day?.toString().slice(0, 10) === dateStr);
+      result.push({ day: dateStr, earned: parseInt(found?.earned || 0), spent: parseInt(found?.spent || 0) });
+    }
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── GET /api/wallet/export-csv ──────────────────────────────────────────────
+// Xuất lịch sử giao dịch dạng CSV (hỗ trợ token query param)
+
+router.get('/export-csv', authMiddleware, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 500, 1000);
+    const { rows } = await query(`
+      SELECT type, amount, balance_before, balance_after, description, created_at
+      FROM ledger_entries
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `, [req.user.id, limit]);
+
+    const headers = ['Loại', 'Số MT', 'Số dư trước', 'Số dư sau', 'Mô tả', 'Thời gian'];
+    const csvRows = rows.map(r => [
+      r.type,
+      r.amount,
+      r.balance_before,
+      r.balance_after,
+      `"${(r.description || '').replace(/"/g, '""')}"`,
+      new Date(r.created_at).toLocaleString('vi-VN'),
+    ].join(','));
+
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const filename = `mt-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv); // BOM for Excel
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── POST /api/wallet/redeem ─────────────────────────────────────────────────
+// Nhập mã quà tặng để nhận MT
+
+router.post('/redeem', authMiddleware, async (req, res) => {
+  const client = await getClient();
+  try {
+    const { code } = req.body;
+    if (!code?.trim()) return res.status(400).json({ error: 'Vui lòng nhập mã quà tặng' });
+
+    await client.query('BEGIN');
+
+    // Lock row
+    const { rows: [gc] } = await client.query(
+      `SELECT * FROM gift_codes WHERE UPPER(code) = UPPER($1) FOR UPDATE`, [code.trim()]
+    );
+    if (!gc) return res.status(404).json({ error: 'Mã không tồn tại hoặc đã hết hiệu lực' });
+    if (gc.expires_at && new Date() > new Date(gc.expires_at)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Mã đã hết hạn sử dụng' });
+    }
+    if (gc.uses >= gc.max_uses) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Mã đã được dùng hết lượt' });
+    }
+
+    // Kiểm tra user đã dùng chưa
+    const { rows: [alreadyUsed] } = await client.query(
+      `SELECT id FROM gift_code_redemptions WHERE code_id=$1 AND user_id=$2`, [gc.id, req.user.id]
+    );
+    if (alreadyUsed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Bạn đã sử dụng mã này rồi' });
+    }
+
+    // Tăng lượt dùng
+    await client.query(`UPDATE gift_codes SET uses = uses + 1 WHERE id = $1`, [gc.id]);
+
+    // Ghi redemption
+    await client.query(
+      `INSERT INTO gift_code_redemptions (code_id, user_id) VALUES ($1, $2)`, [gc.id, req.user.id]
+    );
+
+    // Cộng MT
+    await client.query(`SELECT * FROM update_wallet_balance($1,$2,$3,$4,$5,$6,$7,$8)`, [
+      req.user.id, gc.amount_xu, 'gift_redeem',
+      `gift:${gc.id}:${req.user.id}`,
+      gc.id, 'gift_code',
+      `Nhận quà từ mã ${gc.code.toUpperCase()}${gc.note ? ` — ${gc.note}` : ''}`,
+      JSON.stringify({ code: gc.code, note: gc.note }),
+    ]);
+
+    await client.query('COMMIT');
+    res.json({ ok: true, amount_xu: gc.amount_xu, code: gc.code.toUpperCase(), note: gc.note });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ─── GET /api/wallet/search-creators ─────────────────────────────────────────
 // Tìm creator/user theo username để gửi tip
 

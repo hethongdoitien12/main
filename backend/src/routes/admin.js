@@ -791,4 +791,42 @@ router.get('/checkin/stats', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Gift Code Management ─────────────────────────────────────────────────────
+
+router.get('/gift-codes', async (req, res) => {
+  try {
+    const { rows } = await query(`
+      SELECT gc.*, u.username AS created_by_username,
+        (SELECT COUNT(*) FROM gift_code_redemptions WHERE code_id = gc.id)::int AS redeemed_count
+      FROM gift_codes gc
+      LEFT JOIN users u ON u.id = gc.created_by
+      ORDER BY gc.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/gift-codes', async (req, res) => {
+  try {
+    const { code, amount_xu, max_uses, expires_at, note } = req.body;
+    if (!code?.trim() || !amount_xu) return res.status(400).json({ error: 'Thiếu code hoặc amount_xu' });
+    const { rows: [gc] } = await query(`
+      INSERT INTO gift_codes (code, amount_xu, max_uses, expires_at, note, created_by)
+      VALUES (UPPER($1), $2, $3, $4, $5, $6) RETURNING *
+    `, [code.trim(), parseInt(amount_xu), parseInt(max_uses) || 1, expires_at || null, note || null, req.user.id]);
+    res.status(201).json(gc);
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Mã này đã tồn tại' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/gift-codes/:id', async (req, res) => {
+  try {
+    const { rowCount } = await query(`DELETE FROM gift_codes WHERE id = $1`, [req.params.id]);
+    if (!rowCount) return res.status(404).json({ error: 'Không tìm thấy' });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 export default router;
