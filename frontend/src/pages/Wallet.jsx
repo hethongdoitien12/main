@@ -575,6 +575,128 @@ function WithdrawTab({ token, wallet, refreshWallet }) {
 }
 
 // ─── MT HẾT HẠN TAB ──────────────────────────────────────────────────────────
+// ─── LEADERBOARD TAB ─────────────────────────────────────────────────────────
+function LeaderboardTab({ token, currentUserId }) {
+  const [period, setPeriod] = useState('alltime');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async (p) => {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/wallet/leaderboard?period=${p}&limit=20`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const d = await r.json();
+      setData(d);
+    } catch { } finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { load(period); }, [period, load]);
+
+  const PERIODS = [
+    { key: 'alltime', label: 'Mọi thời' },
+    { key: 'month',   label: 'Tháng này' },
+    { key: 'week',    label: 'Tuần này' },
+  ];
+
+  const medalColor = (rank) => {
+    if (rank === 1) return '#FFD700';
+    if (rank === 2) return '#C0C0C0';
+    if (rank === 3) return '#CD7F32';
+    return null;
+  };
+
+  const topRow = (entry, isMe) => {
+    const medal = medalColor(parseInt(entry.rank));
+    return (
+      <div key={entry.id} style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '11px 14px',
+        background: isMe ? 'rgba(108,92,231,.12)' : parseInt(entry.rank) <= 3 ? 'rgba(255,215,0,.04)' : 'transparent',
+        borderRadius: 10,
+        border: isMe ? '1px solid rgba(108,92,231,.35)' : parseInt(entry.rank) <= 3 ? '1px solid rgba(255,215,0,.12)' : '1px solid transparent',
+        marginBottom: 6,
+        transition: 'background .15s',
+      }}>
+        {/* Rank */}
+        <div style={{ width: 30, textAlign: 'center', flexShrink: 0 }}>
+          {medal
+            ? <span style={{ fontSize: 18 }}>{parseInt(entry.rank) === 1 ? '🥇' : parseInt(entry.rank) === 2 ? '🥈' : '🥉'}</span>
+            : <span style={{ fontSize: 13, fontWeight: 700, color: '#444' }}>#{entry.rank}</span>}
+        </div>
+        {/* Avatar */}
+        <div style={{
+          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+          background: entry.avatar_url ? `url(${entry.avatar_url}) center/cover` : `linear-gradient(135deg,#6C5CE7,#a29bfe)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 14, fontWeight: 700, color: '#fff',
+        }}>
+          {!entry.avatar_url && entry.username?.[0]?.toUpperCase()}
+        </div>
+        {/* Name + role */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: isMe ? 700 : 500, color: isMe ? '#a29bfe' : '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {entry.username} {isMe && <span style={{ fontSize: 10, color: '#6C5CE7' }}>● bạn</span>}
+          </div>
+          <div style={{ fontSize: 10, color: '#444' }}>
+            {entry.role === 'creator' ? '⭐ Creator' : '👤 User'}
+          </div>
+        </div>
+        {/* MT earned */}
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: medal ? medalColor(parseInt(entry.rank)) : '#a29bfe' }}>
+            {Number(entry.xu_earned).toLocaleString()}
+          </div>
+          <div style={{ fontSize: 10, color: '#444' }}>MT kiếm được</div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      {/* Period filter */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: '1.25rem' }}>
+        {PERIODS.map(p => (
+          <button key={p.key} style={S.btnGhost(period === p.key)} onClick={() => setPeriod(p.key)}>
+            {p.label}
+          </button>
+        ))}
+        <div style={{ marginLeft: 'auto' }}>
+          <button style={S.btnGhost(false)} onClick={() => load(period)}>↻</button>
+        </div>
+      </div>
+
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '2.5rem', color: '#444', fontSize: 13 }}>Đang tải...</div>
+      )}
+
+      {!loading && data?.entries?.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '2.5rem', color: '#333', fontSize: 13 }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🏆</div>
+          Chưa có dữ liệu cho kỳ này
+        </div>
+      )}
+
+      {!loading && data?.entries?.map(e => topRow(e, e.id === currentUserId))}
+
+      {/* Vị trí của tôi nếu không có trong top */}
+      {!loading && data?.myRank && !data.entries?.find(e => e.id === currentUserId) && (
+        <>
+          <div style={{ textAlign: 'center', color: '#333', fontSize: 12, padding: '4px 0 8px', letterSpacing: '.04em' }}>• • •</div>
+          <div style={{ ...S.info, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 0, padding: '12px 16px' }}>
+            <span style={{ color: '#666' }}>Vị trí của bạn</span>
+            <span style={{ fontWeight: 700, color: '#a29bfe' }}>
+              #{data.myRank.rank} — {Number(data.myRank.xu_earned).toLocaleString()} MT
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ExpiryTab({ token }) {
   const [expiry, setExpiry] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -641,7 +763,7 @@ function ExpiryTab({ token }) {
 
 // ─── MAIN WALLET ──────────────────────────────────────────────────────────────
 export default function Wallet() {
-  const { wallet, token, refreshWallet } = useAuth();
+  const { user, wallet, token, refreshWallet } = useAuth();
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -734,13 +856,14 @@ export default function Wallet() {
   const switchTab = (t) => { setTab(t); setMsg(null); };
 
   const TABS = [
-    ['overview',  '📊 Tổng quan'],
-    ['deposit',   '💳 Nạp MT'],
-    ['withdraw',  '🏦 Rút MT'],
-    ['tip',       '💝 Gửi Tip'],
-    ['history',   '📋 Lịch sử'],
-    ['expiry',    '⏳ Hết hạn'],
-    ['kyc',       '🪪 KYC'],
+    ['overview',     '📊 Tổng quan'],
+    ['deposit',      '💳 Nạp MT'],
+    ['withdraw',     '🏦 Rút MT'],
+    ['tip',          '💝 Gửi Tip'],
+    ['history',      '📋 Lịch sử'],
+    ['leaderboard',  '🏆 Leaderboard'],
+    ['expiry',       '⏳ Hết hạn'],
+    ['kyc',          '🪪 KYC'],
   ];
 
   return (
@@ -866,6 +989,13 @@ export default function Wallet() {
       {tab === 'history' && (
         <div style={{ ...S.card, maxWidth: 560 }}>
           <HistoryTab token={token} />
+        </div>
+      )}
+
+      {/* ── LEADERBOARD ── */}
+      {tab === 'leaderboard' && (
+        <div style={{ ...S.card, maxWidth: 560 }}>
+          <LeaderboardTab token={token} currentUserId={user?.id} />
         </div>
       )}
 
