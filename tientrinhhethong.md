@@ -35,4 +35,7 @@
 
 | Ngày | Chức năng | Ghi chú |
 |------|-----------|---------|
-| — | — | File được tạo lần đầu |
+| 17/06/2026 | File được tạo lần đầu | — |
+| 17/06/2026 | Cổng thanh toán thật (MoMo/ZaloPay) | BACKEND_URL → Replit domain; gateway đọc từ env secrets |
+| 17/06/2026 | UI cấu hình phí Admin | Bảng `platform_config`; tab ⚙️ Cấu hình trong Admin; API GET/PUT /api/admin/config |
+| 17/06/2026 | Hoàn thiện flow rút tiền | Mã giao dịch ngân hàng khi duyệt; email thông báo qua `mailer.js`; `bank_transfer_ref` lưu DB |

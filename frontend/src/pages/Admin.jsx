@@ -102,12 +102,16 @@ function WithdrawalTab({ token, showToast }) {
 
   useEffect(() => { fetchQueue(tab); fetchWStats(); }, [tab, fetchQueue, fetchWStats]);
 
-  const approve = async (id, username, amountVnd) => {
-    await fetch(`/api/withdrawals/${id}/approve`, {
+  const approve = async (id, username, amountVnd, w) => {
+    const bankRef = prompt(`Mã giao dịch ngân hàng khi chuyển cho ${username} (${fmtVnd(amountVnd)}):\n\nNgân hàng: ${w.bank_name} — STK: ${w.bank_account} — Tên: ${w.account_name}\n\n(Bỏ trống nếu chưa có mã)`);
+    if (bankRef === null) return;
+    const r = await fetch(`/api/withdrawals/${id}/approve`, {
       method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-      body: JSON.stringify({ notes:'Đã chuyển khoản' })
+      body: JSON.stringify({ notes:'Đã chuyển khoản', bank_transfer_ref: bankRef || undefined })
     });
-    showToast(`✅ Đã duyệt ${fmtVnd(amountVnd)} cho ${username}`);
+    const d = await r.json();
+    if (!r.ok) { showToast(`❌ ${d.error}`); return; }
+    showToast(`✅ Đã duyệt ${fmtVnd(amountVnd)} cho ${username}${bankRef ? ` — Mã GD: ${bankRef}` : ''}`);
     fetchQueue(tab); fetchWStats();
   };
 
@@ -167,11 +171,12 @@ function WithdrawalTab({ token, showToast }) {
                   <td style={S.td}>
                     {w.status==='pending' && (
                       <>
-                        <button style={S.approveBtn} onClick={()=>approve(w.id,w.username,w.amount_vnd)}>Duyệt</button>
-                        <button style={S.rejectBtn} onClick={()=>reject(w.id,w.username)}>Từ chối</button>
+                        <button style={S.approveBtn} onClick={()=>approve(w.id,w.username,w.amount_vnd,w)}>✓ Duyệt</button>
+                        <button style={S.rejectBtn} onClick={()=>reject(w.id,w.username)}>✕ Từ chối</button>
                       </>
                     )}
-                    {w.notes && <div style={{fontSize:11,color:'#555',marginTop:4,maxWidth:120}}>{w.notes}</div>}
+                    {w.bank_transfer_ref && <div style={{fontSize:11,color:'#74b9ff',marginTop:4}}>🏦 {w.bank_transfer_ref}</div>}
+                    {w.notes && <div style={{fontSize:11,color:'#555',marginTop:2,maxWidth:140}}>{w.notes}</div>}
                   </td>
                 </tr>
               ))}
@@ -1686,6 +1691,114 @@ function DevToolsTab({ token, showToast }) {
   );
 }
 
+// ─── ConfigTab ───────────────────────────────────────────────────────────────
+const CONFIG_LABELS = {
+  WITHDRAWAL_FEE_PCT:   { label:'Phí rút tiền', hint:'Số thập phân. VD: 0.10 = 10%', suffix:'(thập phân)' },
+  TIP_PLATFORM_FEE_PCT: { label:'Phí platform khi tip', hint:'Số thập phân. VD: 0.05 = 5%', suffix:'(thập phân)' },
+  DEPOSIT_FEE_PCT:      { label:'Phí nạp tiền', hint:'0 = miễn phí', suffix:'(thập phân)' },
+  VND_PER_XU:           { label:'Tỷ giá XU → VNĐ', hint:'1 XU = ? VNĐ khi rút', suffix:'VNĐ/XU' },
+  XU_FREE_EXPIRE_DAYS:  { label:'Ngày hết hạn XU thưởng', hint:'Số ngày XU quest/referral tự expire', suffix:'ngày' },
+  MIN_WITHDRAWAL_XU:    { label:'Rút tối thiểu', hint:'Số XU nhỏ nhất có thể rút', suffix:'XU' },
+  KYC_THRESHOLD_XU:     { label:'Ngưỡng cần KYC', hint:'Rút trên mức này phải xác minh danh tính', suffix:'XU' },
+};
+
+function ConfigTab({ token, showToast }) {
+  const [configs, setConfigs] = useState([]);
+  const [editing, setEditing] = useState({});
+  const [saving,  setSaving]  = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/admin/config', { headers:{ Authorization:`Bearer ${token}` } })
+      .then(r => r.json())
+      .then(rows => {
+        setConfigs(rows);
+        const init = {};
+        rows.forEach(r => { init[r.key] = r.value; });
+        setEditing(init);
+      })
+      .catch(()=>{})
+      .finally(()=>setLoading(false));
+  }, [token]);
+
+  const save = async (key) => {
+    setSaving(s => ({...s, [key]:true}));
+    try {
+      const r = await fetch(`/api/admin/config/${key}`, {
+        method:'PUT',
+        headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
+        body: JSON.stringify({ value: editing[key] }),
+      });
+      const d = await r.json();
+      if (!r.ok) { showToast(`❌ ${d.error}`); return; }
+      setConfigs(cs => cs.map(c => c.key === key ? {...c, value: d.value, updated_at: d.updated_at} : c));
+      showToast(`✅ Đã lưu ${CONFIG_LABELS[key]?.label || key}`);
+    } catch { showToast('❌ Lưu thất bại'); }
+    finally { setSaving(s => ({...s, [key]:false})); }
+  };
+
+  if (loading) return <div style={{color:'#555',padding:'2rem'}}>Đang tải cấu hình...</div>;
+
+  return (
+    <div>
+      <div style={{marginBottom:'1.25rem'}}>
+        <div style={{color:'#fff',fontWeight:600,fontSize:15,marginBottom:4}}>⚙️ Cấu hình hệ thống</div>
+        <div style={{color:'#555',fontSize:12}}>Thay đổi phí, tỷ giá và giới hạn giao dịch. Áp dụng ngay lập tức (cache 5 phút).</div>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:12}}>
+        {configs.map(cfg => {
+          const meta = CONFIG_LABELS[cfg.key] || { label: cfg.key, hint: cfg.description, suffix:'' };
+          const current = parseFloat(cfg.value);
+          const displayPct = cfg.key.endsWith('_PCT') ? ` (${(current*100).toFixed(0)}%)` : '';
+          const changed = editing[cfg.key] !== cfg.value;
+          return (
+            <div key={cfg.key} style={{background:'#0e0e17',border:`1px solid ${changed?'#6C5CE7':'#1e1e2e'}`,borderRadius:10,padding:'14px 16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                <div>
+                  <div style={{color:'#fff',fontWeight:600,fontSize:13}}>{meta.label}</div>
+                  <div style={{color:'#555',fontSize:11,marginTop:2}}>{meta.hint}</div>
+                </div>
+                <span style={{fontSize:11,color:'#444',background:'#13131f',padding:'2px 8px',borderRadius:4,fontFamily:'monospace'}}>{meta.suffix}</span>
+              </div>
+
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <input
+                  type="number" step="any"
+                  value={editing[cfg.key] ?? cfg.value}
+                  onChange={e => setEditing(ed => ({...ed, [cfg.key]: e.target.value}))}
+                  style={{flex:1,padding:'7px 10px',background:'#13131f',border:'1px solid #2e2e44',borderRadius:7,color:'#fff',fontSize:13,outline:'none'}}
+                />
+                <button
+                  onClick={()=>save(cfg.key)}
+                  disabled={saving[cfg.key] || !changed}
+                  style={{padding:'7px 14px',background:changed?'#6C5CE7':'#1a1a2e',border:'none',borderRadius:7,color:changed?'#fff':'#444',fontSize:12,fontWeight:600,cursor:changed?'pointer':'default',transition:'all .15s'}}
+                >
+                  {saving[cfg.key] ? '...' : 'Lưu'}
+                </button>
+              </div>
+
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:6}}>
+                <span style={{fontSize:11,color:'#555'}}>Hiện tại: <span style={{color:'#a29bfe'}}>{cfg.value}{displayPct}</span></span>
+                <span style={{fontSize:10,color:'#333'}}>cập nhật {fmtDate(cfg.updated_at)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{marginTop:'1.5rem',background:'#13131f',border:'1px solid #1e1e2e',borderRadius:8,padding:'12px 16px'}}>
+        <div style={{color:'#555',fontSize:12,fontWeight:600,marginBottom:8}}>💡 Cách cổng thanh toán hoạt động</div>
+        <div style={{color:'#444',fontSize:12,lineHeight:1.7}}>
+          • <b style={{color:'#6fcf97'}}>MoMo / ZaloPay:</b> Đang dùng sandbox. Để dùng thật, thêm secrets: <code style={{color:'#74b9ff'}}>MOMO_ACCESS_KEY</code>, <code style={{color:'#74b9ff'}}>MOMO_SECRET_KEY</code>, <code style={{color:'#74b9ff'}}>ZALOPAY_KEY1</code>, <code style={{color:'#74b9ff'}}>ZALOPAY_KEY2</code> và đổi endpoint sang production.<br/>
+          • <b style={{color:'#6fcf97'}}>Gửi email:</b> Thêm secrets: <code style={{color:'#74b9ff'}}>SMTP_HOST</code>, <code style={{color:'#74b9ff'}}>SMTP_USER</code>, <code style={{color:'#74b9ff'}}>SMTP_PASS</code> để bật email thông báo rút tiền.<br/>
+          • <b style={{color:'#6fcf97'}}>IPN Callback URL:</b> <code style={{color:'#a29bfe',fontSize:11}}>{window.location.origin}/api/wallet/momo/ipn</code>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { token, user } = useAuth();
   const [tab, setTab]       = useState('withdrawals');
@@ -1733,6 +1846,7 @@ export default function Admin() {
           ['quests',      '🏆 Quests'],
           ['checkin',     '🗓 Điểm danh'],
           ['users',       '👥 Users'],
+          ['config',      '⚙️ Cấu hình'],
           ['devtools',    '🔧 Dev Tools'],
         ].map(([k,l])=>(
           <button key={k} style={S.topTab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
@@ -1748,7 +1862,8 @@ export default function Admin() {
       {tab === 'quests'       && <QuestManagementTab token={token} showToast={showToast} />}
       {tab === 'checkin'      && <CheckinAdminTab    token={token} />}
       {tab === 'users'        && <UserManagementTab  token={token} showToast={showToast} />}
-      {tab === 'devtools'     && <DevToolsTab       token={token} showToast={showToast} />}
+      {tab === 'config'       && <ConfigTab          token={token} showToast={showToast} />}
+      {tab === 'devtools'     && <DevToolsTab        token={token} showToast={showToast} />}
 
       {toast && <div style={S.toast}>{toast}</div>}
     </div>

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import { query } from '../db/pool.js';
+import { clearConfigCache } from '../services/ledger.js';
 
 const router = Router();
 router.use(authMiddleware, adminOnly);
@@ -724,6 +725,30 @@ router.post('/reset-seed', async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+// ─── Platform Config ─────────────────────────────────────────────────────────
+router.get('/config', async (req, res) => {
+  try {
+    const { rows } = await query(
+      'SELECT key, value, description, updated_at FROM platform_config ORDER BY key'
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/config/:key', async (req, res) => {
+  try {
+    const { value } = req.body;
+    if (value === undefined || value === '') return res.status(400).json({ error: 'Thiếu value' });
+    const { rows: [row] } = await query(
+      `UPDATE platform_config SET value = $1, updated_at = NOW() WHERE key = $2 RETURNING *`,
+      [String(value), req.params.key]
+    );
+    if (!row) return res.status(404).json({ error: 'Config key không tồn tại' });
+    clearConfigCache();
+    res.json(row);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ─── Checkin stats (admin) ───────────────────────────────────────────────────

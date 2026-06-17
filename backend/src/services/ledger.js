@@ -1,14 +1,44 @@
 import { query, getClient } from '../db/pool.js';
 import { v4 as uuidv4 } from 'uuid';
 
-// XU exchange rate config
-const CONFIG = {
-  VND_PER_XU: 1,           // 1 VNĐ = 1 XU
-  DEPOSIT_FEE_PCT: 0,       // no deposit fee
-  WITHDRAWAL_FEE_PCT: 0.10, // 10% rút ra
-  TIP_PLATFORM_FEE_PCT: 0.05, // 5% platform fee on tips
-  XU_FREE_EXPIRE_DAYS: 90,  // XU miễn phí expire sau 90 ngày
+// ─── Dynamic config (load từ DB, cache 5 phút) ────────────────────────────────
+const DEFAULTS = {
+  VND_PER_XU: 1,
+  DEPOSIT_FEE_PCT: 0,
+  WITHDRAWAL_FEE_PCT: 0.10,
+  TIP_PLATFORM_FEE_PCT: 0.05,
+  XU_FREE_EXPIRE_DAYS: 90,
+  MIN_WITHDRAWAL_XU: 50000,
+  KYC_THRESHOLD_XU: 1000000,
 };
+
+let _configCache = null;
+let _configCacheAt = 0;
+const CONFIG_TTL_MS = 5 * 60 * 1000;
+
+export async function getConfig() {
+  if (_configCache && Date.now() - _configCacheAt < CONFIG_TTL_MS) return _configCache;
+  try {
+    const { rows } = await query('SELECT key, value FROM platform_config');
+    const cfg = { ...DEFAULTS };
+    for (const { key, value } of rows) {
+      if (key in cfg) cfg[key] = isNaN(value) ? value : Number(value);
+    }
+    _configCache = cfg;
+    _configCacheAt = Date.now();
+    return cfg;
+  } catch {
+    return DEFAULTS;
+  }
+}
+
+export function clearConfigCache() {
+  _configCache = null;
+  _configCacheAt = 0;
+}
+
+// Legacy sync CONFIG (dùng cho code cũ không await)
+const CONFIG = DEFAULTS;
 
 export const LedgerService = {
   // Get wallet balance
@@ -74,9 +104,10 @@ export const LedgerService = {
 
   // ─── WITHDRAWAL (rút tiền) ────────────────────────────────────────────
   async withdraw({ userId, amountXu, bankName, bankAccount, accountName }) {
-    const feeXu = Math.floor(amountXu * CONFIG.WITHDRAWAL_FEE_PCT);
+    const cfg = await getConfig();
+    const feeXu = Math.floor(amountXu * cfg.WITHDRAWAL_FEE_PCT);
     const netXu = amountXu - feeXu;
-    const amountVnd = Math.floor(netXu / CONFIG.VND_PER_XU);
+    const amountVnd = Math.floor(netXu / cfg.VND_PER_XU);
 
     const client = await getClient();
     try {
@@ -130,7 +161,8 @@ export const LedgerService = {
 
   // ─── TIP ──────────────────────────────────────────────────────────────
   async sendTip({ senderId, receiverId, amountXu, message, refType, refId }) {
-    const platformFee = Math.floor(amountXu * CONFIG.TIP_PLATFORM_FEE_PCT);
+    const cfg = await getConfig();
+    const platformFee = Math.floor(amountXu * cfg.TIP_PLATFORM_FEE_PCT);
     const receiverAmount = amountXu - platformFee;
     const client = await getClient();
     try {

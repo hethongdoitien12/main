@@ -248,6 +248,30 @@ CREATE TABLE IF NOT EXISTS email_otps (
 );
 CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email, created_at DESC);
 
+-- Platform config (phí, tỷ giá, giới hạn — có thể chỉnh từ Admin)
+CREATE TABLE IF NOT EXISTS platform_config (
+  key         VARCHAR(100) PRIMARY KEY,
+  value       TEXT NOT NULL,
+  description TEXT,
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+INSERT INTO platform_config (key, value, description) VALUES
+  ('WITHDRAWAL_FEE_PCT',      '0.10',    'Phí rút tiền (số thập phân, vd: 0.10 = 10%)'),
+  ('TIP_PLATFORM_FEE_PCT',    '0.05',    'Phí platform khi tip (vd: 0.05 = 5%)'),
+  ('DEPOSIT_FEE_PCT',         '0',       'Phí nạp tiền (0 = miễn phí)'),
+  ('VND_PER_XU',              '1',       'Tỷ giá: 1 XU = ? VNĐ'),
+  ('XU_FREE_EXPIRE_DAYS',     '90',      'Số ngày XU thưởng hết hạn'),
+  ('MIN_WITHDRAWAL_XU',       '50000',   'Số XU tối thiểu để rút'),
+  ('KYC_THRESHOLD_XU',        '1000000', 'Ngưỡng XU cần KYC khi rút')
+ON CONFLICT (key) DO NOTHING;
+
+-- Thêm bank_transfer_ref vào withdrawal_requests nếu chưa có
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='withdrawal_requests' AND column_name='bank_transfer_ref') THEN
+    ALTER TABLE withdrawal_requests ADD COLUMN bank_transfer_ref VARCHAR(255);
+  END IF;
+END $$;
+
 -- Platform stats (aggregate, updated via triggers or cron)
 CREATE TABLE IF NOT EXISTS platform_stats (
   id SERIAL PRIMARY KEY,
