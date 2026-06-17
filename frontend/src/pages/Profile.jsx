@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
 
@@ -30,6 +30,18 @@ const S = {
     border: `1px solid ${role === 'admin' ? '#fd79a840' : role === 'creator' ? '#fdcb6e40' : '#6C5CE740'}`,
   }),
   divider: { border: 'none', borderTop: '1px solid #1a1a28', margin: '1.25rem 0' },
+  kycCard: { background: '#0e0e17', border: '1px solid #1e1e2e', borderRadius: 12, padding: '1.5rem', marginTop: 20 },
+  kycTitle: { fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 4 },
+  kycSub: { fontSize: 12, color: '#555', marginBottom: '1.25rem' },
+  kycStatus: (s) => ({
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+    background: s === 'verified' ? '#0e2a1e' : s === 'pending' ? '#1e1e0a' : '#1a1a28',
+    color: s === 'verified' ? '#6fcf97' : s === 'pending' ? '#fdcb6e' : '#555',
+    border: `1px solid ${s === 'verified' ? '#6fcf9740' : s === 'pending' ? '#fdcb6e40' : '#2e2e44'}`,
+    marginBottom: '1.25rem',
+  }),
+  photoPreview: { width: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '1px solid #2e2e44', marginTop: 8, background: '#13131f' },
 };
 
 export default function Profile() {
@@ -39,6 +51,14 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+
+  // KYC state
+  const [kyc, setKyc] = useState(null);
+  const [kycFullName, setKycFullName] = useState('');
+  const [kycIdNumber, setKycIdNumber] = useState('');
+  const [kycPhotoUrl, setKycPhotoUrl] = useState('');
+  const [kycSaving, setKycSaving] = useState(false);
+  const [kycMsg, setKycMsg] = useState(null);
 
   useEffect(() => {
     if (!token) return;
@@ -51,6 +71,33 @@ export default function Profile() {
       })
       .catch(() => {});
   }, [token]);
+
+  const loadKyc = useCallback(() => {
+    if (!token) return;
+    fetch('/api/user/kyc', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => setKyc(data))
+      .catch(() => {});
+  }, [token]);
+
+  useEffect(() => { loadKyc(); }, [loadKyc]);
+
+  const submitKyc = async () => {
+    setKycSaving(true); setKycMsg(null);
+    try {
+      const res = await fetch('/api/user/kyc/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ full_name: kycFullName, id_number: kycIdNumber, photo_url: kycPhotoUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setKycMsg({ type: 'success', text: '📋 Đã nộp hồ sơ KYC! Admin sẽ xem xét trong 1-2 ngày.' });
+      loadKyc();
+    } catch (err) {
+      setKycMsg({ type: 'error', text: err.message });
+    } finally { setKycSaving(false); }
+  };
 
   const save = async () => {
     setSaving(true); setMsg(null);
@@ -150,6 +197,69 @@ export default function Profile() {
               <div style={{ ...S.statValue, color: '#74b9ff' }}>{Number(profile.referral_count || 0).toLocaleString()}</div>
               <div style={{ fontSize: 11, color: '#555' }}>người</div>
             </div>
+          </div>
+
+          {/* KYC Section */}
+          <div style={S.kycCard}>
+            <div style={S.kycTitle}>🪪 Xác minh danh tính (KYC)</div>
+            <div style={S.kycSub}>Bắt buộc khi rút trên 1,000,000 MT</div>
+
+            {kyc && (
+              <div style={S.kycStatus(kyc.kyc_status)}>
+                {kyc.kyc_status === 'verified' && '✅ Đã xác minh'}
+                {kyc.kyc_status === 'pending'  && '⏳ Đang chờ duyệt'}
+                {kyc.kyc_status === 'none'     && '⚪ Chưa xác minh'}
+              </div>
+            )}
+
+            {/* Đã duyệt — hiện thông tin tóm tắt */}
+            {kyc?.kyc_status === 'verified' && (
+              <div style={{ fontSize: 13, color: '#6fcf97', padding: '10px 12px', background: 'rgba(111,207,151,.07)', borderRadius: 8 }}>
+                Tài khoản đã được xác minh KYC vào{' '}
+                {kyc.kyc_verified_at ? new Date(kyc.kyc_verified_at).toLocaleDateString('vi-VN') : '—'}
+              </div>
+            )}
+
+            {/* Đang chờ — hiện thông tin đã nộp */}
+            {kyc?.kyc_status === 'pending' && (
+              <div style={{ fontSize: 13, color: '#fdcb6e', padding: '10px 12px', background: 'rgba(253,203,110,.07)', borderRadius: 8 }}>
+                Hồ sơ đã nộp ngày {kyc.kyc_submitted_at ? new Date(kyc.kyc_submitted_at).toLocaleDateString('vi-VN') : '—'}.
+                Vui lòng chờ admin xét duyệt.
+              </div>
+            )}
+
+            {/* Chưa nộp — hiện form */}
+            {(!kyc || kyc.kyc_status === 'none') && (
+              <div>
+                {kycMsg && (
+                  <div style={kycMsg.type === 'success' ? S.success : S.err}>{kycMsg.text}</div>
+                )}
+
+                <label style={S.label}>Họ và tên (đúng theo CCCD/CMND)</label>
+                <input style={S.input} value={kycFullName} onChange={e => setKycFullName(e.target.value)}
+                  placeholder="Nguyễn Văn A" maxLength={100} />
+
+                <label style={S.label}>Số CCCD / CMND (9-12 chữ số)</label>
+                <input style={S.input} value={kycIdNumber} onChange={e => setKycIdNumber(e.target.value)}
+                  placeholder="012345678901" maxLength={12} />
+
+                <label style={S.label}>URL ảnh CCCD / hộ chiếu (tùy chọn)</label>
+                <input style={S.input} value={kycPhotoUrl} onChange={e => setKycPhotoUrl(e.target.value)}
+                  placeholder="https://... (link ảnh chụp CCCD)" />
+                {kycPhotoUrl && (
+                  <img src={kycPhotoUrl} alt="Ảnh CCCD" style={S.photoPreview}
+                    onError={e => { e.target.style.display = 'none'; }} />
+                )}
+
+                <button
+                  style={{ ...S.btn(!kycFullName || !kycIdNumber || kycSaving), marginTop: '1rem' }}
+                  onClick={submitKyc}
+                  disabled={!kycFullName || !kycIdNumber || kycSaving}
+                >
+                  {kycSaving ? 'Đang nộp...' : '📤 Nộp hồ sơ KYC'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

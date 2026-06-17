@@ -64,7 +64,7 @@ router.patch('/profile', authMiddleware, async (req, res) => {
 router.get('/kyc', authMiddleware, async (req, res) => {
   try {
     const { rows: [user] } = await query(
-      `SELECT kyc_status, kyc_full_name, kyc_id_number, kyc_submitted_at, kyc_verified_at
+      `SELECT kyc_status, kyc_full_name, kyc_id_number, kyc_photo_url, kyc_submitted_at, kyc_verified_at
        FROM users WHERE id = $1`,
       [req.user.id]
     );
@@ -77,7 +77,7 @@ router.get('/kyc', authMiddleware, async (req, res) => {
 // POST /api/user/kyc/submit — nộp thông tin KYC
 router.post('/kyc/submit', authMiddleware, async (req, res) => {
   try {
-    const { full_name, id_number } = req.body;
+    const { full_name, id_number, photo_url } = req.body;
     if (!full_name?.trim() || !id_number?.trim()) {
       return res.status(400).json({ error: 'Vui lòng nhập đầy đủ họ tên và số CCCD/CMND' });
     }
@@ -95,10 +95,10 @@ router.post('/kyc/submit', authMiddleware, async (req, res) => {
 
     const { rows: [updated] } = await query(
       `UPDATE users SET kyc_status='pending', kyc_full_name=$1, kyc_id_number=$2,
-       kyc_submitted_at=NOW(), updated_at=NOW()
-       WHERE id=$3
-       RETURNING kyc_status, kyc_full_name, kyc_submitted_at`,
-      [full_name.trim(), id_number.trim(), req.user.id]
+       kyc_photo_url=$3, kyc_submitted_at=NOW(), updated_at=NOW()
+       WHERE id=$4
+       RETURNING kyc_status, kyc_full_name, kyc_id_number, kyc_photo_url, kyc_submitted_at`,
+      [full_name.trim(), id_number.trim(), photo_url?.trim() || null, req.user.id]
     );
 
     const { notify } = await import('../services/notifier.js');

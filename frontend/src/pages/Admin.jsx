@@ -395,9 +395,115 @@ function TransactionTab({ token }) {
 
 // ─── KYC tab ─────────────────────────────────────────────────────────────────
 
+function KycDetailModal({ user, onClose, onApprove, onReject }) {
+  const [rejectReason, setRejectReason] = useState('');
+  const [showReject, setShowReject] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  if (!user) return null;
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.75)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background:'#0e0e17', border:'1px solid #2e2e44', borderRadius:16, width:'100%', maxWidth:520, maxHeight:'90vh', overflowY:'auto', padding:'1.75rem' }}>
+
+        {/* Header */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'1.5rem' }}>
+          <div>
+            <div style={{ fontSize:18, fontWeight:700, color:'#fff' }}>🪪 Hồ sơ KYC</div>
+            <div style={{ fontSize:12, color:'#555', marginTop:3 }}>Nộp lúc {fmtDate(user.kyc_submitted_at)}</div>
+          </div>
+          <button onClick={onClose} style={{ background:'transparent', border:'none', color:'#555', fontSize:20, cursor:'pointer', lineHeight:1 }}>✕</button>
+        </div>
+
+        {/* User info */}
+        <div style={{ background:'#13131f', borderRadius:10, padding:'12px 16px', marginBottom:'1.25rem' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div>
+              <div style={{ fontWeight:600, color:'#fff', fontSize:15 }}>{user.username}</div>
+              <div style={{ fontSize:12, color:'#555', marginTop:2 }}>{user.email}</div>
+            </div>
+            <span style={S.badge(user.role)}>{user.role}</span>
+          </div>
+          <div style={{ fontSize:11, color:'#444', marginTop:6 }}>
+            Tham gia: {new Date(user.created_at).toLocaleDateString('vi-VN')}
+          </div>
+        </div>
+
+        {/* CCCD Info */}
+        <div style={{ marginBottom:'1.25rem' }}>
+          <div style={{ fontSize:11, color:'#555', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:10 }}>Thông tin CCCD / CMND</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div style={{ background:'#13131f', borderRadius:8, padding:'10px 14px' }}>
+              <div style={{ fontSize:11, color:'#555', marginBottom:4 }}>Họ và tên</div>
+              <div style={{ fontSize:14, fontWeight:600, color:'#e8e6e0' }}>{user.kyc_full_name || '—'}</div>
+            </div>
+            <div style={{ background:'#13131f', borderRadius:8, padding:'10px 14px' }}>
+              <div style={{ fontSize:11, color:'#555', marginBottom:4 }}>Số CCCD / CMND</div>
+              <code style={{ fontSize:14, fontWeight:600, color:'#a29bfe' }}>{user.kyc_id_number || '—'}</code>
+            </div>
+          </div>
+        </div>
+
+        {/* Photo */}
+        <div style={{ marginBottom:'1.5rem' }}>
+          <div style={{ fontSize:11, color:'#555', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:10 }}>Ảnh CCCD / Giấy tờ</div>
+          {user.kyc_photo_url && !imgError ? (
+            <img
+              src={user.kyc_photo_url}
+              alt="Ảnh CCCD"
+              onError={() => setImgError(true)}
+              style={{ width:'100%', maxHeight:260, objectFit:'contain', borderRadius:10, border:'1px solid #2e2e44', background:'#13131f', display:'block' }}
+            />
+          ) : (
+            <div style={{ background:'#13131f', border:'1px dashed #2e2e44', borderRadius:10, padding:'2rem', textAlign:'center', color:'#444', fontSize:13 }}>
+              {user.kyc_photo_url ? '⚠️ Không tải được ảnh' : '📷 Không có ảnh đính kèm'}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        {!showReject ? (
+          <div style={{ display:'flex', gap:10 }}>
+            <button style={{ ...S.approveBtn, flex:1, padding:'10px', fontSize:13 }}
+              onClick={() => { onApprove(user.id, user.username); onClose(); }}>
+              ✓ Duyệt KYC
+            </button>
+            <button style={{ ...S.rejectBtn, flex:1, padding:'10px', fontSize:13 }}
+              onClick={() => setShowReject(true)}>
+              ✕ Từ chối
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize:13, color:'#ccc', marginBottom:8 }}>Lý do từ chối:</div>
+            <input
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Ảnh không rõ, thông tin không khớp..."
+              style={{ width:'100%', padding:'10px 14px', background:'#13131f', border:'1px solid #2e2e44', borderRadius:8, color:'#e8e6e0', fontSize:13, outline:'none', marginBottom:10, boxSizing:'border-box' }}
+            />
+            <div style={{ display:'flex', gap:10 }}>
+              <button style={{ ...S.rejectBtn, flex:1, padding:'10px', fontSize:13 }}
+                disabled={!rejectReason.trim()}
+                onClick={() => { onReject(user.id, user.username, rejectReason); onClose(); }}>
+                Xác nhận từ chối
+              </button>
+              <button style={{ ...S.refreshBtn, flex:1, padding:'10px', fontSize:13 }}
+                onClick={() => setShowReject(false)}>
+                Huỷ
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function KycTab({ token, showToast }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -419,9 +525,7 @@ function KycTab({ token, showToast }) {
     else showToast(`❌ ${d.error}`);
   };
 
-  const reject = async (userId, username) => {
-    const reason = prompt(`Lý do từ chối KYC của ${username}:`);
-    if (!reason) return;
+  const reject = async (userId, username, reason) => {
     const r = await fetch(`/api/admin/kyc/${userId}/reject`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ reason }),
@@ -433,9 +537,20 @@ function KycTab({ token, showToast }) {
 
   return (
     <div>
+      {selected && (
+        <KycDetailModal
+          user={selected}
+          onClose={() => setSelected(null)}
+          onApprove={approve}
+          onReject={reject}
+        />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: '#aaa' }}>
-          {list.length > 0 ? <><strong style={{ color: '#fdcb6e' }}>{list.length}</strong> hồ sơ đang chờ xét duyệt</> : 'Không có hồ sơ KYC nào đang chờ'}
+          {list.length > 0
+            ? <><strong style={{ color: '#fdcb6e' }}>{list.length}</strong> hồ sơ đang chờ xét duyệt</>
+            : 'Không có hồ sơ KYC nào đang chờ'}
         </div>
         <button style={S.refreshBtn} onClick={load}>↻ Làm mới</button>
       </div>
@@ -450,27 +565,36 @@ function KycTab({ token, showToast }) {
         <div style={S.card}>
           <table style={S.table}>
             <thead><tr>
-              {['User','Email','Họ tên','CCCD/CMND','Nộp lúc','Role',''].map(h => (
+              {['User','Email','Họ tên','CCCD/CMND','Ảnh','Nộp lúc','Role',''].map(h => (
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
             <tbody>
               {list.map(u => (
-                <tr key={u.id}>
+                <tr key={u.id} style={{ cursor:'pointer' }} onClick={() => setSelected(u)}>
                   <td style={S.td}><div style={{ fontWeight: 600, color: '#fff' }}>{u.username}</div></td>
                   <td style={S.td}><div style={{ fontSize: 12, color: '#666' }}>{u.email}</div></td>
                   <td style={S.td}><div style={{ color: '#ccc' }}>{u.kyc_full_name || '—'}</div></td>
-                  <td style={S.td}><code style={{ fontSize: 12, color: '#888' }}>{u.kyc_id_number || '—'}</code></td>
+                  <td style={S.td}><code style={{ fontSize: 12, color: '#a29bfe' }}>{u.kyc_id_number || '—'}</code></td>
+                  <td style={S.td}>
+                    {u.kyc_photo_url
+                      ? <img src={u.kyc_photo_url} alt="" style={{ width:44, height:32, objectFit:'cover', borderRadius:5, border:'1px solid #2e2e44', background:'#13131f' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='inline'; }} />
+                      : null}
+                    <span style={{ fontSize:11, color:'#444', display: u.kyc_photo_url ? 'none' : 'inline' }}>—</span>
+                  </td>
                   <td style={S.td}><div style={{ fontSize: 12, color: '#555' }}>{fmtDate(u.kyc_submitted_at)}</div></td>
                   <td style={S.td}><span style={S.badge(u.role)}>{u.role}</span></td>
-                  <td style={S.td}>
+                  <td style={S.td} onClick={e => e.stopPropagation()}>
                     <button style={S.approveBtn} onClick={() => approve(u.id, u.username)}>Duyệt</button>
-                    <button style={S.rejectBtn} onClick={() => reject(u.id, u.username)}>Từ chối</button>
+                    <button style={S.rejectBtn} onClick={() => { setSelected(u); }}>Chi tiết</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <div style={{ padding:'10px 14px', fontSize:11, color:'#444', borderTop:'1px solid #1a1a28' }}>
+            💡 Nhấp vào hàng để xem chi tiết đầy đủ và ảnh CCCD
+          </div>
         </div>
       )}
     </div>

@@ -40,6 +40,7 @@
 | Admin: Charts + CSV | ✅ Xong |
 | Admin: Approve Deposit | ✅ Xong |
 | KYC Placeholder | ✅ Xong |
+| KYC nâng cấp (ảnh + modal Admin) | ✅ Xong |
 | Replit Migration | ✅ Xong |
 | Deploy | 🔄 Sẵn sàng |
 

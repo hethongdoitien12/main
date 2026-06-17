@@ -274,7 +274,7 @@ router.get('/kyc/pending', async (req, res) => {
   try {
     const { rows } = await query(`
       SELECT id, username, email, kyc_status, kyc_full_name, kyc_id_number,
-             kyc_submitted_at, role, created_at
+             kyc_photo_url, kyc_submitted_at, role, created_at
       FROM users
       WHERE kyc_status = 'pending'
       ORDER BY kyc_submitted_at ASC

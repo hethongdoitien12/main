@@ -272,6 +272,28 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Thêm các cột KYC vào users nếu chưa có
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kyc_status') THEN
+    ALTER TABLE users ADD COLUMN kyc_status VARCHAR(20) DEFAULT 'none' CHECK (kyc_status IN ('none','pending','verified'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kyc_full_name') THEN
+    ALTER TABLE users ADD COLUMN kyc_full_name TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kyc_id_number') THEN
+    ALTER TABLE users ADD COLUMN kyc_id_number VARCHAR(20);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kyc_submitted_at') THEN
+    ALTER TABLE users ADD COLUMN kyc_submitted_at TIMESTAMPTZ;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kyc_verified_at') THEN
+    ALTER TABLE users ADD COLUMN kyc_verified_at TIMESTAMPTZ;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kyc_photo_url') THEN
+    ALTER TABLE users ADD COLUMN kyc_photo_url TEXT;
+  END IF;
+END $$;
+
 -- Shop items (vật phẩm có thể mua bằng MT)
 CREATE TABLE IF NOT EXISTS shop_items (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

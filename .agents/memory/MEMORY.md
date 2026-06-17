@@ -3,4 +3,4 @@
 - [HMR useAuth warning](hmr-useauth.md) — lỗi "useAuth export incompatible" khi hot-reload nhiều file là transient, không phải bug thực
 - [XU Expiry design](xu-expiry-design.md) — bảng `xu_expiry_batches` theo dõi từng lô XU khuyến mãi; cron 01:00 GMT+7 hằng ngày; XU deposit không expire, chỉ earn_quest/earn_referral
 - [authMiddleware query param](auth-queryparam.md) — authMiddleware hỗ trợ token từ query param để dùng cho window.open export/download
-- [KYC columns](kyc-migration.md) — thêm kyc_status/kyc_full_name/kyc_id_number vào users bằng ALTER TABLE, không rerun migrate.js
+- [KYC columns](kyc-migration.md) — kyc_status/kyc_full_name/kyc_id_number/kyc_submitted_at/kyc_verified_at/kyc_photo_url đều có trong migrate.js dưới dạng DO $$ IF NOT EXISTS ALTER TABLE
