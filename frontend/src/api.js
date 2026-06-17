@@ -66,6 +66,7 @@ export const api = {
     doIt:   (t) => req('POST', '/checkin', {}, t),
   },
   admin: {
+    checkinStats:   (t)    => req('GET',  '/admin/checkin/stats', null, t),
     stats:          (t)    => req('GET',  '/admin/stats', null, t),
     users:          (t)    => req('GET',  '/admin/users', null, t),
     adjustBalance:  (b, t) => req('POST', '/admin/adjust-balance', b, t),

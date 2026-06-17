@@ -58,6 +58,7 @@ const NAV = [
   { to: '/gifting', label: 'Tip & Gift', icon: '♥' },
   { to: '/history', label: 'Lịch sử', icon: '≡' },
   { to: '/leaderboard', label: 'Xếp hạng', icon: '◈' },
+  { to: '/checkin',     label: 'Điểm danh', icon: '🗓' },
   { to: '/referral', label: 'Giới thiệu', icon: '◇' },
   { to: '/profile', label: 'Hồ sơ', icon: '◉' },
   { to: '/creator', label: 'Creator', icon: '★', creatorOnly: true },

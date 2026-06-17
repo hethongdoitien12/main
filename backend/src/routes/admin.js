@@ -726,4 +726,44 @@ router.post('/reset-seed', async (req, res) => {
   }
 });
 
+// ─── Checkin stats (admin) ───────────────────────────────────────────────────
+router.get('/checkin/stats', async (req, res) => {
+  try {
+    const { rows: overview } = await query(`
+      SELECT
+        COUNT(DISTINCT user_id)::int           AS total_users,
+        COUNT(*)::int                          AS total_checkins,
+        SUM(xu_earned)::bigint                 AS total_xu_awarded,
+        COUNT(*) FILTER (WHERE checked_in_date = CURRENT_DATE)::int AS today_count,
+        ROUND(AVG(streak_day),1)::float        AS avg_streak
+      FROM daily_checkins
+    `);
+
+    const { rows: topStreaks } = await query(`
+      SELECT u.username, u.email, dc.streak_day, dc.xu_earned, dc.checked_in_date::text
+      FROM daily_checkins dc
+      JOIN users u ON u.id = dc.user_id
+      WHERE dc.checked_in_date = CURRENT_DATE
+      ORDER BY dc.streak_day DESC
+      LIMIT 20
+    `);
+
+    const { rows: daily } = await query(`
+      SELECT checked_in_date::text AS date, COUNT(*)::int AS count, SUM(xu_earned)::bigint AS xu
+      FROM daily_checkins
+      WHERE checked_in_date >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY checked_in_date ORDER BY checked_in_date
+    `);
+
+    const { rows: milestones } = await query(`
+      SELECT streak_day, COUNT(*)::int AS hits
+      FROM daily_checkins
+      WHERE streak_day IN (7,14,30)
+      GROUP BY streak_day ORDER BY streak_day
+    `);
+
+    res.json({ overview: overview[0], topStreaks, daily, milestones });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 export default router;

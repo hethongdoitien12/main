@@ -13,6 +13,7 @@ import Referral from './pages/Referral.jsx';
 import Profile from './pages/Profile.jsx';
 import CreatorDashboard from './pages/CreatorDashboard.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
+import Checkin from './pages/Checkin.jsx';
 import Layout from './components/Layout.jsx';
 
 const styles = `
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="referral" element={<Referral />} />
             <Route path="profile" element={<Profile />} />
             <Route path="leaderboard" element={<Leaderboard />} />
+            <Route path="checkin" element={<Checkin />} />
             <Route path="creator" element={<CreatorDashboard />} />
             <Route path="admin" element={<Admin />} />
           </Route>

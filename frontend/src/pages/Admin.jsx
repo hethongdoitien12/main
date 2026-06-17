@@ -1028,6 +1028,131 @@ function QuestManagementTab({ token, showToast }) {
   );
 }
 
+// ─── checkin admin tab ───────────────────────────────────────────────────────
+
+function CheckinAdminTab({ token }) {
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    import('../api.js').then(m => m.default.admin.checkinStats(token))
+      .then(d => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  if (loading) return <div style={S.empty}>Đang tải...</div>;
+  if (!data)   return <div style={S.empty}>Không tải được dữ liệu</div>;
+
+  const { overview, topStreaks, daily, milestones } = data;
+
+  return (
+    <div>
+      {/* Overview stats */}
+      <div style={S.grid4}>
+        {[
+          { lbl:'Điểm danh hôm nay', val:overview.today_count, color:'#f6c90e' },
+          { lbl:'Tổng người điểm danh', val:overview.total_users, color:'#a29bfe' },
+          { lbl:'Tổng lượt điểm danh', val:Number(overview.total_checkins).toLocaleString(), color:'#74b9ff' },
+          { lbl:'XU đã phát', val:Number(overview.total_xu_awarded||0).toLocaleString(), color:'#6fcf97' },
+          { lbl:'Streak TB', val:`${overview.avg_streak||0}`, unit:'ngày', color:'#fd79a8' },
+        ].map(({ lbl, val, color }) => (
+          <div key={lbl} style={S.stat(color+'33')}>
+            <div style={S.statLbl}>{lbl}</div>
+            <div style={S.statVal(color)}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:14 }}>
+
+        {/* Today's top streaks */}
+        <div style={S.card}>
+          <div style={{ padding:'12px 14px', borderBottom:'1px solid #1a1a28', fontSize:13, fontWeight:600, color:'#aaa' }}>
+            🏆 Top streak điểm danh hôm nay
+          </div>
+          {topStreaks.length === 0
+            ? <div style={S.empty}>Chưa có ai điểm danh hôm nay</div>
+            : (
+              <table style={S.table}>
+                <thead>
+                  <tr>
+                    <th style={S.th}>#</th>
+                    <th style={S.th}>Người dùng</th>
+                    <th style={S.th}>Streak</th>
+                    <th style={S.th}>XU nhận</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topStreaks.map((r, i) => (
+                    <tr key={r.email}>
+                      <td style={{ ...S.td, color:'#555' }}>{i + 1}</td>
+                      <td style={S.td}>
+                        <div style={{ fontWeight:500 }}>{r.username}</div>
+                        <div style={{ fontSize:11, color:'#555' }}>{r.email}</div>
+                      </td>
+                      <td style={S.td}>
+                        <span style={{ color:'#f6c90e', fontWeight:700 }}>
+                          {r.streak_day >= 30 ? '👑' : r.streak_day >= 14 ? '🔥' : r.streak_day >= 7 ? '🏆' : '⚡'} {r.streak_day}
+                        </span>
+                      </td>
+                      <td style={{ ...S.td, color:'#6fcf97', fontWeight:600 }}>
+                        +{Number(r.xu_earned).toLocaleString()} XU
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+          }
+        </div>
+
+        {/* Right column: milestones + 30-day chart */}
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+          {/* Milestone hits */}
+          <div style={S.card}>
+            <div style={{ padding:'12px 14px', borderBottom:'1px solid #1a1a28', fontSize:13, fontWeight:600, color:'#aaa' }}>
+              🎯 Milestone đạt được (tất cả thời gian)
+            </div>
+            <div style={{ padding:'14px' }}>
+              {[{ day:7, label:'Streak 7 ngày 🏆', color:'#f6c90e' }, { day:14, label:'Streak 14 ngày 🔥', color:'#fd79a8' }, { day:30, label:'Streak 30 ngày 👑', color:'#a29bfe' }].map(({ day, label, color }) => {
+                const hit = milestones.find(m => m.streak_day == day);
+                return (
+                  <div key={day} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:'1px solid #0d0d18' }}>
+                    <span style={{ fontSize:13, color:'#ccc' }}>{label}</span>
+                    <span style={{ fontSize:16, fontWeight:700, color }}>{hit ? Number(hit.hits).toLocaleString() : 0} lượt</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 30-day activity */}
+          <div style={S.card}>
+            <div style={{ padding:'12px 14px', borderBottom:'1px solid #1a1a28', fontSize:13, fontWeight:600, color:'#aaa' }}>
+              📅 Lượt điểm danh 30 ngày qua
+            </div>
+            <div style={{ padding:'14px', maxHeight:180, overflowY:'auto' }}>
+              {daily.length === 0
+                ? <div style={{ color:'#444', textAlign:'center', fontSize:13, padding:'1rem 0' }}>Chưa có dữ liệu</div>
+                : [...daily].reverse().map(row => (
+                  <div key={row.date} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #0d0d18', fontSize:12 }}>
+                    <span style={{ color:'#666' }}>{row.date}</span>
+                    <span style={{ color:'#74b9ff', fontWeight:600 }}>{row.count} người</span>
+                    <span style={{ color:'#6fcf97' }}>+{Number(row.xu).toLocaleString()} XU</span>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── user management tab ────────────────────────────────────────────────────
 
 const ROLE_COLORS = { admin: '#a29bfe', creator: '#74b9ff', user: '#6fcf97' };
@@ -1606,6 +1731,7 @@ export default function Admin() {
           ['kyc',         '🪪 KYC'],
           ['notify',      '📣 Thông báo'],
           ['quests',      '🏆 Quests'],
+          ['checkin',     '🗓 Điểm danh'],
           ['users',       '👥 Users'],
           ['devtools',    '🔧 Dev Tools'],
         ].map(([k,l])=>(
@@ -1620,6 +1746,7 @@ export default function Admin() {
       {tab === 'kyc'          && <KycTab              token={token} showToast={showToast} />}
       {tab === 'notify'       && <NotificationTab    token={token} showToast={showToast} />}
       {tab === 'quests'       && <QuestManagementTab token={token} showToast={showToast} />}
+      {tab === 'checkin'      && <CheckinAdminTab    token={token} />}
       {tab === 'users'        && <UserManagementTab  token={token} showToast={showToast} />}
       {tab === 'devtools'     && <DevToolsTab       token={token} showToast={showToast} />}
 
