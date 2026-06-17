@@ -1923,6 +1923,192 @@ function ConfigTab({ token, showToast }) {
   );
 }
 
+// ─── Gift Code Management Tab ────────────────────────────────────────────────
+function GiftCodeTab({ token, showToast }) {
+  const [codes, setCodes]     = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm]       = useState({ code: '', amount_xu: '', max_uses: '1', expires_at: '', note: '' });
+  const [creating, setCreating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/gift-codes', { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      setCodes(Array.isArray(d) ? d : []);
+    } catch { setCodes([]); } finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleF = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const create = async () => {
+    if (!form.code.trim() || !form.amount_xu) return;
+    setCreating(true);
+    try {
+      const r = await fetch('/api/admin/gift-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code: form.code.toUpperCase(), amount_xu: parseInt(form.amount_xu), max_uses: parseInt(form.max_uses) || 1, expires_at: form.expires_at || null, note: form.note || null }),
+      });
+      const d = await r.json();
+      if (!r.ok) { showToast(`❌ ${d.error}`); return; }
+      showToast(`✅ Tạo mã ${d.code} thành công!`);
+      setForm({ code: '', amount_xu: '', max_uses: '1', expires_at: '', note: '' });
+      setShowForm(false);
+      load();
+    } catch (e) { showToast(`❌ ${e.message}`); }
+    finally { setCreating(false); }
+  };
+
+  const del = async (id, code) => {
+    if (!confirm(`Xoá mã ${code}? Hành động không thể hoàn tác.`)) return;
+    try {
+      const r = await fetch(`/api/admin/gift-codes/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { showToast('❌ Không thể xoá'); return; }
+      showToast(`🗑 Đã xoá mã ${code}`);
+      load();
+    } catch (e) { showToast(`❌ ${e.message}`); }
+  };
+
+  const inpS = { padding: '8px 12px', background: '#13131f', border: '1px solid #1e1e2e', borderRadius: 8, color: '#ccc', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box' };
+  const lblS = { display: 'block', fontSize: 11, color: '#555', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.04em' };
+
+  return (
+    <div>
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, marginBottom: '1.5rem' }}>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Tổng mã</div>
+          <div style={S.statVal('#a29bfe')}>{codes.length}</div>
+          <div style={S.statSub}>gift codes</div>
+        </div>
+        <div style={S.stat('#0e2a1e')}>
+          <div style={S.statLbl}>Còn dùng được</div>
+          <div style={S.statVal('#6fcf97')}>{codes.filter(c => c.uses < c.max_uses && (!c.expires_at || new Date(c.expires_at) > new Date())).length}</div>
+          <div style={S.statSub}>mã hoạt động</div>
+        </div>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Tổng lượt dùng</div>
+          <div style={S.statVal('#fdcb6e')}>{codes.reduce((s, c) => s + (c.redeemed_count || 0), 0)}</div>
+          <div style={S.statSub}>đã đổi</div>
+        </div>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Tổng MT đã phát</div>
+          <div style={S.statVal('#ff6b6b')}>{codes.reduce((s, c) => s + parseInt(c.amount_xu) * (c.redeemed_count || 0), 0).toLocaleString()}</div>
+          <div style={S.statSub}>MT</div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ fontSize: 13, color: '#555' }}>{codes.length} mã quà</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={S.refreshBtn} onClick={load}>↻ Làm mới</button>
+          <button onClick={() => setShowForm(v => !v)} style={{ padding: '6px 16px', background: '#6C5CE7', border: 'none', borderRadius: 7, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            {showForm ? '✕ Đóng' : '＋ Tạo mã mới'}
+          </button>
+        </div>
+      </div>
+
+      {/* Create form */}
+      {showForm && (
+        <div style={{ background: '#0d1117', border: '1px solid #2e2e44', borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#a29bfe', marginBottom: '1rem' }}>🎁 Tạo mã quà tặng mới</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={lblS}>Mã code *</label>
+              <input style={{ ...inpS, textTransform: 'uppercase' }} name="code" placeholder="SUMMER2026" value={form.code.toUpperCase()} onChange={handleF} />
+            </div>
+            <div>
+              <label style={lblS}>Số MT *</label>
+              <input style={inpS} name="amount_xu" type="number" placeholder="500" min="1" value={form.amount_xu} onChange={handleF} />
+            </div>
+            <div>
+              <label style={lblS}>Giới hạn dùng</label>
+              <input style={inpS} name="max_uses" type="number" placeholder="1" min="1" value={form.max_uses} onChange={handleF} />
+            </div>
+            <div>
+              <label style={lblS}>Hết hạn (tuỳ chọn)</label>
+              <input style={inpS} name="expires_at" type="datetime-local" value={form.expires_at} onChange={handleF} />
+            </div>
+            <div style={{ gridColumn: '2 / 4' }}>
+              <label style={lblS}>Ghi chú</label>
+              <input style={inpS} name="note" placeholder="Quà tặng sự kiện tháng 6..." value={form.note} onChange={handleF} />
+            </div>
+          </div>
+          {form.code && form.amount_xu && (
+            <div style={{ fontSize: 12, color: '#555', marginBottom: 12, background: '#13131f', borderRadius: 8, padding: '8px 12px' }}>
+              Preview: mã <strong style={{ color: '#a29bfe' }}>{form.code.toUpperCase()}</strong> — phát <strong style={{ color: '#6fcf97' }}>{parseInt(form.amount_xu || 0).toLocaleString()} MT</strong> / lần dùng · Tối đa <strong style={{ color: '#fdcb6e' }}>{form.max_uses || 1}</strong> lượt · Tổng tối đa <strong style={{ color: '#ff6b6b' }}>{(parseInt(form.amount_xu || 0) * parseInt(form.max_uses || 1)).toLocaleString()} MT</strong>
+            </div>
+          )}
+          <button onClick={create} disabled={creating || !form.code.trim() || !form.amount_xu}
+            style={{ padding: '9px 24px', background: creating || !form.code || !form.amount_xu ? '#2a2a3a' : '#6C5CE7', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            {creating ? 'Đang tạo...' : '✅ Tạo mã'}
+          </button>
+        </div>
+      )}
+
+      {/* Table */}
+      <div style={S.card}>
+        {loading ? (
+          <div style={S.empty}>Đang tải...</div>
+        ) : codes.length === 0 ? (
+          <div style={S.empty}><div style={{ fontSize: 32, marginBottom: 12 }}>🎁</div>Chưa có mã quà nào. Tạo mã đầu tiên!</div>
+        ) : (
+          <table style={S.table}>
+            <thead><tr>
+              {['Mã code', 'Số MT', 'Lượt dùng', 'Hết hạn', 'Ghi chú', 'Tạo bởi', 'Ngày tạo', ''].map(h => (
+                <th key={h} style={S.th}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {codes.map(c => {
+                const expired = c.expires_at && new Date(c.expires_at) < new Date();
+                const full = c.uses >= c.max_uses;
+                const active = !expired && !full;
+                return (
+                  <tr key={c.id}>
+                    <td style={S.td}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: active ? '#a29bfe' : '#555', fontSize: 14 }}>{c.code}</span>
+                      {expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#666', background: '#1a1a1a', borderRadius: 4, padding: '2px 6px' }}>Hết hạn</span>}
+                      {full && !expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#fdcb6e', background: '#2a2a10', borderRadius: 4, padding: '2px 6px' }}>Hết lượt</span>}
+                    </td>
+                    <td style={S.td}><span style={{ fontWeight: 600, color: '#6fcf97' }}>+{parseInt(c.amount_xu).toLocaleString()}</span> MT</td>
+                    <td style={S.td}>
+                      <div style={{ fontSize: 13, color: full ? '#ff6b6b' : '#ccc' }}>{c.redeemed_count || 0} / {c.max_uses}</div>
+                      {c.max_uses > 1 && (
+                        <div style={{ marginTop: 4, height: 3, background: '#1e1e2e', borderRadius: 99, overflow: 'hidden', width: 60 }}>
+                          <div style={{ height: '100%', width: `${Math.min(100, ((c.redeemed_count || 0) / c.max_uses) * 100)}%`, background: full ? '#ff6b6b' : '#6fcf97', borderRadius: 99 }} />
+                        </div>
+                      )}
+                    </td>
+                    <td style={S.td}>
+                      {c.expires_at
+                        ? <span style={{ color: expired ? '#555' : '#fdcb6e', fontSize: 12 }}>{new Date(c.expires_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                        : <span style={{ color: '#444' }}>Không giới hạn</span>}
+                    </td>
+                    <td style={S.td}><span style={{ color: '#666', fontSize: 12 }}>{c.note || '—'}</span></td>
+                    <td style={S.td}><span style={{ color: '#555', fontSize: 12 }}>{c.created_by_username || '—'}</span></td>
+                    <td style={S.td}><span style={{ color: '#444', fontSize: 11 }}>{fmtDate(c.created_at)}</span></td>
+                    <td style={S.td}>
+                      <button onClick={() => del(c.id, c.code)} style={{ padding: '4px 10px', background: '#2a0e0e', border: '1px solid #ff6b6b30', borderRadius: 6, color: '#ff6b6b', fontSize: 11, cursor: 'pointer' }}>
+                        Xoá
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { token, user } = useAuth();
   const [tab, setTab]       = useState('withdrawals');
@@ -1972,6 +2158,7 @@ export default function Admin() {
           ['users',       '👥 Users'],
           ['config',      '⚙️ Cấu hình'],
           ['devtools',    '🔧 Dev Tools'],
+          ['giftcodes',   '🎁 Gift Codes'],
         ].map(([k,l])=>(
           <button key={k} style={S.topTab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
@@ -1988,6 +2175,7 @@ export default function Admin() {
       {tab === 'users'        && <UserManagementTab  token={token} showToast={showToast} />}
       {tab === 'config'       && <ConfigTab          token={token} showToast={showToast} />}
       {tab === 'devtools'     && <DevToolsTab        token={token} showToast={showToast} />}
+      {tab === 'giftcodes'    && <GiftCodeTab        token={token} showToast={showToast} />}
 
       {toast && <div style={S.toast}>{toast}</div>}
     </div>
