@@ -1,19 +1,5 @@
-import nodemailer from 'nodemailer';
-
-function getTransporter() {
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
-
-  if (!user || !pass) return null;
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-  });
-}
-
 export async function sendOtpEmail(toEmail, otpCode, username) {
-  const transporter = getTransporter();
+  const apiKey = process.env.RESEND_API_KEY;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#0e0e17;color:#e8e6e0;border-radius:12px;overflow:hidden;">
@@ -35,18 +21,29 @@ export async function sendOtpEmail(toEmail, otpCode, username) {
     </div>
   `;
 
-  if (!transporter) {
+  if (!apiKey) {
     console.log(`[DEV] OTP cho ${toEmail}: ${otpCode}`);
     return { dev: true, otp: otpCode };
   }
 
-  await transporter.sendMail({
-    from: `"XU Economy" <${process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject: `[XU Economy] Mã xác nhận: ${otpCode}`,
-    html,
-    text: `Mã OTP của bạn: ${otpCode}\nMã có hiệu lực trong 10 phút.`,
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'XU Economy <onboarding@resend.dev>',
+      to: [toEmail],
+      subject: `[XU Economy] Mã xác nhận: ${otpCode}`,
+      html,
+    }),
   });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Gửi email thất bại');
+  }
 
   return { sent: true };
 }
