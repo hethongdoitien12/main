@@ -318,6 +318,51 @@ router.post('/bonus', authMiddleware, async (req, res) => {
   }
 });
 
+// ─── GET /api/wallet/creators — tìm kiếm creator ────────────────────────────
+router.get('/creators', authMiddleware, async (req, res) => {
+  try {
+    const search = (req.query.search || '').trim();
+    const limit  = Math.min(parseInt(req.query.limit) || 20, 50);
+
+    const { rows } = await query(`
+      SELECT u.id, u.username, u.avatar_url, u.role,
+             COALESCE(w.total_earned, 0)::bigint AS total_earned
+      FROM users u
+      LEFT JOIN wallets w ON w.user_id = u.id
+      WHERE u.banned_at IS NULL
+        AND u.role IN ('creator', 'admin')
+        AND ($1 = '' OR u.username ILIKE '%' || $1 || '%')
+      ORDER BY w.total_earned DESC NULLS LAST
+      LIMIT $2
+    `, [search, limit]);
+
+    res.json({ creators: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi tìm creator' });
+  }
+});
+
+// ─── GET /api/wallet/recent-gifts — lịch sử gift gần đây ─────────────────────
+router.get('/recent-gifts', authMiddleware, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 15, 30);
+    const { rows } = await query(`
+      SELECT t.amount_xu AS amount, t.message, t.created_at AS time,
+             s.username AS sender_name, r.username AS receiver_name
+      FROM tips t
+      JOIN users s ON s.id = t.sender_id
+      JOIN users r ON r.id = t.receiver_id
+      ORDER BY t.created_at DESC
+      LIMIT $1
+    `, [limit]);
+    res.json({ gifts: rows.reverse() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi lấy gift feed' });
+  }
+});
+
 // ─── GET /api/wallet/leaderboard — bảng xếp hạng ────────────────────────────
 router.get('/leaderboard', authMiddleware, async (req, res) => {
   try {
