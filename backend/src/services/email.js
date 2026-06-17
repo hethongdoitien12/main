@@ -21,7 +21,7 @@ export async function sendOtpEmail(toEmail, otpCode, username) {
     </div>
   `;
 
-  if (!apiKey) {
+  if (!apiKey || process.env.NODE_ENV !== 'production') {
     console.log(`[DEV] OTP cho ${toEmail}: ${otpCode}`);
     return { dev: true, otp: otpCode };
   }
