@@ -28,7 +28,7 @@ Script tự động: cài deps → migrate DB → seed nếu trống → chạy 
 
 ## ⚠️ AGENT — ĐỌC KHI MỞ DỰ ÁN
 
-**Bước đầu tiên bắt buộc:** Đọc file `tientrinhhethong.md` trước khi làm bất cứ việc gì.
+**Bước đầu tiên bắt buộc:** Đọc file `tientrinhethong.md` trước khi làm bất cứ việc gì.
 
 - Nếu có task `[ ]` trong file đó → tự động build theo mô tả, sau đó đổi thành `[x]` và ghi ngày.
 - Nếu tất cả đã `[x]` → tiếp tục với yêu cầu của user bình thường.
