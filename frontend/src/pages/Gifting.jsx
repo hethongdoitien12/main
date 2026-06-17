@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useSSE } from '../hooks/useSSE.js';
 import api from '../api.js';
@@ -175,9 +176,10 @@ function CreatorSearch({ token, value, onChange }) {
 
 export default function Gifting() {
   const { wallet, token, refreshWallet } = useAuth();
+  const location = useLocation();
   const [selected, setSelected] = useState(GIFT_PRESETS[0]);
   const [customAmount, setCustomAmount] = useState('');
-  const [receiver, setReceiver] = useState(null);
+  const [receiver, setReceiver] = useState(location.state?.creator || null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [feed, setFeed] = useState([]);

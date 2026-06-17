@@ -34,6 +34,7 @@ export const api = {
       ref_id:      b.refId,
     }, t),
     creators:       (search, t) => req('GET', `/wallet/creators?search=${encodeURIComponent(search||'')}`, null, t),
+    topCreators:    (p, t) => req('GET', `/wallet/top-creators?${new URLSearchParams(p||{})}`, null, t),
     recentGifts:    (t)    => req('GET',  '/wallet/recent-gifts', null, t),
     bonus:          (b, t) => req('POST', '/wallet/bonus', b, t),
     transactions:   (p, t) => req('GET',  `/wallet/transactions?${new URLSearchParams(p || {})}`, null, t),

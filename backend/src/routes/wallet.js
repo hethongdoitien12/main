@@ -343,6 +343,39 @@ router.get('/creators', authMiddleware, async (req, res) => {
   }
 });
 
+// ─── GET /api/wallet/top-creators — top creator theo tips nhận được ───────────
+router.get('/top-creators', authMiddleware, async (req, res) => {
+  try {
+    const search = (req.query.search || '').trim();
+    const limit  = Math.min(parseInt(req.query.limit) || 30, 100);
+    const offset = parseInt(req.query.offset) || 0;
+
+    const { rows } = await query(`
+      SELECT
+        u.id, u.username, u.avatar_url, u.role,
+        COALESCE(SUM(t.amount_xu), 0)::bigint         AS total_tips_received,
+        COUNT(t.id)::int                               AS tip_count,
+        COUNT(DISTINCT t.sender_id)::int               AS supporter_count,
+        COALESCE(w.balance, 0)::bigint                 AS balance,
+        RANK() OVER (ORDER BY COALESCE(SUM(t.amount_xu),0) DESC) AS rank
+      FROM users u
+      LEFT JOIN wallets w ON w.user_id = u.id
+      LEFT JOIN tips t    ON t.receiver_id = u.id
+      WHERE u.banned_at IS NULL
+        AND u.role IN ('creator', 'admin')
+        AND ($1 = '' OR u.username ILIKE '%' || $1 || '%')
+      GROUP BY u.id, u.username, u.avatar_url, u.role, w.balance
+      ORDER BY total_tips_received DESC
+      LIMIT $2 OFFSET $3
+    `, [search, limit, offset]);
+
+    res.json({ creators: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi tải top creators' });
+  }
+});
+
 // ─── GET /api/wallet/recent-gifts — lịch sử gift gần đây ─────────────────────
 router.get('/recent-gifts', authMiddleware, async (req, res) => {
   try {
