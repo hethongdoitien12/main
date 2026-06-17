@@ -5,7 +5,7 @@ export async function sendOtpEmail(toEmail, otpCode, username) {
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#0e0e17;color:#e8e6e0;border-radius:12px;overflow:hidden;">
       <div style="background:linear-gradient(135deg,#6C5CE7,#a29bfe);padding:24px;text-align:center;">
         <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;color:#fff;margin-bottom:8px;">X</div>
-        <h1 style="color:#fff;margin:0;font-size:20px;">XU Economy</h1>
+        <h1 style="color:#fff;margin:0;font-size:20px;">MT Economy</h1>
       </div>
       <div style="padding:32px 24px;">
         <h2 style="color:#fff;margin:0 0 8px;">Xác nhận email</h2>
@@ -33,9 +33,9 @@ export async function sendOtpEmail(toEmail, otpCode, username) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'XU Economy <onboarding@resend.dev>',
+      from: 'MT Economy <onboarding@resend.dev>',
       to: [toEmail],
-      subject: `[XU Economy] Mã xác nhận: ${otpCode}`,
+      subject: `[MT Economy] Mã xác nhận: ${otpCode}`,
       html,
     }),
   });

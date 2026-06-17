@@ -50,7 +50,7 @@ export default function Quests() {
     setClaiming(questId);
     try {
       const r = await api.quests.claim(questId, token);
-      setToast(`+${r.rewardXu.toLocaleString()} XU đã vào ví!`);
+      setToast(`+${r.rewardXu.toLocaleString()} MT đã vào ví!`);
       setTimeout(() => setToast(null), 3000);
       await refreshWallet();
       await load();
@@ -64,7 +64,7 @@ export default function Quests() {
 
   return (
     <div>
-      <div style={S.h1}>Nhiệm vụ kiếm XU</div>
+      <div style={S.h1}>Nhiệm vụ kiếm MT</div>
       <div style={S.grid}>
         {quests.map(q => {
           const cat = q.category || 'social';
@@ -91,7 +91,7 @@ export default function Quests() {
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <div>
-                  <div style={S.reward}>+{Number(q.reward_xu).toLocaleString()} XU</div>
+                  <div style={S.reward}>+{Number(q.reward_xu).toLocaleString()} MT</div>
                   <div style={S.rewardSub}>phần thưởng • hết hạn sau 90 ngày</div>
                 </div>
                 {!isClaimed && (

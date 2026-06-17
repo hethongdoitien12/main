@@ -44,7 +44,7 @@ function sign(raw) {
   return crypto.createHmac('sha256', SECRET_KEY).update(raw).digest('hex');
 }
 
-export async function createPayment(depositId, amount, orderInfo = 'Nạp XU vào ví') {
+export async function createPayment(depositId, amount, orderInfo = 'Nạp MT vào ví') {
   const requestId   = `REQ_${depositId}_${Date.now()}`;
   const orderId     = depositId;
   const redirectUrl = `${BACKEND_URL.replace(/\/api$/, '')}/payment/result`;

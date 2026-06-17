@@ -128,7 +128,7 @@ export default function Wallet() {
     setConfirming(true); setMsg(null);
     try {
       await api.wallet.depositConfirm({ deposit_id: payStep.deposit_id }, token);
-      setMsg({ type: 'success', text: `✅ Nạp thành công! +${parseInt(payStep.amount_vnd).toLocaleString()} XU vào ví` });
+      setMsg({ type: 'success', text: `✅ Nạp thành công! +${parseInt(payStep.amount_vnd).toLocaleString()} MT vào ví` });
       setPayStep(null);
       setAmount('');
       await refreshWallet();
@@ -160,7 +160,7 @@ export default function Wallet() {
     setLoading(true); setMsg(null);
     try {
       const r = await api.wallet.tip({ receiver_id: tip.receiverId, amount_xu: parseInt(tip.amountXu), message: tip.message }, token);
-      setMsg({ type: 'success', text: `Đã gửi tip! Creator nhận ${r.receiver_amount?.toLocaleString() || ''} XU` });
+      setMsg({ type: 'success', text: `Đã gửi tip! Creator nhận ${r.receiver_amount?.toLocaleString() || ''} MT` });
       setTip({ receiverId: '', amountXu: '', message: '' });
       await refreshWallet();
     } catch (err) { setMsg({ type: 'error', text: err.message }); }
@@ -171,20 +171,20 @@ export default function Wallet() {
 
   return (
     <div>
-      <div style={S.h1}>Ví XU</div>
+      <div style={S.h1}>Ví MT</div>
 
       <div style={S.balRow}>
         <div>
           <div style={S.balLbl}>Số dư</div>
-          <div style={S.balVal}>{Number(wallet?.balance || 0).toLocaleString()} XU</div>
+          <div style={S.balVal}>{Number(wallet?.balance || 0).toLocaleString()} MT</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={S.balLbl}>Tổng đã nạp</div>
-          <div style={{ ...S.balVal, fontSize: 15, color: '#6fcf97' }}>{Number(wallet?.total_deposited || wallet?.total_earned || 0).toLocaleString()} XU</div>
+          <div style={{ ...S.balVal, fontSize: 15, color: '#6fcf97' }}>{Number(wallet?.total_deposited || wallet?.total_earned || 0).toLocaleString()} MT</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={S.balLbl}>Đã tiêu</div>
-          <div style={{ ...S.balVal, fontSize: 15, color: '#fd79a8' }}>{Number(wallet?.total_spent || 0).toLocaleString()} XU</div>
+          <div style={{ ...S.balVal, fontSize: 15, color: '#fd79a8' }}>{Number(wallet?.total_spent || 0).toLocaleString()} MT</div>
         </div>
       </div>
 
@@ -197,7 +197,7 @@ export default function Wallet() {
             </div>
           ) : (
             <div style={{ color: '#fdcb6e' }}>
-              ⚠️ <strong>Xác minh danh tính</strong> — Số dư của bạn trên 800,000 XU. Để rút trên 1,000,000 XU cần KYC.
+              ⚠️ <strong>Xác minh danh tính</strong> — Số dư của bạn trên 800,000 MT. Để rút trên 1,000,000 MT cần KYC.
               <button onClick={() => switchTab('kyc')} style={{ marginLeft: 12, padding: '3px 10px', background: '#fdcb6e20', border: '1px solid #fdcb6e60', borderRadius: 6, color: '#fdcb6e', fontSize: 12, cursor: 'pointer' }}>
                 Xác minh ngay →
               </button>
@@ -207,7 +207,7 @@ export default function Wallet() {
       )}
 
       <div style={S.tabs}>
-        {[['deposit','💳 Nạp XU'],['withdraw','🏦 Rút XU'],['tip','💝 Gửi Tip'],['history','📋 Lịch sử'],['kyc','🪪 KYC']].map(([k, l]) => (
+        {[['deposit','💳 Nạp MT'],['withdraw','🏦 Rút MT'],['tip','💝 Gửi Tip'],['history','📋 Lịch sử'],['kyc','🪪 KYC']].map(([k, l]) => (
           <button key={k} style={S.tab(tab === k)} onClick={() => switchTab(k)}>{l}</button>
         ))}
       </div>
@@ -232,7 +232,7 @@ export default function Wallet() {
 
             {amount && parseInt(amount) >= 10000 && (
               <div style={{ ...S.info, marginTop: 0, marginBottom: '1rem', color: '#a29bfe', fontWeight: 600 }}>
-                Bạn nhận: {parseInt(amount).toLocaleString()} XU &nbsp;·&nbsp; Tỷ giá 1 VNĐ = 1 XU · Miễn phí nạp
+                Bạn nhận: {parseInt(amount).toLocaleString()} MT &nbsp;·&nbsp; Tỷ giá 1 VNĐ = 1 MT · Miễn phí nạp
               </div>
             )}
 
@@ -273,7 +273,7 @@ export default function Wallet() {
                 </a>
                 <div style={S.info}>
                   Tab mới đã mở. Hoàn tất thanh toán trên {payStep.gateway.toUpperCase()}, sau đó bấm xác nhận bên dưới.
-                  <br />Trong môi trường thực, XU sẽ được cộng tự động qua IPN webhook.
+                  <br />Trong môi trường thực, MT sẽ được cộng tự động qua IPN webhook.
                 </div>
               </>
             )}
@@ -304,10 +304,10 @@ export default function Wallet() {
           </div>
         )}
 
-        {/* ── TAB: RÚT XU ── */}
+        {/* ── TAB: RÚT MT ── */}
         {tab === 'withdraw' && (
           <>
-            <label style={S.label}>Số XU muốn rút (tối thiểu 50,000)</label>
+            <label style={S.label}>Số MT muốn rút (tối thiểu 50,000)</label>
             <input style={S.input} type="number" name="amountXu" placeholder="50000" min="50000"
               value={withdraw.amountXu} onChange={handleW(setWithdraw)} />
             <label style={S.label}>Tên ngân hàng</label>
@@ -318,7 +318,7 @@ export default function Wallet() {
             <input style={S.input} name="accountName" placeholder="NGUYEN VAN A" value={withdraw.accountName} onChange={handleW(setWithdraw)} />
             {parseInt(withdraw.amountXu) >= 50000 && (
               <div style={{ ...S.info, marginTop: 0, marginBottom: '1rem' }}>
-                Phí rút 10%: <strong style={{ color: '#ff6b6b' }}>{(parseInt(withdraw.amountXu) * 0.1).toLocaleString()} XU</strong>
+                Phí rút 10%: <strong style={{ color: '#ff6b6b' }}>{(parseInt(withdraw.amountXu) * 0.1).toLocaleString()} MT</strong>
                 &nbsp;·&nbsp; Bạn nhận: <strong style={{ color: '#6fcf97' }}>{(parseInt(withdraw.amountXu) * 0.9).toLocaleString()} VNĐ</strong>
               </div>
             )}
@@ -337,14 +337,14 @@ export default function Wallet() {
           <>
             <label style={S.label}>User ID của creator</label>
             <input style={S.input} name="receiverId" placeholder="UUID của creator (xem trong Admin)" value={tip.receiverId} onChange={handleW(setTip)} />
-            <label style={S.label}>Số XU muốn tip (tối thiểu 10)</label>
+            <label style={S.label}>Số MT muốn tip (tối thiểu 10)</label>
             <input style={S.input} type="number" name="amountXu" placeholder="100" min="10" value={tip.amountXu} onChange={handleW(setTip)} />
             <label style={S.label}>Lời nhắn (tuỳ chọn)</label>
             <input style={S.input} name="message" placeholder="Ủng hộ bạn nhé!" value={tip.message} onChange={handleW(setTip)} />
             {parseInt(tip.amountXu) >= 10 && (
               <div style={{ ...S.info, marginTop: 0, marginBottom: '1rem' }}>
-                Creator nhận: <strong style={{ color: '#6fcf97' }}>{(parseInt(tip.amountXu) * 0.95).toLocaleString()} XU</strong>
-                &nbsp;·&nbsp; Phí platform 5%: {(parseInt(tip.amountXu) * 0.05).toLocaleString()} XU
+                Creator nhận: <strong style={{ color: '#6fcf97' }}>{(parseInt(tip.amountXu) * 0.95).toLocaleString()} MT</strong>
+                &nbsp;·&nbsp; Phí platform 5%: {(parseInt(tip.amountXu) * 0.05).toLocaleString()} MT
               </div>
             )}
             <button
@@ -377,7 +377,7 @@ export default function Wallet() {
             ) : (
               <>
                 <div style={{ ...S.info, marginBottom: '1.25rem', color: '#aaa' }}>
-                  📋 Xác minh danh tính để rút trên <strong style={{ color: '#fdcb6e' }}>1,000,000 XU</strong>. Thông tin chỉ dùng để xác minh, không chia sẻ bên thứ ba.
+                  📋 Xác minh danh tính để rút trên <strong style={{ color: '#fdcb6e' }}>1,000,000 MT</strong>. Thông tin chỉ dùng để xác minh, không chia sẻ bên thứ ba.
                 </div>
                 <label style={S.label}>Họ và tên (theo CCCD/CMND)</label>
                 <input style={S.input} placeholder="NGUYEN VAN A"
@@ -412,7 +412,7 @@ export default function Wallet() {
                   <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>{new Date(tx.created_at).toLocaleString('vi-VN')}</div>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: tx.amount > 0 ? '#6fcf97' : '#ff6b6b' }}>
-                  {tx.amount > 0 ? '+' : ''}{parseInt(tx.amount).toLocaleString()} XU
+                  {tx.amount > 0 ? '+' : ''}{parseInt(tx.amount).toLocaleString()} MT
                 </div>
               </div>
             ))}

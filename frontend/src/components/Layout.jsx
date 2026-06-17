@@ -53,7 +53,7 @@ const S = {
 
 const NAV = [
   { to: '/', label: 'Tổng quan', icon: '◈', exact: true },
-  { to: '/wallet', label: 'Ví XU', icon: '◎' },
+  { to: '/wallet', label: 'Ví MT', icon: '◎' },
   { to: '/quests', label: 'Nhiệm vụ', icon: '◆' },
   { to: '/gifting', label: 'Tip & Gift', icon: '♥' },
   { to: '/history', label: 'Lịch sử', icon: '≡' },
@@ -74,7 +74,7 @@ export default function Layout() {
       <aside style={S.sidebar}>
         <div style={S.logo}>
           <div style={S.logoIcon}>X</div>
-          <span style={S.logoText}>XU Economy</span>
+          <span style={S.logoText}>MT Economy</span>
         </div>
         <nav style={S.nav}>
           {NAV.filter(n =>
@@ -88,7 +88,7 @@ export default function Layout() {
         </nav>
         <div style={S.balanceBox}>
           <div style={S.balanceLbl}>Số dư</div>
-          <div style={S.balanceVal}>{(wallet?.balance || 0).toLocaleString()} XU</div>
+          <div style={S.balanceVal}>{(wallet?.balance || 0).toLocaleString()} MT</div>
         </div>
         <div style={S.userBox}>
           <div style={S.avatar}>{user?.username?.[0]?.toUpperCase()}</div>

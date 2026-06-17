@@ -1,4 +1,4 @@
-# 🗺️ TIẾN TRÌNH HỆ THỐNG — XU Economy
+# 🗺️ TIẾN TRÌNH HỆ THỐNG — MT Economy
 
 ---
 
@@ -105,7 +105,7 @@ xu-economy/
 ---
 
 ### ✅ TASK 5 — Admin: Approve Deposit Thủ Công
-- [x] **Backend: `POST /api/admin/deposits/:id/approve`** — admin confirm deposit ngân hàng thủ công, cộng XU vào ví
+- [x] **Backend: `POST /api/admin/deposits/:id/approve`** — admin confirm deposit ngân hàng thủ công, cộng MT vào ví
 - [x] **Backend: `POST /api/admin/deposits/:id/reject`** — từ chối, cập nhật status
 - [x] **Frontend: Tab "Nạp chờ duyệt"** trong `Admin.jsx` — danh sách deposit pending, nút Approve/Reject từng cái
 
@@ -116,7 +116,7 @@ xu-economy/
 - [x] **Backend: Chặn rút** nếu `amount_xu > 1_000_000` và `kyc_status !== 'verified'` — trả lỗi rõ ràng
 - [x] **Backend: `POST /api/user/kyc/submit`** — user nộp thông tin (tên, CCCD mock), set `kyc_status = 'pending'`
 - [x] **Backend: `POST /api/admin/kyc/:userId/approve`** — admin duyệt KYC, set `kyc_status = 'verified'`
-- [x] **Frontend: Banner KYC** trong trang Wallet khi số dư > 800,000 XU — nhắc user xác minh trước khi rút lớn
+- [x] **Frontend: Banner KYC** trong trang Wallet khi số dư > 800,000 MT — nhắc user xác minh trước khi rút lớn
 
 ---
 
@@ -151,11 +151,11 @@ xu-economy/
 - Route Creator: stats dashboard
 - Route Checkin: daily check-in
 - Service Ledger: double-entry, idempotency key
-- Service QuestTrigger: auto-award XU
+- Service QuestTrigger: auto-award MT
 - Gateway MoMo + ZaloPay (sandbox)
 - MoMo IPN Webhook (`POST /api/wallet/momo/ipn`)
 - ZaloPay IPN Webhook (`POST /api/wallet/zalopay/ipn`)
-- Cronjob: XU expiry 01:00 GMT+7 + cleanup pending mỗi 30 phút
+- Cronjob: MT expiry 01:00 GMT+7 + cleanup pending mỗi 30 phút
 - Security: `helmet` + rate limit (auth 5/phút, API 100/phút)
 
 ### Frontend
@@ -205,9 +205,9 @@ xu-economy/
 
 | Email | Mật khẩu | Role | Số dư ban đầu |
 |-------|----------|------|---------------|
-| admin@xu.vn | password123 | Admin | 0 XU |
-| nam@creator.vn | password123 | Creator | 10,000 XU |
-| linh@user.vn | password123 | User | 10,000 XU |
+| admin@xu.vn | password123 | Admin | 0 MT |
+| nam@creator.vn | password123 | Creator | 10,000 MT |
+| linh@user.vn | password123 | User | 10,000 MT |
 
 ---
 
@@ -223,7 +223,7 @@ POST /api/auth/login      { email, password }
 ```
 GET  /api/wallet/balance          — số dư ví
 POST /api/wallet/deposit/create   — nạp tiền { amountVnd, paymentMethod }
-POST /api/wallet/spend            — tiêu XU  { amount, type, itemId, description }
+POST /api/wallet/spend            — tiêu MT  { amount, type, itemId, description }
 POST /api/wallet/tip              — tip       { receiverId, amountXu, message }
 GET  /api/wallet/history          — lịch sử  ?limit=20&offset=0&type=...
 GET  /api/wallet/platform-stats   — (admin) thống kê toàn nền tảng
@@ -280,10 +280,10 @@ GET  /api/referral/my-code — mã giới thiệu
 
 | Nguồn | Tỷ lệ |
 |-------|-------|
-| Phí rút XU ra VNĐ | 10% |
+| Phí rút MT ra VNĐ | 10% |
 | Phí tip creator | 5% |
 | Float (tiền nạp chưa tiêu) | lãi ngân hàng |
-| XU miễn phí expire sau 90 ngày | 100% |
+| MT miễn phí expire sau 90 ngày | 100% |
 
 ---
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 ROOT=$(pwd)
 
-echo "🚀 Khởi động XU Economy..."
+echo "🚀 Khởi động MT Economy..."
 
 echo "📦 Cài dependencies backend..."
 cd "$ROOT/backend" && npm install --silent

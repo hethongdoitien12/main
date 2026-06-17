@@ -138,7 +138,7 @@ router.post('/', async (req, res) => {
         userId: req.user.id,
         type: 'system',
         title: label,
-        body: `+${xu.toLocaleString()} XU thưởng streak ${streakDay} ngày liên tiếp!`,
+        body: `+${xu.toLocaleString()} MT thưởng streak ${streakDay} ngày liên tiếp!`,
       });
     }
 

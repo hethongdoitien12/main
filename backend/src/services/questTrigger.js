@@ -4,7 +4,7 @@ import { LedgerService } from './ledger.js';
 /**
  * QuestTriggerService
  * Gọi hàm này từ bất kỳ hệ thống nào (game, nhạc, content...)
- * để tự động cập nhật tiến trình quest và thưởng XU cho user.
+ * để tự động cập nhật tiến trình quest và thưởng MT cho user.
  *
  * Ví dụ:
  *   await QuestTrigger.fire(userId, 'play_game_minutes', 30)
@@ -82,7 +82,7 @@ export const QuestTrigger = {
   },
 
   /**
-   * Auto-claim: tự động claim XU cho tất cả quest đã completed chưa claim
+   * Auto-claim: tự động claim MT cho tất cả quest đã completed chưa claim
    * Dùng cho daily/weekly quest (tự động nhận, không cần user bấm)
    */
   async autoClaim(userId) {
@@ -132,12 +132,12 @@ export const QuestTrigger = {
       // Thưởng người mời
       const completed = await QuestTrigger.fire(referrerId, 'refer_friend', 1);
 
-      // Thưởng người được mời (XU chào mừng)
+      // Thưởng người được mời (MT chào mừng)
       await LedgerService.earnReward({
         userId: newUserId,
         amount: 200,
         type: 'earn_referral',
-        description: 'Nhận XU chào mừng từ lời mời bạn bè'
+        description: 'Nhận MT chào mừng từ lời mời bạn bè'
       });
 
       await client.query('COMMIT');

@@ -19,9 +19,7 @@ import creatorRoutes from './routes/creator.js';
 import checkinRoutes from './routes/checkin.js';
 
 const app = express();
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
+app.set('trust proxy', true);
 
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));

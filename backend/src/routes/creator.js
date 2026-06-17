@@ -12,7 +12,7 @@ router.get('/stats', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Tổng xu nhận từ tips
+    // Tổng mt nhận từ tips
     const { rows: [totals] } = await query(`
       SELECT
         COALESCE(SUM(t.amount_xu * 0.95)::BIGINT, 0) AS total_received_xu,

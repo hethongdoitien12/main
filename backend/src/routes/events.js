@@ -8,7 +8,7 @@ router.use(authMiddleware);
 
 /**
  * POST /api/events/trigger
- * Hệ thống khác gọi vào đây để trigger quest + thưởng XU
+ * Hệ thống khác gọi vào đây để trigger quest + thưởng MT
  *
  * Body: { action, count, metadata }
  * Actions hợp lệ:

@@ -1,6 +1,6 @@
-# 🪙 XU Economy — Hệ thống Virtual Economy & Token
+# 🪙 MT Economy — Hệ thống Virtual Economy & Token
 
-Hệ thống ví XU nội bộ cho nền tảng: nạp tiền, kiếm XU, tiêu XU, rút ra VNĐ, tip creator.
+Hệ thống ví MT nội bộ cho nền tảng: nạp tiền, kiếm MT, tiêu MT, rút ra VNĐ, tip creator.
 
 ---
 
@@ -99,9 +99,9 @@ npm run dev
 
 | Email | Mật khẩu | Vai trò | Số dư |
 |-------|----------|---------|-------|
-| admin@xu.vn | password123 | Admin | 0 XU |
-| nam@creator.vn | password123 | Creator | 10,000 XU |
-| linh@user.vn | password123 | User | 10,000 XU |
+| admin@xu.vn | password123 | Admin | 0 MT |
+| nam@creator.vn | password123 | Creator | 10,000 MT |
+| linh@user.vn | password123 | User | 10,000 MT |
 
 ---
 
@@ -118,7 +118,7 @@ POST /api/auth/login      { email, password }
 GET  /api/wallet                  — số dư ví
 POST /api/wallet/deposit          — nạp tiền { amountVnd, paymentMethod }
 POST /api/wallet/withdraw         — rút tiền { amountXu, bankName, bankAccount, accountName }
-POST /api/wallet/spend            — tiêu XU  { amount, type, itemId, description }
+POST /api/wallet/spend            — tiêu MT  { amount, type, itemId, description }
 POST /api/wallet/tip              — tip       { receiverId, amountXu, message }
 GET  /api/wallet/history          — lịch sử  ?limit=20&offset=0&type=...
 GET  /api/wallet/deposits         — lịch sử nạp
@@ -140,10 +140,10 @@ POST /api/quests              — (admin) tạo quest mới
 
 | Nguồn | Tỷ lệ |
 |-------|-------|
-| Phí rút XU ra VNĐ | 10% |
+| Phí rút MT ra VNĐ | 10% |
 | Phí tip creator | 5% |
 | Float (tiền nạp chưa tiêu) | lãi ngân hàng |
-| XU miễn phí expire sau 90 ngày | 100% |
+| MT miễn phí expire sau 90 ngày | 100% |
 
 ---
 
@@ -161,7 +161,7 @@ POST /api/wallet/spend
 }
 ```
 
-Khi user kiếm được XU (hoàn thành game, tạo content):
+Khi user kiếm được MT (hoàn thành game, tạo content):
 ```javascript
 POST /api/quests/:questId/progress
 { "action": "play_game", "count": 1 }

@@ -32,7 +32,7 @@ async function seed() {
           'INSERT INTO wallets (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
           [user.id]
         );
-        // Give test users some XU
+        // Give test users some MT
         if (role !== 'admin') {
           await client.query(`
             UPDATE wallets SET balance = 10000, total_earned = 10000
@@ -93,8 +93,8 @@ async function seed() {
     console.log('✅ Seed completed');
     console.log('\n📋 Test accounts:');
     console.log('   admin@xu.vn / password123 (admin)');
-    console.log('   nam@creator.vn / password123 (creator, 10,000 XU)');
-    console.log('   linh@user.vn / password123 (user, 10,000 XU)');
+    console.log('   nam@creator.vn / password123 (creator, 10,000 MT)');
+    console.log('   linh@user.vn / password123 (user, 10,000 MT)');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Seed failed:', err.message);

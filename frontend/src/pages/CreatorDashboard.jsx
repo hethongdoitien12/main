@@ -37,22 +37,22 @@ function BarChart({ data }) {
     d.setDate(d.getDate() - (6 - i));
     const key = d.toISOString().slice(0, 10);
     const found = data.find(r => r.date?.slice(0, 10) === key);
-    return { date: key, xu: found?.xu_earned || 0, tips: found?.tip_count || 0 };
+    return { date: key, mt: found?.xu_earned || 0, tips: found?.tip_count || 0 };
   });
 
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 120 }}>
-      {last7.map(({ date, xu, tips }) => {
-        const pct = (xu / max) * 100;
+      {last7.map(({ date, mt, tips }) => {
+        const pct = (mt / max) * 100;
         const label = new Date(date + 'T00:00:00').toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' });
         return (
           <div key={date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ fontSize: 10, color: '#555' }}>{xu > 0 ? xu.toLocaleString() : ''}</div>
+            <div style={{ fontSize: 10, color: '#555' }}>{mt > 0 ? mt.toLocaleString() : ''}</div>
             <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end' }}>
-              <div title={`${tips} tip · ${xu.toLocaleString()} XU`} style={{
+              <div title={`${tips} tip · ${mt.toLocaleString()} MT`} style={{
                 width: '100%', borderRadius: '3px 3px 0 0',
-                height: `${Math.max(pct, xu > 0 ? 4 : 0)}%`,
-                background: xu > 0 ? 'linear-gradient(180deg,#a29bfe,#6C5CE7)' : '#1a1a28',
+                height: `${Math.max(pct, mt > 0 ? 4 : 0)}%`,
+                background: mt > 0 ? 'linear-gradient(180deg,#a29bfe,#6C5CE7)' : '#1a1a28',
                 transition: 'height .4s ease', cursor: 'default',
               }} />
             </div>
@@ -102,9 +102,9 @@ export default function CreatorDashboard() {
       {/* Stats tổng */}
       <div style={S.grid3}>
         <div style={S.stat}>
-          <div style={S.statLbl}>Tổng xu nhận được</div>
+          <div style={S.statLbl}>Tổng MT nhận được</div>
           <div style={S.statVal('#6fcf97')}>{Number(totals?.total_received_xu || 0).toLocaleString()}</div>
-          <div style={S.statSub}>XU (sau phí 5%)</div>
+          <div style={S.statSub}>MT (sau phí 5%)</div>
         </div>
         <div style={S.stat}>
           <div style={S.statLbl}>Số lần được tip</div>
@@ -114,7 +114,7 @@ export default function CreatorDashboard() {
         <div style={S.stat}>
           <div style={S.statLbl}>Số dư hiện tại</div>
           <div style={S.statVal('#a29bfe')}>{Number(wallet?.balance || 0).toLocaleString()}</div>
-          <div style={S.statSub}>XU · <span style={{ color: '#555', cursor: 'pointer' }} onClick={() => navigate('/wallet')}>Rút →</span></div>
+          <div style={S.statSub}>MT · <span style={{ color: '#555', cursor: 'pointer' }} onClick={() => navigate('/wallet')}>Rút →</span></div>
         </div>
       </div>
 
@@ -137,7 +137,7 @@ export default function CreatorDashboard() {
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`} {t.username}
                   </span>
                   <span style={{ fontSize: 13, color: '#a29bfe', fontWeight: 600 }}>
-                    {Number(t.total_xu).toLocaleString()} XU
+                    {Number(t.total_xu).toLocaleString()} MT
                   </span>
                 </div>
                 <div style={S.barWrap}>
@@ -159,7 +159,7 @@ export default function CreatorDashboard() {
               <thead>
                 <tr>
                   <th style={S.th}>Ngày</th>
-                  <th style={S.th}>XU rút</th>
+                  <th style={S.th}>MT rút</th>
                   <th style={S.th}>VNĐ nhận</th>
                   <th style={S.th}>Trạng thái</th>
                 </tr>
@@ -168,7 +168,7 @@ export default function CreatorDashboard() {
                 {withdrawals?.map(w => (
                   <tr key={w.id}>
                     <td style={S.td}>{new Date(w.created_at).toLocaleDateString('vi-VN')}</td>
-                    <td style={S.td}>{Number(w.amount_xu).toLocaleString()} XU</td>
+                    <td style={S.td}>{Number(w.amount_xu).toLocaleString()} MT</td>
                     <td style={S.td}>{Number(w.amount_vnd).toLocaleString()}₫</td>
                     <td style={S.td}><span style={S.badge(w.status)}>{w.status}</span></td>
                   </tr>

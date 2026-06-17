@@ -22,11 +22,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS wallets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  balance BIGINT DEFAULT 0 CHECK (balance >= 0),  -- stored in xu (integer, no decimals)
+  balance BIGINT DEFAULT 0 CHECK (balance >= 0),  -- stored in mt (integer, no decimals)
   total_earned BIGINT DEFAULT 0,
   total_spent BIGINT DEFAULT 0,
   total_withdrawn BIGINT DEFAULT 0,
-  locked_balance BIGINT DEFAULT 0,               -- XU đang chờ xử lý
+  locked_balance BIGINT DEFAULT 0,               -- MT đang chờ xử lý
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
   idempotency_key VARCHAR(255) UNIQUE NOT NULL,   -- prevents double-spend
   user_id UUID NOT NULL REFERENCES users(id),
   type VARCHAR(50) NOT NULL CHECK (type IN (
-    'deposit',       -- nạp tiền thật -> xu
-    'withdrawal',    -- rút xu -> tiền thật
+    'deposit',       -- nạp tiền thật -> mt
+    'withdrawal',    -- rút mt -> tiền thật
     'earn_quest',    -- hoàn thành quest
     'earn_game',     -- chơi game
     'earn_referral', -- giới thiệu bạn
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
     'spend_boost',   -- boost post
     'tip_sent',      -- gửi tip cho creator
     'tip_received',  -- nhận tip
-    'expire',        -- xu hết hạn
-    'refund',        -- hoàn xu
+    'expire',        -- mt hết hạn
+    'refund',        -- hoàn mt
     'admin_adjust'   -- admin điều chỉnh
   )),
   amount BIGINT NOT NULL,                          -- dương = nhận, âm = chi
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS deposit_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id),
   amount_vnd BIGINT NOT NULL,      -- VNĐ
-  amount_xu BIGINT NOT NULL,       -- XU nhận được
+  amount_xu BIGINT NOT NULL,       -- MT nhận được
   exchange_rate DECIMAL(10,4) DEFAULT 1.0,
   payment_method VARCHAR(50) CHECK (payment_method IN ('momo','zalopay','vnpay','bank_transfer')),
   payment_ref VARCHAR(255),
@@ -220,14 +220,14 @@ CREATE TABLE IF NOT EXISTS broadcast_logs (
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
--- XU Expiry Batches — theo dõi từng lô XU khuyến mãi sẽ hết hạn
+-- MT Expiry Batches — theo dõi từng lô MT khuyến mãi sẽ hết hạn
 CREATE TABLE IF NOT EXISTS xu_expiry_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   source_entry_id UUID REFERENCES ledger_entries(id),
   source_type VARCHAR(50) NOT NULL,   -- 'quest', 'referral', 'bonus'
   amount_xu BIGINT NOT NULL,
-  remaining_xu BIGINT NOT NULL,       -- số XU còn lại chưa expire
+  remaining_xu BIGINT NOT NULL,       -- số MT còn lại chưa expire
   granted_at TIMESTAMPTZ DEFAULT NOW(),
   expires_at TIMESTAMPTZ NOT NULL,
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active','expired','consumed')),
@@ -259,10 +259,10 @@ INSERT INTO platform_config (key, value, description) VALUES
   ('WITHDRAWAL_FEE_PCT',      '0.10',    'Phí rút tiền (số thập phân, vd: 0.10 = 10%)'),
   ('TIP_PLATFORM_FEE_PCT',    '0.05',    'Phí platform khi tip (vd: 0.05 = 5%)'),
   ('DEPOSIT_FEE_PCT',         '0',       'Phí nạp tiền (0 = miễn phí)'),
-  ('VND_PER_XU',              '1',       'Tỷ giá: 1 XU = ? VNĐ'),
-  ('XU_FREE_EXPIRE_DAYS',     '90',      'Số ngày XU thưởng hết hạn'),
-  ('MIN_WITHDRAWAL_XU',       '50000',   'Số XU tối thiểu để rút'),
-  ('KYC_THRESHOLD_XU',        '1000000', 'Ngưỡng XU cần KYC khi rút')
+  ('VND_PER_XU',              '1',       'Tỷ giá: 1 MT = ? VNĐ'),
+  ('XU_FREE_EXPIRE_DAYS',     '90',      'Số ngày MT thưởng hết hạn'),
+  ('MIN_WITHDRAWAL_XU',       '50000',   'Số MT tối thiểu để rút'),
+  ('KYC_THRESHOLD_XU',        '1000000', 'Ngưỡng MT cần KYC khi rút')
 ON CONFLICT (key) DO NOTHING;
 
 -- Thêm bank_transfer_ref vào withdrawal_requests nếu chưa có

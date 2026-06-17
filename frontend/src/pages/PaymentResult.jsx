@@ -37,7 +37,7 @@ export default function PaymentResult() {
 
   const content = {
     loading: { icon: '⏳', title: 'Đang xác nhận...', color: '#aaa',   sub: 'Vui lòng chờ.' },
-    success: { icon: '✅', title: 'Thanh toán thành công!', color: '#6fcf97', sub: 'XU đã được cộng vào ví của bạn.' },
+    success: { icon: '✅', title: 'Thanh toán thành công!', color: '#6fcf97', sub: 'MT đã được cộng vào ví của bạn.' },
     failed:  { icon: '❌', title: 'Thanh toán thất bại', color: '#ff6b6b', sub: 'Giao dịch không thành công hoặc bị huỷ.' },
     unknown: { icon: '❓', title: 'Kết quả không xác định', color: '#fdcb6e', sub: 'Vui lòng kiểm tra lịch sử ví.' },
   }[status];
@@ -50,7 +50,7 @@ export default function PaymentResult() {
         <div style={S.sub}>{content.sub}</div>
         <button style={S.btn(status === 'success' ? '#6C5CE7' : '#2a2a3a')}
           onClick={() => navigate('/wallet')}>
-          Về Ví XU
+          Về Ví MT
         </button>
       </div>
     </div>

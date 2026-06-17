@@ -1,6 +1,8 @@
-# XU Economy
+# MT Economy
 
-Hệ thống kinh tế ảo (Virtual Economy) nội bộ — quản lý tiền tệ XU, ví người dùng, quest, tip creator, rút tiền, và thống kê nền tảng.
+Hệ thống kinh tế ảo (Virtual Economy) nội bộ — quản lý tiền tệ **MT**, ví người dùng, quest, tip creator, rút tiền, và thống kê nền tảng.
+
+> **Lưu ý tên tiền tệ:** Hiển thị = **MT**. Cột DB giữ tên cũ (`amount_xu`, `fee_xu`, v.v.) để tương thích — không đổi.
 
 ## Tech Stack
 - **Backend:** Node.js + Express (port 3001)

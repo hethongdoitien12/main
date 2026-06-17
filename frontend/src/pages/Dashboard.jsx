@@ -32,17 +32,17 @@ const TX_LABELS = {
 
 // ─── Milestones list ────────────────────────────────────────────────────────
 const MILESTONES = [
-  { day: 3,  xu: 100,  label: '3 ngày' },
-  { day: 7,  xu: 250,  label: '7 ngày 🏆' },
-  { day: 14, xu: 350,  label: '14 ngày 🔥' },
-  { day: 30, xu: 500,  label: '30 ngày 👑' },
+  { day: 3,  mt: 100,  label: '3 ngày' },
+  { day: 7,  mt: 250,  label: '7 ngày 🏆' },
+  { day: 14, mt: 350,  label: '14 ngày 🔥' },
+  { day: 30, mt: 500,  label: '30 ngày 👑' },
 ];
 
 // ─── CheckinCard ─────────────────────────────────────────────────────────────
 function CheckinCard({ token, onCheckin }) {
   const [status,   setStatus]   = useState(null);
   const [doing,    setDoing]    = useState(false);
-  const [flash,    setFlash]    = useState(null); // '+250 XU' flash text
+  const [flash,    setFlash]    = useState(null); // '+250 MT' flash text
 
   const load = useCallback(async () => {
     try {
@@ -58,7 +58,7 @@ function CheckinCard({ token, onCheckin }) {
     setDoing(true);
     try {
       const r = await api.checkin.doIt(token);
-      setFlash(`+${r.xu_earned} XU`);
+      setFlash(`+${r.xu_earned} MT`);
       setTimeout(() => setFlash(null), 2500);
       await load();
       onCheckin && onCheckin();
@@ -124,11 +124,11 @@ function CheckinCard({ token, onCheckin }) {
               opacity: doing ? 0.6 : 1,
               transition: 'all .2s',
             }}>
-            {doneToday ? '✓ Đã điểm danh' : doing ? '...' : `Điểm danh\n+${reward} XU`}
+            {doneToday ? '✓ Đã điểm danh' : doing ? '...' : `Điểm danh\n+${reward} MT`}
           </button>
           {!doneToday && (
             <div style={{ fontSize: 10, color: '#f6c90e80', marginTop: 5 }}>
-              Ngày {nextDay} → +{reward} XU
+              Ngày {nextDay} → +{reward} MT
             </div>
           )}
         </div>
@@ -182,9 +182,9 @@ function CheckinCard({ token, onCheckin }) {
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#f6c90e' }}>
-                  +{nextMilestone.xu}
+                  +{nextMilestone.mt}
                 </div>
-                <div style={{ fontSize: 10, color: '#555' }}>XU thưởng</div>
+                <div style={{ fontSize: 10, color: '#555' }}>MT thưởng</div>
               </div>
             </div>
           )}
@@ -192,13 +192,13 @@ function CheckinCard({ token, onCheckin }) {
           {!nextMilestone && streak >= 30 && (
             <div style={{ background: '#f6c90e18', border: '1px solid #f6c90e40', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
               <div style={{ fontSize: 14 }}>👑 Tối đa! Streak {streak} ngày</div>
-              <div style={{ fontSize: 11, color: '#f6c90e', marginTop: 2 }}>+500 XU mỗi ngày</div>
+              <div style={{ fontSize: 11, color: '#f6c90e', marginTop: 2 }}>+500 MT mỗi ngày</div>
             </div>
           )}
         </div>
       </div>
 
-      {/* XU flash animation */}
+      {/* MT flash animation */}
       {flash && (
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
@@ -240,7 +240,7 @@ export default function Dashboard() {
   return (
     <div>
       <div style={S.h1}>Xin chào, {user?.username} 👋</div>
-      <div style={S.sub}>Tổng quan tài khoản XU của bạn</div>
+      <div style={S.sub}>Tổng quan tài khoản MT của bạn</div>
 
       {/* Check-in card */}
       <CheckinCard token={token} onCheckin={handleCheckin} />
@@ -250,22 +250,22 @@ export default function Dashboard() {
         <div style={{ ...S.statCard, borderColor: '#2a2044' }}>
           <div style={S.statLbl}>Số dư hiện tại</div>
           <div style={{ ...S.statVal, color: '#a29bfe' }}>{Number(wallet?.balance || 0).toLocaleString()}</div>
-          <div style={S.statSub}>XU</div>
+          <div style={S.statSub}>MT</div>
         </div>
         <div style={S.statCard}>
           <div style={S.statLbl}>Tổng đã kiếm</div>
           <div style={{ ...S.statVal, color: '#6fcf97' }}>{Number(wallet?.total_earned || 0).toLocaleString()}</div>
-          <div style={S.statSub}>XU tất cả thời gian</div>
+          <div style={S.statSub}>MT tất cả thời gian</div>
         </div>
         <div style={S.statCard}>
           <div style={S.statLbl}>Tổng đã tiêu</div>
           <div style={{ ...S.statVal, color: '#fd79a8' }}>{Number(wallet?.total_spent || 0).toLocaleString()}</div>
-          <div style={S.statSub}>XU tất cả thời gian</div>
+          <div style={S.statSub}>MT tất cả thời gian</div>
         </div>
         <div style={S.statCard}>
           <div style={S.statLbl}>Đã rút ra</div>
           <div style={{ ...S.statVal, color: '#fdcb6e' }}>{Number(wallet?.total_withdrawn || 0).toLocaleString()}</div>
-          <div style={S.statSub}>XU → VNĐ</div>
+          <div style={S.statSub}>MT → VNĐ</div>
         </div>
       </div>
 
@@ -283,7 +283,7 @@ export default function Dashboard() {
                   <div style={S.txSub}>{new Date(tx.created_at).toLocaleDateString('vi-VN')}</div>
                 </div>
                 <div style={S.txAmt(tx.amount > 0)}>
-                  {tx.amount > 0 ? '+' : ''}{Number(tx.amount).toLocaleString()} XU
+                  {tx.amount > 0 ? '+' : ''}{Number(tx.amount).toLocaleString()} MT
                 </div>
               </div>
             ))
@@ -298,13 +298,13 @@ export default function Dashboard() {
           <div style={{ ...S.sectionTitle, marginBottom: 14 }}>Hành động nhanh</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Link to="/wallet" style={{ ...S.btnPrimary, justifyContent: 'center' }}>
-              ＋ Nạp XU
+              ＋ Nạp MT
             </Link>
             <Link to="/wallet" style={{ ...S.btnSecondary, justifyContent: 'center' }}>
-              ↑ Rút XU ra VNĐ
+              ↑ Rút MT ra VNĐ
             </Link>
             <Link to="/quests" style={{ ...S.btnSecondary, justifyContent: 'center' }}>
-              ◆ Làm nhiệm vụ kiếm XU
+              ◆ Làm nhiệm vụ kiếm MT
             </Link>
             <Link to="/leaderboard" style={{ ...S.btnSecondary, justifyContent: 'center' }}>
               ◈ Xem bảng xếp hạng
@@ -312,7 +312,7 @@ export default function Dashboard() {
           </div>
           <div style={{ marginTop: '1.25rem', padding: '12px', background: '#13131f', borderRadius: 8 }}>
             <div style={{ fontSize: 12, color: '#555', marginBottom: 4 }}>Tỷ giá hôm nay</div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#ddd' }}>1 XU = 1 VNĐ</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#ddd' }}>1 MT = 1 VNĐ</div>
             <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Phí rút: 10% | Phí tip: 5%</div>
           </div>
         </div>

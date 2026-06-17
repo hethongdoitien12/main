@@ -7,8 +7,8 @@ const router = Router();
 router.use(authMiddleware);
 
 // Config phần thưởng
-const REWARD_REFERRER = 200;  // người mời nhận 200 XU
-const REWARD_INVITEE  = 500;  // người được mời nhận 500 XU
+const REWARD_REFERRER = 200;  // người mời nhận 200 MT
+const REWARD_INVITEE  = 500;  // người được mời nhận 500 MT
 
 // ─── helper: tạo code ngẫu nhiên 8 ký tự ────────────────────────────────────
 
@@ -41,7 +41,7 @@ router.get('/my-code', async (req, res) => {
   try {
     const code = await ensureCode(req.user.id);
 
-    // Thống kê: số người đã dùng code + tổng XU đã nhận
+    // Thống kê: số người đã dùng code + tổng MT đã nhận
     const { rows: [stats] } = await query(`
       SELECT
         COUNT(u.id)::int                       AS total_referred,
@@ -75,7 +75,7 @@ router.get('/my-code', async (req, res) => {
       LIMIT 50
     `, [req.user.id]);
 
-    // XU từng referral = REWARD_REFERRER (cố định), fallback nếu query phức tạp
+    // MT từng referral = REWARD_REFERRER (cố định), fallback nếu query phức tạp
     const referralsWithXu = referrals.map(r => ({
       ...r,
       xu_from_this_referral: Number(r.xu_from_this_referral) || REWARD_REFERRER,
@@ -138,7 +138,7 @@ router.post('/use', async (req, res) => {
       [referrer.id, req.user.id]
     );
 
-    // Thưởng người được mời (REWARD_INVITEE XU)
+    // Thưởng người được mời (REWARD_INVITEE MT)
     await client.query(
       `SELECT * FROM update_wallet_balance($1,$2,$3,$4,$5,$6,$7,$8)`,
       [req.user.id, REWARD_INVITEE, 'earn_referral',
@@ -152,7 +152,7 @@ router.post('/use', async (req, res) => {
       VALUES ($1, 'referral', $2, $2, NOW() + INTERVAL '90 days')
     `, [req.user.id, REWARD_INVITEE]);
 
-    // Thưởng người mời (REWARD_REFERRER XU)
+    // Thưởng người mời (REWARD_REFERRER MT)
     await client.query(
       `SELECT * FROM update_wallet_balance($1,$2,$3,$4,$5,$6,$7,$8)`,
       [referrer.id, REWARD_REFERRER, 'earn_referral',
@@ -172,13 +172,13 @@ router.post('/use', async (req, res) => {
       userId: req.user.id,
       type: 'system',
       title: '🎉 Mã giới thiệu đã được áp dụng!',
-      body: `+${REWARD_INVITEE.toLocaleString()} XU đã vào ví. Cảm ơn bạn đã tham gia qua lời mời của ${referrer.username}!`,
+      body: `+${REWARD_INVITEE.toLocaleString()} MT đã vào ví. Cảm ơn bạn đã tham gia qua lời mời của ${referrer.username}!`,
     });
     await notify({
       userId: referrer.id,
       type: 'system',
       title: '🤝 Bạn có người được giới thiệu mới!',
-      body: `${req.user.username} vừa dùng mã của bạn. +${REWARD_REFERRER.toLocaleString()} XU đã vào ví!`,
+      body: `${req.user.username} vừa dùng mã của bạn. +${REWARD_REFERRER.toLocaleString()} MT đã vào ví!`,
       metadata: { invitee: req.user.username },
     });
 
@@ -186,7 +186,7 @@ router.post('/use', async (req, res) => {
       success: true,
       reward_xu: REWARD_INVITEE,
       referrer: referrer.username,
-      message: `Nhận thành công! +${REWARD_INVITEE.toLocaleString()} XU đã vào ví của bạn.`,
+      message: `Nhận thành công! +${REWARD_INVITEE.toLocaleString()} MT đã vào ví của bạn.`,
     });
   } catch (err) {
     await client.query('ROLLBACK');

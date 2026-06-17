@@ -11,12 +11,12 @@ const MONTHS_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Thán
 const DAYS_VI = ['CN','T2','T3','T4','T5','T6','T7'];
 
 const REWARDS = [
-  { day:1,  xu:50,  label:'Ngày 1' },
-  { day:2,  xu:75,  label:'Ngày 2' },
-  { day:3,  xu:100, label:'Ngày 3+' },
-  { day:7,  xu:250, label:'Tuần 1 🏆' },
-  { day:14, xu:350, label:'2 tuần 🔥' },
-  { day:30, xu:500, label:'Tháng 👑' },
+  { day:1,  mt:50,  label:'Ngày 1' },
+  { day:2,  mt:75,  label:'Ngày 2' },
+  { day:3,  mt:100, label:'Ngày 3+' },
+  { day:7,  mt:250, label:'Tuần 1 🏆' },
+  { day:14, mt:350, label:'2 tuần 🔥' },
+  { day:30, mt:500, label:'Tháng 👑' },
 ];
 
 function streakReward(day) {
@@ -62,7 +62,7 @@ function CheckinButton({ status, onDone }) {
     setDoing(true); setMsg('');
     try {
       const r = await api.checkin.doIt(token);
-      setMsg(`✓ +${r.xu_earned} XU — Streak ${r.streak_day} ngày!`);
+      setMsg(`✓ +${r.xu_earned} MT — Streak ${r.streak_day} ngày!`);
       refreshWallet && refreshWallet();
       onDone && onDone();
     } catch (e) {
@@ -87,7 +87,7 @@ function CheckinButton({ status, onDone }) {
           opacity:doing ? .6 : 1, transition:'all .2s',
           letterSpacing:'.02em',
         }}>
-        {done ? '✓ Đã điểm danh hôm nay' : doing ? 'Đang xử lý...' : `🗓 Điểm danh · +${reward} XU (ngày ${nextDay})`}
+        {done ? '✓ Đã điểm danh hôm nay' : doing ? 'Đang xử lý...' : `🗓 Điểm danh · +${reward} MT (ngày ${nextDay})`}
       </button>
       {msg && (
         <div style={{ marginTop:10, fontSize:13, color: msg.startsWith('✓') ? '#6fcf97' : '#ff6b6b',
@@ -181,7 +181,7 @@ export default function Checkin() {
   return (
     <div>
       <div style={S.h1}>Điểm danh hàng ngày</div>
-      <div style={S.sub}>Điểm danh mỗi ngày để tích streak và nhận thưởng XU</div>
+      <div style={S.sub}>Điểm danh mỗi ngày để tích streak và nhận thưởng MT</div>
 
       {/* Checkin button */}
       {!loading && status && (
@@ -211,7 +211,7 @@ export default function Checkin() {
               <div style={{ marginTop:16 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#555', marginBottom:6 }}>
                   <span>→ Milestone: {nextMile.label}</span>
-                  <span style={{ color:'#f6c90e' }}>+{nextMile.xu} XU</span>
+                  <span style={{ color:'#f6c90e' }}>+{nextMile.mt} MT</span>
                 </div>
                 <div style={{ height:6, background:'#1e1e2e', borderRadius:3, overflow:'hidden' }}>
                   <div style={S.streakBar((streak/nextMile.day)*100)} />
@@ -221,7 +221,7 @@ export default function Checkin() {
             )}
             {!nextMile && streak >= 30 && (
               <div style={{ marginTop:12, padding:'8px 12px', background:'#f6c90e18', borderRadius:8, fontSize:13, color:'#f6c90e', textAlign:'center' }}>
-                👑 Tối đa! +500 XU mỗi ngày
+                👑 Tối đa! +500 MT mỗi ngày
               </div>
             )}
           </div>
@@ -230,7 +230,7 @@ export default function Checkin() {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             {[
               { lbl:'Tổng ngày điểm danh', val:totalDays, unit:'ngày', color:'#a29bfe' },
-              { lbl:'Tổng XU kiếm được', val:totalXu.toLocaleString(), unit:'XU', color:'#6fcf97' },
+              { lbl:'Tổng MT kiếm được', val:totalXu.toLocaleString(), unit:'MT', color:'#6fcf97' },
             ].map(({ lbl, val, unit, color }) => (
               <div key={lbl} style={{ ...S.card, padding:'1rem' }}>
                 <div style={S.lbl}>{lbl}</div>
@@ -243,7 +243,7 @@ export default function Checkin() {
           {/* Reward table */}
           <div style={S.card}>
             <div style={{ fontSize:13, fontWeight:600, color:'#aaa', marginBottom:12 }}>Bảng phần thưởng</div>
-            {REWARDS.map(({ day, xu, label }) => {
+            {REWARDS.map(({ day, mt, label }) => {
               const reached = streak >= day;
               return (
                 <div key={day} style={{
@@ -263,7 +263,7 @@ export default function Checkin() {
                     <span style={{ fontSize:13, color:reached ? '#ddd' : '#555' }}>{label}</span>
                   </div>
                   <span style={{ fontSize:13, fontWeight:600, color:reached ? '#f6c90e' : '#444' }}>
-                    +{xu} XU
+                    +{mt} MT
                   </span>
                 </div>
               );

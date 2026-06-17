@@ -105,7 +105,7 @@ export default function Gifting() {
     try {
       const r = await api.wallet.tip({ receiverId, amountXu: finalAmount, message }, token);
       const receiverAmt = r.receiver_amount ?? r.receiverAmount ?? finalAmount;
-      setMsg({ type:'success', text:`Đã gửi ${selected?.label ?? '🎁'} ${finalAmount.toLocaleString()} XU! Creator nhận ${receiverAmt.toLocaleString()} XU` });
+      setMsg({ type:'success', text:`Đã gửi ${selected?.label ?? '🎁'} ${finalAmount.toLocaleString()} MT! Creator nhận ${receiverAmt.toLocaleString()} MT` });
       setMessage('');
       await refreshWallet();
     } catch (err) {
@@ -135,14 +135,14 @@ export default function Gifting() {
               <button key={g.label} style={S.giftBtn(selected.label===g.label, g.color)} onClick={() => { setSelected(g); setCustomAmount(''); }}>
                 <span style={{ fontSize:24 }}>{g.label.split(' ')[0]}</span>
                 <span style={S.giftLabel}>{g.label.split(' ').slice(1).join(' ')}</span>
-                <span style={S.giftAmount(g.color)}>{g.amount.toLocaleString()} XU</span>
+                <span style={S.giftAmount(g.color)}>{g.amount.toLocaleString()} MT</span>
               </button>
             ))}
           </div>
 
-          <div style={S.sectionTitle}>Hoặc nhập số XU tuỳ ý</div>
+          <div style={S.sectionTitle}>Hoặc nhập số MT tuỳ ý</div>
           <div style={S.customRow}>
-            <input style={S.customInput} type="number" placeholder="Số XU (tối thiểu 10)" min="10"
+            <input style={S.customInput} type="number" placeholder="Số MT (tối thiểu 10)" min="10"
               value={customAmount} onChange={e => { setCustomAmount(e.target.value); setSelected(null); }} />
           </div>
 
@@ -152,20 +152,20 @@ export default function Gifting() {
 
           <div style={S.balBox}>
             <span style={{ fontSize:13, color:'#666' }}>Số dư của anh</span>
-            <span style={{ fontSize:16, fontWeight:700, color:'#a29bfe' }}>{Number(wallet?.balance||0).toLocaleString()} XU</span>
+            <span style={{ fontSize:16, fontWeight:700, color:'#a29bfe' }}>{Number(wallet?.balance||0).toLocaleString()} MT</span>
           </div>
 
           {msg && <div style={msg.type==='success' ? S.success : S.err}>{msg.text}</div>}
 
           {finalAmount > 0 && (
             <div style={{ fontSize:12, color:'#555', marginBottom:'1rem', textAlign:'center' }}>
-              Platform phí 5% = {Math.floor(finalAmount * 0.05).toLocaleString()} XU · Creator nhận {Math.floor(finalAmount * 0.95).toLocaleString()} XU
+              Platform phí 5% = {Math.floor(finalAmount * 0.05).toLocaleString()} MT · Creator nhận {Math.floor(finalAmount * 0.95).toLocaleString()} MT
             </div>
           )}
 
           <button style={S.sendBtn(!receiverId || finalAmount < 10 || loading)} onClick={send}
             disabled={!receiverId || finalAmount < 10 || loading}>
-            {loading ? 'Đang gửi...' : `Gửi ${selected?.label || '🎁 Quà'} ${finalAmount ? finalAmount.toLocaleString()+' XU' : ''}`}
+            {loading ? 'Đang gửi...' : `Gửi ${selected?.label || '🎁 Quà'} ${finalAmount ? finalAmount.toLocaleString()+' MT' : ''}`}
           </button>
         </div>
 
@@ -189,7 +189,7 @@ export default function Gifting() {
                       <span style={{ fontSize:12, color:'#aaa' }}>
                         {f.senderName || 'Bạn'} gửi{' '}
                       </span>
-                      <span style={{ fontSize:13, fontWeight:600, color: f.color }}>{f.amount.toLocaleString()} XU</span>
+                      <span style={{ fontSize:13, fontWeight:600, color: f.color }}>{f.amount.toLocaleString()} MT</span>
                       {f.message && <div style={{ fontSize:11, color:'#555', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>"{f.message}"</div>}
                     </div>
                     <span style={{ fontSize:10, color:'#444', flexShrink:0 }}>

@@ -15,7 +15,7 @@ router.post('/', async (req, res) => {
     const cfg = await getConfig();
 
     if (!amount_xu || amount_xu < cfg.MIN_WITHDRAWAL_XU) {
-      return res.status(400).json({ error: `Số XU tối thiểu để rút là ${Number(cfg.MIN_WITHDRAWAL_XU).toLocaleString('vi-VN')}` });
+      return res.status(400).json({ error: `Số MT tối thiểu để rút là ${Number(cfg.MIN_WITHDRAWAL_XU).toLocaleString('vi-VN')}` });
     }
     if (!bank_name || !bank_account || !account_name) {
       return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin ngân hàng' });
@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
       const { rows: [u] } = await query('SELECT kyc_status FROM users WHERE id=$1', [req.user.id]);
       if (u?.kyc_status !== 'verified') {
         return res.status(403).json({
-          error: `Rút trên ${Number(cfg.KYC_THRESHOLD_XU).toLocaleString('vi-VN')} XU yêu cầu xác minh KYC.`,
+          error: `Rút trên ${Number(cfg.KYC_THRESHOLD_XU).toLocaleString('vi-VN')} MT yêu cầu xác minh KYC.`,
           kyc_required: true,
         });
       }
@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
       amount: -amount_xu,
       type: 'withdrawal',
       idempotencyKey: `withdrawal:${req.user.id}:${Date.now()}`,
-      description: `Rút ${amount_xu.toLocaleString()} XU → ${amount_vnd.toLocaleString()} VNĐ`,
+      description: `Rút ${amount_xu.toLocaleString()} MT → ${amount_vnd.toLocaleString()} VNĐ`,
     });
 
     const { rows: [wr] } = await query(`
@@ -135,7 +135,7 @@ router.post('/:id/approve', adminOnly, async (req, res) => {
   }
 });
 
-// POST /api/withdrawals/:id/reject — ADMIN: từ chối & hoàn XU
+// POST /api/withdrawals/:id/reject — ADMIN: từ chối & hoàn MT
 router.post('/:id/reject', adminOnly, async (req, res) => {
   try {
     const { rows: [wr] } = await query(
@@ -153,7 +153,7 @@ router.post('/:id/reject', adminOnly, async (req, res) => {
       idempotencyKey: `refund_withdrawal:${wr.id}`,
       referenceId: wr.id,
       referenceType: 'withdrawal_request',
-      description: `Hoàn XU do từ chối rút: ${req.body.reason || 'Không đủ điều kiện'}`
+      description: `Hoàn MT do từ chối rút: ${req.body.reason || 'Không đủ điều kiện'}`
     });
 
     await query(`
@@ -166,7 +166,7 @@ router.post('/:id/reject', adminOnly, async (req, res) => {
       userId: wr.user_id,
       type: 'withdrawal_rejected',
       title: '❌ Yêu cầu rút tiền bị từ chối',
-      body: `${parseInt(wr.amount_xu).toLocaleString('vi-VN')} XU đã được hoàn về ví. Lý do: ${req.body.reason || 'Không đủ điều kiện'}`,
+      body: `${parseInt(wr.amount_xu).toLocaleString('vi-VN')} MT đã được hoàn về ví. Lý do: ${req.body.reason || 'Không đủ điều kiện'}`,
       metadata: { withdrawal_id: req.params.id, amount_xu: wr.amount_xu },
     });
 
@@ -177,7 +177,7 @@ router.post('/:id/reject', adminOnly, async (req, res) => {
       reason: req.body.reason || 'Không đủ điều kiện',
     }).catch(() => {});
 
-    res.json({ message: `Đã từ chối và hoàn ${parseInt(wr.amount_xu).toLocaleString('vi-VN')} XU về ví` });
+    res.json({ message: `Đã từ chối và hoàn ${parseInt(wr.amount_xu).toLocaleString('vi-VN')} MT về ví` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

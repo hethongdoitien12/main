@@ -54,7 +54,7 @@ router.get('/transactions', async (req, res) => {
   }
 });
 
-// GET /api/admin/expiry-batches — xem tất cả lô XU sắp/đã hết hạn
+// GET /api/admin/expiry-batches — xem tất cả lô MT sắp/đã hết hạn
 router.get('/expiry-batches', async (req, res) => {
   try {
     const { status = 'active', limit = 100 } = req.query;
@@ -134,7 +134,7 @@ router.post('/deposits/:id/approve', async (req, res) => {
 
     const { notify } = await import('../services/notifier.js');
     await notify(deposit.user_id, 'deposit_confirmed',
-      `✅ Admin đã duyệt nạp ${parseInt(deposit.amount_vnd||0).toLocaleString('vi-VN')}đ. XU đã vào ví!`,
+      `✅ Admin đã duyệt nạp ${parseInt(deposit.amount_vnd||0).toLocaleString('vi-VN')}đ. MT đã vào ví!`,
       { depositId: id }
     );
 
@@ -222,7 +222,7 @@ router.get('/export/transactions', async (req, res) => {
       LIMIT 10000
     `, [days]);
 
-    const headers = ['Thời gian','Username','Email','Loại','Số XU','Số dư trước','Số dư sau','Mô tả','Trạng thái'];
+    const headers = ['Thời gian','Username','Email','Loại','Số MT','Số dư trước','Số dư sau','Mô tả','Trạng thái'];
     const csvRows = rows.map(r => [
       new Date(r.created_at).toLocaleString('vi-VN'),
       r.username, r.email, r.type, r.amount,
@@ -252,7 +252,7 @@ router.get('/export/users', async (req, res) => {
       ORDER BY u.created_at DESC
     `);
 
-    const headers = ['Username','Email','Role','Ngày tạo','Số dư XU','Đã kiếm','Đã tiêu','Đã rút','Mã giới thiệu'];
+    const headers = ['Username','Email','Role','Ngày tạo','Số dư MT','Đã kiếm','Đã tiêu','Đã rút','Mã giới thiệu'];
     const csvRows = rows.map(r => [
       r.username, r.email, r.role,
       new Date(r.created_at).toLocaleString('vi-VN'),
@@ -469,20 +469,20 @@ router.get('/adjust-history', async (req, res) => {
   }
 });
 
-// POST /api/admin/adjust-xu — cộng/trừ XU thủ công qua ledger
+// POST /api/admin/adjust-xu — cộng/trừ MT thủ công qua ledger
 router.post('/adjust-xu', async (req, res) => {
   try {
     const { userId, amount, note } = req.body;
     if (!userId) return res.status(400).json({ error: 'Thiếu userId' });
     const parsed = parseInt(amount);
-    if (!parsed || parsed === 0) return res.status(400).json({ error: 'Số XU không hợp lệ (khác 0)' });
+    if (!parsed || parsed === 0) return res.status(400).json({ error: 'Số MT không hợp lệ (khác 0)' });
 
     const { LedgerService } = await import('../services/ledger.js');
     const entry = await LedgerService.transact({
       userId,
       amount: parsed,
       type: 'admin_adjust',
-      description: note ? `[Admin] ${note}` : `[Admin] Điều chỉnh thủ công ${parsed > 0 ? '+' : ''}${parsed} XU`,
+      description: note ? `[Admin] ${note}` : `[Admin] Điều chỉnh thủ công ${parsed > 0 ? '+' : ''}${parsed} MT`,
       metadata: { adjustedBy: req.user.id, note: note || '' },
     });
 

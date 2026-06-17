@@ -142,7 +142,7 @@ export default function Referral() {
   return (
     <div style={{ maxWidth: 720 }}>
       <div style={S.h1}>Giới thiệu bạn bè</div>
-      <div style={S.sub}>Chia sẻ mã của bạn — cả hai cùng nhận thưởng XU</div>
+      <div style={S.sub}>Chia sẻ mã của bạn — cả hai cùng nhận thưởng MT</div>
 
       {/* ── Stats grid ── */}
       <div style={S.grid3}>
@@ -152,7 +152,7 @@ export default function Referral() {
           <div style={S.statSub}>người tham gia</div>
         </div>
         <div style={S.card}>
-          <div style={S.statLbl}>Tổng XU nhận</div>
+          <div style={S.statLbl}>Tổng MT nhận</div>
           <div style={{ ...S.statVal, color: '#f6c90e' }}>
             {Number(data?.stats?.total_xu_earned ?? 0).toLocaleString()}
           </div>
@@ -163,7 +163,7 @@ export default function Referral() {
           <div style={{ ...S.statVal, color: '#6fcf97' }}>
             {avgXu.toLocaleString()}
           </div>
-          <div style={S.statSub}>XU mỗi lần mời</div>
+          <div style={S.statSub}>MT mỗi lần mời</div>
         </div>
       </div>
 
@@ -185,21 +185,21 @@ export default function Referral() {
       <div style={S.rewardRow}>
         <div style={S.rewardCol}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#a29bfe' }}>
-            +{data?.reward_referrer?.toLocaleString()} XU
+            +{data?.reward_referrer?.toLocaleString()} MT
           </div>
           <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>bạn nhận khi ai đó dùng mã</div>
         </div>
         <div style={S.rewardSep} />
         <div style={S.rewardCol}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#6fcf97' }}>
-            +{data?.reward_invitee?.toLocaleString()} XU
+            +{data?.reward_invitee?.toLocaleString()} MT
           </div>
           <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>bạn bè nhận khi dùng mã của bạn</div>
         </div>
         <div style={S.rewardSep} />
         <div style={{ ...S.rewardCol, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ fontSize: 13, color: '#f6c90e' }}>⏰ 90 ngày</div>
-          <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>thời hạn XU referral</div>
+          <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>thời hạn MT referral</div>
         </div>
       </div>
 
@@ -209,7 +209,7 @@ export default function Referral() {
           Bạn có mã giới thiệu từ người khác?
         </div>
         <div style={{ fontSize: 12, color: '#555', marginBottom: 14 }}>
-          Nhập mã để nhận +{data?.reward_invitee?.toLocaleString()} XU — chỉ dùng được 1 lần
+          Nhập mã để nhận +{data?.reward_invitee?.toLocaleString()} MT — chỉ dùng được 1 lần
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <input
@@ -254,7 +254,7 @@ export default function Referral() {
         <div style={{ ...S.card, textAlign: 'center', padding: '2.5rem', color: '#333' }}>
           <div style={{ fontSize: 32, marginBottom: 10 }}>🤝</div>
           <div>Chưa có ai dùng mã của bạn.</div>
-          <div style={{ fontSize: 12, marginTop: 6 }}>Chia sẻ link mời để bắt đầu kiếm XU!</div>
+          <div style={{ fontSize: 12, marginTop: 6 }}>Chia sẻ link mời để bắt đầu kiếm MT!</div>
         </div>
       )}
 
@@ -300,17 +300,17 @@ export default function Referral() {
               </div>
               {!r.is_banned && (
                 <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>
-                  Đã kiếm: <span style={{ color: '#74b9ff' }}>{Number(r.invitee_total_earned || 0).toLocaleString()} XU</span>
-                  {' · '}Số dư: <span style={{ color: '#6fcf97' }}>{Number(r.invitee_balance || 0).toLocaleString()} XU</span>
+                  Đã kiếm: <span style={{ color: '#74b9ff' }}>{Number(r.invitee_total_earned || 0).toLocaleString()} MT</span>
+                  {' · '}Số dư: <span style={{ color: '#6fcf97' }}>{Number(r.invitee_balance || 0).toLocaleString()} MT</span>
                 </div>
               )}
             </div>
 
-            {/* XU bạn nhận từ người này */}
+            {/* MT bạn nhận từ người này */}
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#f6c90e' }}>
                 +{Number(r.xu_from_this_referral || 0).toLocaleString()}
-                <span style={{ fontSize: 11, color: '#555', fontWeight: 400, marginLeft: 3 }}>XU</span>
+                <span style={{ fontSize: 11, color: '#555', fontWeight: 400, marginLeft: 3 }}>MT</span>
               </div>
               <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>bạn đã nhận</div>
             </div>

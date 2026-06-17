@@ -126,22 +126,22 @@ export default function Profile() {
               <div style={S.stat}>
                 <div style={S.statLabel}>Số dư hiện tại</div>
                 <div style={S.statValue}>{Number(profile.balance || 0).toLocaleString()}</div>
-                <div style={{ fontSize: 11, color: '#555' }}>XU</div>
+                <div style={{ fontSize: 11, color: '#555' }}>MT</div>
               </div>
               <div style={S.stat}>
                 <div style={S.statLabel}>Đã kiếm được</div>
                 <div style={{ ...S.statValue, color: '#6fcf97' }}>{Number(profile.total_earned || 0).toLocaleString()}</div>
-                <div style={{ fontSize: 11, color: '#555' }}>XU</div>
+                <div style={{ fontSize: 11, color: '#555' }}>MT</div>
               </div>
               <div style={S.stat}>
                 <div style={S.statLabel}>Đã tiêu</div>
                 <div style={{ ...S.statValue, color: '#fd79a8' }}>{Number(profile.total_spent || 0).toLocaleString()}</div>
-                <div style={{ fontSize: 11, color: '#555' }}>XU</div>
+                <div style={{ fontSize: 11, color: '#555' }}>MT</div>
               </div>
               <div style={S.stat}>
                 <div style={S.statLabel}>Đã rút</div>
                 <div style={{ ...S.statValue, color: '#fdcb6e' }}>{Number(profile.total_withdrawn || 0).toLocaleString()}</div>
-                <div style={{ fontSize: 11, color: '#555' }}>XU</div>
+                <div style={{ fontSize: 11, color: '#555' }}>MT</div>
               </div>
             </div>
 

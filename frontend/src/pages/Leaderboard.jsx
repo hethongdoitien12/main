@@ -38,7 +38,7 @@ const S = {
   }),
   name:    { fontSize: 14, fontWeight: 600, color: '#ddd' },
   role:    (r) => ({ fontSize: 11, color: ROLE_COLORS[r] || '#555', textTransform: 'capitalize', marginTop: 1 }),
-  xu:      { fontSize: 16, fontWeight: 700, color: '#f6c90e', marginLeft: 'auto', flexShrink: 0 },
+  mt:      { fontSize: 16, fontWeight: 700, color: '#f6c90e', marginLeft: 'auto', flexShrink: 0 },
   xuSub:   { fontSize: 11, color: '#444', marginTop: 2, textAlign: 'right' },
   myBox:   {
     margin: '0 0 12px', padding: '12px 20px',
@@ -84,7 +84,7 @@ export default function Leaderboard() {
   return (
     <div>
       <div style={S.h1}>Bảng xếp hạng</div>
-      <div style={S.sub}>Top người kiếm XU nhiều nhất hệ thống</div>
+      <div style={S.sub}>Top người kiếm MT nhiều nhất hệ thống</div>
 
       <div style={S.tabs}>
         {PERIODS.map(p => (
@@ -106,7 +106,7 @@ export default function Leaderboard() {
             <div style={S.role(user?.role)}>{user?.role}</div>
           </div>
           <div>
-            <div style={S.xu}>{Number(myRank.xu_earned || 0).toLocaleString()} XU</div>
+            <div style={S.mt}>{Number(myRank.xu_earned || 0).toLocaleString()} MT</div>
             <div style={S.xuSub}>đã kiếm</div>
           </div>
         </div>
@@ -152,16 +152,16 @@ export default function Leaderboard() {
                 <div style={S.role(e.role)}>{e.role}</div>
               </div>
 
-              {/* XU */}
+              {/* MT */}
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{
-                  ...S.xu,
+                  ...S.mt,
                   marginLeft: 0,
                   fontSize: i < 3 ? 18 : 15,
                   color: i === 0 ? '#f6c90e' : i === 1 ? '#dfe6e9' : i === 2 ? '#e17055' : '#f6c90e',
                 }}>
                   {Number(e.xu_earned || 0).toLocaleString()}
-                  <span style={{ fontSize: 11, color: '#555', fontWeight: 400, marginLeft: 4 }}>XU</span>
+                  <span style={{ fontSize: 11, color: '#555', fontWeight: 400, marginLeft: 4 }}>MT</span>
                 </div>
                 <div style={S.xuSub}>
                   {period === 'alltime'

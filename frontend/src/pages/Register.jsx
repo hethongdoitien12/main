@@ -93,7 +93,7 @@ export default function Register() {
           <div style={S.icon}>X</div>
         </div>
         <div style={S.title}>{step === 1 ? 'Tạo tài khoản' : 'Xác nhận email'}</div>
-        <div style={S.sub}>{step === 1 ? 'Bắt đầu kiếm XU ngay hôm nay' : `Nhập mã OTP đã gửi đến ${form.email}`}</div>
+        <div style={S.sub}>{step === 1 ? 'Bắt đầu kiếm MT ngay hôm nay' : `Nhập mã OTP đã gửi đến ${form.email}`}</div>
 
         {/* Progress bar */}
         <div style={S.steps}>
@@ -109,7 +109,7 @@ export default function Register() {
           <form onSubmit={sendOtp}>
             {refCode && (
               <div style={S.refBox}>
-                🎁 Mã giới thiệu <strong style={{ letterSpacing:2 }}>{refCode.toUpperCase()}</strong> — nhận +500 XU khi đăng ký xong!
+                🎁 Mã giới thiệu <strong style={{ letterSpacing:2 }}>{refCode.toUpperCase()}</strong> — nhận +500 MT khi đăng ký xong!
               </div>
             )}
 

@@ -88,7 +88,7 @@ export const LedgerService = {
         userId, amount: amountXu, type: 'deposit',
         idempotencyKey: `deposit:${deposit.id}`,
         referenceId: deposit.id, referenceType: 'deposit_request',
-        description: `Nạp ${amountVnd.toLocaleString('vi-VN')}đ → ${amountXu.toLocaleString()} XU`,
+        description: `Nạp ${amountVnd.toLocaleString('vi-VN')}đ → ${amountXu.toLocaleString()} MT`,
         metadata: { amountVnd, paymentMethod }
       });
 
@@ -125,7 +125,7 @@ export const LedgerService = {
         userId, amount: -amountXu, type: 'withdrawal',
         idempotencyKey: `withdrawal:${withdrawal.id}`,
         referenceId: withdrawal.id, referenceType: 'withdrawal_request',
-        description: `Rút ${amountXu.toLocaleString()} XU → ${amountVnd.toLocaleString('vi-VN')}đ (phí: ${feeXu} XU)`,
+        description: `Rút ${amountXu.toLocaleString()} MT → ${amountVnd.toLocaleString('vi-VN')}đ (phí: ${feeXu} MT)`,
         metadata: { feeXu, amountVnd, bankName }
       });
 
@@ -139,23 +139,23 @@ export const LedgerService = {
     }
   },
 
-  // ─── EARN (kiếm XU) ──────────────────────────────────────────────────
+  // ─── EARN (kiếm MT) ──────────────────────────────────────────────────
   async earnReward({ userId, amount, type, questId, description }) {
     return LedgerService.transact({
       userId, amount, type,
       idempotencyKey: `${type}:${userId}:${questId || uuidv4()}`,
       referenceId: questId, referenceType: questId ? 'quest' : null,
-      description: description || `Nhận thưởng ${amount} XU`,
+      description: description || `Nhận thưởng ${amount} MT`,
     });
   },
 
-  // ─── SPEND (tiêu XU) ─────────────────────────────────────────────────
+  // ─── SPEND (tiêu MT) ─────────────────────────────────────────────────
   async spend({ userId, amount, type, itemId, itemType, description }) {
     return LedgerService.transact({
       userId, amount: -amount, type,
       idempotencyKey: `${type}:${userId}:${itemId || uuidv4()}`,
       referenceId: itemId, referenceType: itemType,
-      description: description || `Chi ${amount} XU`,
+      description: description || `Chi ${amount} MT`,
     });
   },
 
@@ -179,7 +179,7 @@ export const LedgerService = {
         userId: senderId, amount: -amountXu, type: 'tip_sent',
         idempotencyKey: `tip_sent:${tip.id}`,
         referenceId: tip.id, referenceType: 'tip',
-        description: `Tip ${amountXu} XU`, metadata: { receiverId, platformFee }
+        description: `Tip ${amountXu} MT`, metadata: { receiverId, platformFee }
       });
 
       // Credit receiver (minus platform fee)
@@ -187,7 +187,7 @@ export const LedgerService = {
         userId: receiverId, amount: receiverAmount, type: 'tip_received',
         idempotencyKey: `tip_received:${tip.id}`,
         referenceId: tip.id, referenceType: 'tip',
-        description: `Nhận tip ${receiverAmount} XU`, metadata: { senderId, platformFee }
+        description: `Nhận tip ${receiverAmount} MT`, metadata: { senderId, platformFee }
       });
 
       await client.query('COMMIT');
@@ -232,15 +232,15 @@ export const LedgerService = {
         [userId, questId]
       );
 
-      // Award XU
+      // Award MT
       const entry = await LedgerService.transact({
         userId, amount: uq.reward_xu, type: 'earn_quest',
         idempotencyKey: `quest_claim:${userId}:${questId}`,
         referenceId: questId, referenceType: 'quest',
-        description: `Hoàn thành quest: ${uq.title} (+${uq.reward_xu} XU)`
+        description: `Hoàn thành quest: ${uq.title} (+${uq.reward_xu} MT)`
       });
 
-      // Ghi vào expiry batch — XU quest expire sau 90 ngày
+      // Ghi vào expiry batch — MT quest expire sau 90 ngày
       await client.query(
         `INSERT INTO xu_expiry_batches
            (user_id, source_entry_id, source_type, amount_xu, remaining_xu, expires_at)

@@ -1,5 +1,5 @@
 /**
- * Cron Service — XU Economy
+ * Cron Service — MT Economy
  * Hai job chạy định kỳ:
  * 1. expirePromotionalXu  — chạy lúc 1:00 sáng hằng ngày
  * 2. cleanupPendingDeposits — chạy mỗi 30 phút
@@ -9,10 +9,10 @@ import cron from 'node-cron';
 import { query, getClient } from '../db/pool.js';
 import { notify } from './notifier.js';
 
-// ─── Job 1: Expire XU khuyến mãi ─────────────────────────────────────────────
+// ─── Job 1: Expire MT khuyến mãi ─────────────────────────────────────────────
 
 export async function expirePromotionalXu() {
-  console.log('[Cron] 🕐 Bắt đầu kiểm tra XU hết hạn...');
+  console.log('[Cron] 🕐 Bắt đầu kiểm tra MT hết hạn...');
   let expiredCount = 0;
   let affectedUsers = 0;
 
@@ -30,11 +30,11 @@ export async function expirePromotionalXu() {
     `);
 
     if (batches.length === 0) {
-      console.log('[Cron] ✅ Không có XU nào hết hạn hôm nay');
+      console.log('[Cron] ✅ Không có MT nào hết hạn hôm nay');
       return { expiredCount: 0, affectedUsers: 0 };
     }
 
-    console.log(`[Cron] Tìm thấy ${batches.length} lô XU hết hạn`);
+    console.log(`[Cron] Tìm thấy ${batches.length} lô MT hết hạn`);
 
     // Gộp theo user để notify 1 lần duy nhất
     const byUser = {};
@@ -67,7 +67,7 @@ export async function expirePromotionalXu() {
         const idKey = `expire:${userId}:${new Date().toISOString().split('T')[0]}`;
         const { rows: [entry] } = await client.query(
           `SELECT * FROM update_wallet_balance($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [userId, -actualExpire, 'expire', idKey, null, 'xu_expiry', `Hết hạn ${actualExpire.toLocaleString()} XU khuyến mãi`, {}]
+          [userId, -actualExpire, 'expire', idKey, null, 'xu_expiry', `Hết hạn ${actualExpire.toLocaleString()} MT khuyến mãi`, {}]
         );
 
         // Cập nhật trạng thái các batch
@@ -91,14 +91,14 @@ export async function expirePromotionalXu() {
         await notify({
           userId,
           type: 'system',
-          title: '⏰ XU khuyến mãi đã hết hạn',
-          body: `${actualExpire.toLocaleString()} XU khuyến mãi đã hết hạn và bị thu hồi. XU từ nạp tiền không bị ảnh hưởng.`,
+          title: '⏰ MT khuyến mãi đã hết hạn',
+          body: `${actualExpire.toLocaleString()} MT khuyến mãi đã hết hạn và bị thu hồi. MT từ nạp tiền không bị ảnh hưởng.`,
           metadata: { expired_amount: actualExpire, batches_count: userBatches.length },
         });
 
         expiredCount += actualExpire;
         affectedUsers++;
-        console.log(`[Cron] 📉 User ${userId}: -${actualExpire} XU hết hạn`);
+        console.log(`[Cron] 📉 User ${userId}: -${actualExpire} MT hết hạn`);
       } catch (err) {
         await client.query('ROLLBACK');
         console.error(`[Cron] Lỗi expire user ${userId}:`, err.message);
@@ -107,7 +107,7 @@ export async function expirePromotionalXu() {
       }
     }
 
-    console.log(`[Cron] ✅ Xong expire XU — ${expiredCount} XU / ${affectedUsers} user bị ảnh hưởng`);
+    console.log(`[Cron] ✅ Xong expire MT — ${expiredCount} MT / ${affectedUsers} user bị ảnh hưởng`);
     return { expiredCount, affectedUsers };
   } catch (err) {
     console.error('[Cron] Lỗi expirePromotionalXu:', err.message);
@@ -138,7 +138,7 @@ export async function cleanupPendingDeposits() {
 // ─── Khởi động tất cả cron jobs ──────────────────────────────────────────────
 
 export function startCronJobs() {
-  // Expire XU: chạy lúc 01:00 sáng mỗi ngày
+  // Expire MT: chạy lúc 01:00 sáng mỗi ngày
   cron.schedule('0 1 * * *', async () => {
     console.log('\n[Cron] ⏰ 01:00 — Chạy job expirePromotionalXu');
     await expirePromotionalXu();

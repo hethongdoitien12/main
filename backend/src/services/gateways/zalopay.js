@@ -45,14 +45,14 @@ function hmac(key, data) {
   return crypto.createHmac('sha256', key).update(data).digest('hex');
 }
 
-export async function createPayment(depositId, amount, description = 'Nạp XU vào ví') {
+export async function createPayment(depositId, amount, description = 'Nạp MT vào ví') {
   const now      = new Date();
   const yymmdd   = now.toISOString().slice(2, 10).replace(/-/g, '');
   const shortId  = depositId.replace(/-/g, '').slice(0, 12).toUpperCase();
   const appTransId = `${yymmdd}_${shortId}`;
   const appTime  = Date.now();
   const embedData = JSON.stringify({ deposit_id: depositId });
-  const items    = JSON.stringify([{ itemid: 'xu_topup', itemname: 'Nạp XU', itemprice: amount, itemquantity: 1 }]);
+  const items    = JSON.stringify([{ itemid: 'xu_topup', itemname: 'Nạp MT', itemprice: amount, itemquantity: 1 }]);
   const appUser  = `deposit_${depositId.slice(0, 8)}`;
 
   const mac = hmac(KEY1, `${APP_ID}|${appTransId}|${appUser}|${amount}|${appTime}|${embedData}|${items}`);

@@ -87,12 +87,12 @@ router.post('/deposit/create', authMiddleware, async (req, res) => {
     try {
       if (gateway === 'momo') {
         const r = await momoCreate(deposit.id, amount,
-          `Nap ${amount.toLocaleString('vi-VN')} VND vao vi XU`);
+          `Nap ${amount.toLocaleString('vi-VN')} VND vao vi MT`);
         gatewayData = { pay_url: r.payUrl, deeplink: r.deeplink, qr_code_url: r.qrCodeUrl };
 
       } else if (gateway === 'zalopay') {
         const r = await zaloCreate(deposit.id, amount,
-          `Nap ${amount.toLocaleString('vi-VN')} VND vao vi XU`);
+          `Nap ${amount.toLocaleString('vi-VN')} VND vao vi MT`);
         gatewayData = { pay_url: r.orderUrl, order_token: r.orderToken, app_trans_id: r.appTransId };
 
       } else {
@@ -142,7 +142,7 @@ router.post('/deposit/confirm', authMiddleware, async (req, res) => {
       userId: req.user.id,
       type: 'deposit_confirmed',
       title: '💰 Nạp tiền thành công',
-      body: `+${parseInt(dep?.amount_vnd || 0).toLocaleString()} XU đã vào ví của bạn`,
+      body: `+${parseInt(dep?.amount_vnd || 0).toLocaleString()} MT đã vào ví của bạn`,
     });
     res.json({ success: true, message: 'Nạp thành công!', entry: result.entry });
   } catch (err) {
@@ -214,7 +214,7 @@ router.post('/zalopay/ipn', async (req, res) => {
 });
 
 // ─── GET /api/wallet/expiry-info ─────────────────────────────────────────────
-// Trả về danh sách lô XU khuyến mãi của user sắp hết hạn
+// Trả về danh sách lô MT khuyến mãi của user sắp hết hạn
 
 router.get('/expiry-info', authMiddleware, async (req, res) => {
   try {
@@ -269,7 +269,7 @@ router.post('/tip', authMiddleware, async (req, res) => {
       userId: receiver_id,
       type: 'tip_received',
       title: '💝 Bạn nhận được tip!',
-      body: `+${result.receiverAmount?.toLocaleString() || amount_xu} XU${message ? ` — "${message}"` : ''}`,
+      body: `+${result.receiverAmount?.toLocaleString() || amount_xu} MT${message ? ` — "${message}"` : ''}`,
       metadata: { sender_id: req.user.id, amount: result.receiverAmount },
     });
 
@@ -304,17 +304,17 @@ router.post('/bonus', authMiddleware, async (req, res) => {
   try {
     const { amount, description } = req.body;
     if (!amount || amount <= 0 || amount > 10000) {
-      return res.status(400).json({ error: 'Số XU không hợp lệ (1–10,000)' });
+      return res.status(400).json({ error: 'Số MT không hợp lệ (1–10,000)' });
     }
     const entry = await LedgerService.earnReward({
       userId: req.user.id, amount: parseInt(amount),
       type: 'earn_bonus',
-      description: description || `+${amount} XU bonus (dev)`,
+      description: description || `+${amount} MT bonus (dev)`,
     });
     res.json({ success: true, xu_added: amount, entry });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Lỗi cộng XU bonus' });
+    res.status(500).json({ error: 'Lỗi cộng MT bonus' });
   }
 });
 

@@ -46,7 +46,7 @@ function fmtDate(d) {
   return new Date(d).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 }
 function fmtVnd(n) { return Number(n||0).toLocaleString('vi-VN') + 'đ'; }
-function fmtXu(n)  { return Number(n||0).toLocaleString('vi-VN') + ' XU'; }
+function fmtXu(n)  { return Number(n||0).toLocaleString('vi-VN') + ' MT'; }
 
 // ─── sub-components ─────────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ function StatGrid({ stats, loading }) {
         <div style={S.statSub}>tài khoản</div>
       </div>
       <div style={S.stat()}>
-        <div style={S.statLbl}>XU lưu hành</div>
+        <div style={S.statLbl}>MT lưu hành</div>
         <div style={S.statVal('#6fcf97')}>{fmtXu(stats.total_xu_circulating)}</div>
         <div style={S.statSub}>trong tất cả ví</div>
       </div>
@@ -122,7 +122,7 @@ function WithdrawalTab({ token, showToast }) {
       method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
       body: JSON.stringify({ reason })
     });
-    showToast(`❌ Đã từ chối và hoàn XU cho ${username}`);
+    showToast(`❌ Đã từ chối và hoàn MT cho ${username}`);
     fetchQueue(tab); fetchWStats();
   };
 
@@ -147,7 +147,7 @@ function WithdrawalTab({ token, showToast }) {
         ) : (
           <table style={S.table}>
             <thead><tr>
-              {['User','Số XU rút','Nhận VNĐ','Phí','Ngân hàng / STK','Thời gian','Trạng thái',''].map(h=>(
+              {['User','Số MT rút','Nhận VNĐ','Phí','Ngân hàng / STK','Thời gian','Trạng thái',''].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
@@ -268,7 +268,7 @@ function DepositTab({ token, showToast }) {
         ) : (
           <table style={S.table}>
             <thead><tr>
-              {['User','Gateway','Số VNĐ','Số XU','Trạng thái','Thời gian','Ref',''].map(h=>(
+              {['User','Gateway','Số VNĐ','Số MT','Trạng thái','Thời gian','Ref',''].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
@@ -358,7 +358,7 @@ function TransactionTab({ token }) {
         ) : (
           <table style={S.table}>
             <thead><tr>
-              {['User','Loại','Số XU','Mô tả','Thời gian'].map(h=>(
+              {['User','Loại','Số MT','Mô tả','Thời gian'].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
@@ -373,7 +373,7 @@ function TransactionTab({ token }) {
                   </td>
                   <td style={S.td}>
                     <span style={{fontWeight:600, color: Number(tx.amount)>0 ? '#6fcf97' : '#ff6b6b'}}>
-                      {Number(tx.amount)>0?'+':''}{Number(tx.amount).toLocaleString()} XU
+                      {Number(tx.amount)>0?'+':''}{Number(tx.amount).toLocaleString()} MT
                     </span>
                   </td>
                   <td style={S.td}><span style={{color:'#555',fontSize:12}}>{tx.description||'—'}</span></td>
@@ -845,7 +845,7 @@ function QuestModal({ initial, onSave, onClose, saving }) {
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
             <div>
-              <label style={lbl}>Thưởng XU *</label>
+              <label style={lbl}>Thưởng MT *</label>
               <input style={inp} type="number" min="1" value={f.reward_xu} onChange={e=>set('reward_xu',e.target.value)} placeholder="500" required />
             </div>
             <div>
@@ -993,7 +993,7 @@ function QuestManagementTab({ token, showToast }) {
                   {q.category && <div style={{ fontSize:11, color:'#444', marginTop:4 }}>{CAT_LABELS[q.category]||q.category}</div>}
                 </td>
                 {/* reward */}
-                <td style={S.td}><span style={{ color:'#f6c90e', fontWeight:600 }}>+{Number(q.reward_xu).toLocaleString()} XU</span></td>
+                <td style={S.td}><span style={{ color:'#f6c90e', fontWeight:600 }}>+{Number(q.reward_xu).toLocaleString()} MT</span></td>
                 {/* requirement */}
                 <td style={S.td}>
                   <div style={{ fontSize:11, color:'#74b9ff' }}>{q.requirement?.action}</div>
@@ -1060,7 +1060,7 @@ function CheckinAdminTab({ token }) {
           { lbl:'Điểm danh hôm nay', val:overview.today_count, color:'#f6c90e' },
           { lbl:'Tổng người điểm danh', val:overview.total_users, color:'#a29bfe' },
           { lbl:'Tổng lượt điểm danh', val:Number(overview.total_checkins).toLocaleString(), color:'#74b9ff' },
-          { lbl:'XU đã phát', val:Number(overview.total_xu_awarded||0).toLocaleString(), color:'#6fcf97' },
+          { lbl:'MT đã phát', val:Number(overview.total_xu_awarded||0).toLocaleString(), color:'#6fcf97' },
           { lbl:'Streak TB', val:`${overview.avg_streak||0}`, unit:'ngày', color:'#fd79a8' },
         ].map(({ lbl, val, color }) => (
           <div key={lbl} style={S.stat(color+'33')}>
@@ -1086,7 +1086,7 @@ function CheckinAdminTab({ token }) {
                     <th style={S.th}>#</th>
                     <th style={S.th}>Người dùng</th>
                     <th style={S.th}>Streak</th>
-                    <th style={S.th}>XU nhận</th>
+                    <th style={S.th}>MT nhận</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1103,7 +1103,7 @@ function CheckinAdminTab({ token }) {
                         </span>
                       </td>
                       <td style={{ ...S.td, color:'#6fcf97', fontWeight:600 }}>
-                        +{Number(r.xu_earned).toLocaleString()} XU
+                        +{Number(r.xu_earned).toLocaleString()} MT
                       </td>
                     </tr>
                   ))}
@@ -1146,7 +1146,7 @@ function CheckinAdminTab({ token }) {
                   <div key={row.date} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #0d0d18', fontSize:12 }}>
                     <span style={{ color:'#666' }}>{row.date}</span>
                     <span style={{ color:'#74b9ff', fontWeight:600 }}>{row.count} người</span>
-                    <span style={{ color:'#6fcf97' }}>+{Number(row.xu).toLocaleString()} XU</span>
+                    <span style={{ color:'#6fcf97' }}>+{Number(row.xu).toLocaleString()} MT</span>
                   </div>
                 ))
               }
@@ -1332,7 +1332,7 @@ function DevToolsTab({ token, showToast }) {
   const [resetting, setResetting] = useState(false);
   const [result, setResult]       = useState(null);
 
-  // ── Adjust XU state ──
+  // ── Adjust MT state ──
   const [users, setUsers]         = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [userSearch, setUserSearch]     = useState('');
@@ -1400,7 +1400,7 @@ function DevToolsTab({ token, showToast }) {
       const d = await r.json();
       if (d.ok) {
         setAdjResult({ ok: true, entry: d.entry });
-        showToast(`✅ Đã điều chỉnh ${parseInt(adjAmount) > 0 ? '+' : ''}${adjAmount} XU cho ${selectedUserObj?.username}`);
+        showToast(`✅ Đã điều chỉnh ${parseInt(adjAmount) > 0 ? '+' : ''}${adjAmount} MT cho ${selectedUserObj?.username}`);
         setAdjAmount(''); setAdjNote('');
         fetchUsers();
         fetchHistory();
@@ -1445,14 +1445,14 @@ function DevToolsTab({ token, showToast }) {
     <div style={{ maxWidth: 560 }}>
       <div style={{ fontSize: 13, color: '#555', marginBottom: 20, lineHeight: 1.7 }}>
         Công cụ dành cho môi trường <strong style={{ color: '#fdcb6e' }}>development</strong>.
-        Dùng để điều chỉnh XU và reset dữ liệu test.
+        Dùng để điều chỉnh MT và reset dữ liệu test.
       </div>
 
-      {/* ── Adjust XU panel ── */}
+      {/* ── Adjust MT panel ── */}
       <div style={{ background: '#0e0e17', border: '1px solid #1e2a0e', borderRadius: 12, padding: '1.5rem', marginBottom: 16 }}>
-        <div style={{ fontWeight: 600, color: '#6fcf97', marginBottom: 8 }}>💰 Điều chỉnh XU thủ công</div>
+        <div style={{ fontWeight: 600, color: '#6fcf97', marginBottom: 8 }}>💰 Điều chỉnh MT thủ công</div>
         <div style={{ fontSize: 12, color: '#555', marginBottom: 16 }}>
-          Cộng (+) hoặc trừ (−) XU cho bất kỳ user nào. Ghi vào ledger với loại <code style={{ color: '#a29bfe' }}>admin_adjust</code>.
+          Cộng (+) hoặc trừ (−) MT cho bất kỳ user nào. Ghi vào ledger với loại <code style={{ color: '#a29bfe' }}>admin_adjust</code>.
         </div>
 
         {/* User searchable picker */}
@@ -1508,7 +1508,7 @@ function DevToolsTab({ token, showToast }) {
                         <span style={{ fontSize: 11, color: '#555', marginLeft: 8 }}>{u.email}</span>
                       </div>
                       <span style={{ fontSize: 12, color: '#6fcf97', fontWeight: 500, whiteSpace: 'nowrap', marginLeft: 8 }}>
-                        {Number(u.balance || 0).toLocaleString()} XU
+                        {Number(u.balance || 0).toLocaleString()} MT
                       </span>
                     </div>
                     <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>
@@ -1528,7 +1528,7 @@ function DevToolsTab({ token, showToast }) {
         {/* Amount + note row */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Số XU (âm để trừ)</div>
+            <div style={{ fontSize: 11, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Số MT (âm để trừ)</div>
             <input
               type="number"
               placeholder="vd: 500 hoặc -200"
@@ -1553,10 +1553,10 @@ function DevToolsTab({ token, showToast }) {
         {selectedUser && adjAmount && parseInt(adjAmount) !== 0 && (
           <div style={{ fontSize: 12, background: '#13131f', borderRadius: 8, padding: '8px 12px', marginBottom: 12, color: '#888', lineHeight: 1.7 }}>
             👤 <strong style={{ color: '#ccc' }}>{selectedUserObj?.username}</strong>
-            {' · '}số dư hiện tại: <strong style={{ color: '#fdcb6e' }}>{Number(selectedUserObj?.balance || 0).toLocaleString()} XU</strong>
+            {' · '}số dư hiện tại: <strong style={{ color: '#fdcb6e' }}>{Number(selectedUserObj?.balance || 0).toLocaleString()} MT</strong>
             {' → '}sau điều chỉnh:{' '}
             <strong style={{ color: parseInt(adjAmount) > 0 ? '#6fcf97' : '#ff6b6b' }}>
-              {Math.max(0, Number(selectedUserObj?.balance || 0) + parseInt(adjAmount || 0)).toLocaleString()} XU
+              {Math.max(0, Number(selectedUserObj?.balance || 0) + parseInt(adjAmount || 0)).toLocaleString()} MT
             </strong>
           </div>
         )}
@@ -1571,7 +1571,7 @@ function DevToolsTab({ token, showToast }) {
             fontSize: 13, fontWeight: 600, cursor: adjLoading || !selectedUser || !adjAmount ? 'not-allowed' : 'pointer',
           }}
         >
-          {adjLoading ? '⏳ Đang xử lý...' : parseInt(adjAmount || 0) >= 0 ? '➕ Cộng XU' : '➖ Trừ XU'}
+          {adjLoading ? '⏳ Đang xử lý...' : parseInt(adjAmount || 0) >= 0 ? '➕ Cộng MT' : '➖ Trừ MT'}
         </button>
 
         {adjResult && (
@@ -1580,7 +1580,7 @@ function DevToolsTab({ token, showToast }) {
             border: `1px solid ${adjResult.ok ? '#00b89440' : '#ff6b6b40'}`,
             color: adjResult.ok ? '#6fcf97' : '#ff6b6b' }}>
             {adjResult.ok ? (
-              <>✅ Thành công! Số dư sau: <strong>{Number(adjResult.entry?.balance_after || 0).toLocaleString()} XU</strong></>
+              <>✅ Thành công! Số dư sau: <strong>{Number(adjResult.entry?.balance_after || 0).toLocaleString()} MT</strong></>
             ) : (
               <>❌ {adjResult.error}</>
             )}
@@ -1591,7 +1591,7 @@ function DevToolsTab({ token, showToast }) {
       {/* ── Adjust history panel ── */}
       <div style={{ background: '#0e0e17', border: '1px solid #1a1a2e', borderRadius: 12, padding: '1.5rem', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontWeight: 600, color: '#a29bfe' }}>📋 Lịch sử điều chỉnh XU</div>
+          <div style={{ fontWeight: 600, color: '#a29bfe' }}>📋 Lịch sử điều chỉnh MT</div>
           <button
             onClick={fetchHistory}
             disabled={histLoading}
@@ -1629,7 +1629,7 @@ function DevToolsTab({ token, showToast }) {
                     <div style={{ fontSize: 11, color: '#555', marginTop: 3, fontStyle: 'italic' }}>"{h.metadata.note}"</div>
                   )}
                   <div style={{ fontSize: 11, color: '#333', marginTop: 3 }}>
-                    {Number(h.balance_before).toLocaleString()} → {Number(h.balance_after).toLocaleString()} XU
+                    {Number(h.balance_before).toLocaleString()} → {Number(h.balance_after).toLocaleString()} MT
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', marginLeft: 12, flexShrink: 0 }}>
@@ -1655,8 +1655,8 @@ function DevToolsTab({ token, showToast }) {
         </div>
         <div style={{ fontSize: 12, color: '#444', marginBottom: 16, background: '#13131f', borderRadius: 8, padding: '10px 14px', lineHeight: 1.8 }}>
           📧 admin@xu.vn → <span style={{ color: '#888' }}>admin</span><br />
-          📧 nam@creator.vn → <span style={{ color: '#888' }}>creator, 10.000 XU</span><br />
-          📧 linh@user.vn → <span style={{ color: '#888' }}>user, 10.000 XU</span>
+          📧 nam@creator.vn → <span style={{ color: '#888' }}>creator, 10.000 MT</span><br />
+          📧 linh@user.vn → <span style={{ color: '#888' }}>user, 10.000 MT</span>
         </div>
         <button
           onClick={resetSeed}
@@ -1696,10 +1696,10 @@ const CONFIG_LABELS = {
   WITHDRAWAL_FEE_PCT:   { label:'Phí rút tiền', hint:'Số thập phân. VD: 0.10 = 10%', suffix:'(thập phân)' },
   TIP_PLATFORM_FEE_PCT: { label:'Phí platform khi tip', hint:'Số thập phân. VD: 0.05 = 5%', suffix:'(thập phân)' },
   DEPOSIT_FEE_PCT:      { label:'Phí nạp tiền', hint:'0 = miễn phí', suffix:'(thập phân)' },
-  VND_PER_XU:           { label:'Tỷ giá XU → VNĐ', hint:'1 XU = ? VNĐ khi rút', suffix:'VNĐ/XU' },
-  XU_FREE_EXPIRE_DAYS:  { label:'Ngày hết hạn XU thưởng', hint:'Số ngày XU quest/referral tự expire', suffix:'ngày' },
-  MIN_WITHDRAWAL_XU:    { label:'Rút tối thiểu', hint:'Số XU nhỏ nhất có thể rút', suffix:'XU' },
-  KYC_THRESHOLD_XU:     { label:'Ngưỡng cần KYC', hint:'Rút trên mức này phải xác minh danh tính', suffix:'XU' },
+  VND_PER_XU:           { label:'Tỷ giá MT → VNĐ', hint:'1 MT = ? VNĐ khi rút', suffix:'VNĐ/MT' },
+  XU_FREE_EXPIRE_DAYS:  { label:'Ngày hết hạn MT thưởng', hint:'Số ngày MT quest/referral tự expire', suffix:'ngày' },
+  MIN_WITHDRAWAL_XU:    { label:'Rút tối thiểu', hint:'Số MT nhỏ nhất có thể rút', suffix:'MT' },
+  KYC_THRESHOLD_XU:     { label:'Ngưỡng cần KYC', hint:'Rút trên mức này phải xác minh danh tính', suffix:'MT' },
 };
 
 function ConfigTab({ token, showToast }) {

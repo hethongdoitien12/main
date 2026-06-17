@@ -20,8 +20,8 @@ const TX_ICON = {
 const FILTERS = [
   { label:'Tất cả', value:'' },
   { label:'Nạp/Rút', value:'deposit' },
-  { label:'Kiếm XU', value:'earn_quest' },
-  { label:'Tiêu XU', value:'spend_ticket' },
+  { label:'Kiếm MT', value:'earn_quest' },
+  { label:'Tiêu MT', value:'spend_ticket' },
   { label:'Tip', value:'tip_sent' },
 ];
 
@@ -99,8 +99,8 @@ export default function History() {
                 </div>
               </div>
               <div style={{ textAlign:'right' }}>
-                <div style={S.amt(pos)}>{pos ? '+' : ''}{Number(tx.amount).toLocaleString()} XU</div>
-                <div style={S.bal}>Số dư: {Number(tx.balance_after).toLocaleString()} XU</div>
+                <div style={S.amt(pos)}>{pos ? '+' : ''}{Number(tx.amount).toLocaleString()} MT</div>
+                <div style={S.bal}>Số dư: {Number(tx.balance_after).toLocaleString()} MT</div>
               </div>
             </div>
           );

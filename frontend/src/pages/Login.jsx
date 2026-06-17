@@ -42,7 +42,7 @@ export default function Login() {
       <form style={S.card} onSubmit={submit}>
         <div style={S.logo}>
           <div style={S.logoIcon}>X</div>
-          <div style={S.title}>XU Economy</div>
+          <div style={S.title}>MT Economy</div>
           <div style={S.sub}>Đăng nhập để tiếp tục</div>
         </div>
         {error && <div style={S.err}>{error}</div>}
