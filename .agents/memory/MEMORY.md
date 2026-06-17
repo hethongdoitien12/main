@@ -1,3 +1,4 @@
+- [AUTO-BUILD session start](auto-build-session.md) — đọc `tientrinhhethong.md` TRƯỚC TIÊN mỗi khi mở dự án; build mọi task `[ ]` rồi đổi thành `[x]`
 - [Vite binary permission](vite-permission.md) — dùng `node node_modules/vite/bin/vite.js` thay vì `vite` trực tiếp (permission denied trên Replit)
 - [HMR useAuth warning](hmr-useauth.md) — lỗi "useAuth export incompatible" khi hot-reload nhiều file là transient, không phải bug thực
 - [XU Expiry design](xu-expiry-design.md) — bảng `xu_expiry_batches` theo dõi từng lô XU khuyến mãi; cron 01:00 GMT+7 hằng ngày; XU deposit không expire, chỉ earn_quest/earn_referral
