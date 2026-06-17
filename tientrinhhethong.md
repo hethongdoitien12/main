@@ -40,3 +40,4 @@
 | 17/06/2026 | UI cấu hình phí Admin | Bảng `platform_config`; tab ⚙️ Cấu hình trong Admin; API GET/PUT /api/admin/config |
 | 17/06/2026 | Hoàn thiện flow rút tiền | Mã giao dịch ngân hàng khi duyệt; email thông báo qua `mailer.js`; `bank_transfer_ref` lưu DB |
 | 17/06/2026 | Đổi tên tiền tệ XU → MT | sed word-boundary replace toàn bộ codebase; DB column giữ nguyên; display text + labels đều hiển thị "MT" |
+| 17/06/2026 | Cửa hàng MT (Shop) | Bảng `shop_items` + `shop_purchases`; 8 vật phẩm mặc định (badge/frame/boost/ticket/exclusive); mua bằng MT qua ledger `spend_item`; trang `/shop` với filter category + tab "Đã mua"; API admin quản lý items |

@@ -68,6 +68,15 @@ export const api = {
     status: (t) => req('GET',  '/checkin/status', null, t),
     doIt:   (t) => req('POST', '/checkin', {}, t),
   },
+  shop: {
+    items:          (t)       => req('GET',   '/shop/items', null, t),
+    myItems:        (t)       => req('GET',   '/shop/my-items', null, t),
+    buy:            (id, t)   => req('POST',  `/shop/buy/${id}`, {}, t),
+    adminItems:     (t)       => req('GET',   '/shop/admin/items', null, t),
+    adminCreate:    (b, t)    => req('POST',  '/shop/admin/items', b, t),
+    adminUpdate:    (id,b,t)  => req('PATCH', `/shop/admin/items/${id}`, b, t),
+    adminPurchases: (t)       => req('GET',   '/shop/admin/purchases', null, t),
+  },
   admin: {
     checkinStats:   (t)    => req('GET',  '/admin/checkin/stats', null, t),
     stats:          (t)    => req('GET',  '/admin/stats', null, t),

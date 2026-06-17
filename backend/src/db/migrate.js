@@ -272,6 +272,48 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Shop items (vật phẩm có thể mua bằng MT)
+CREATE TABLE IF NOT EXISTS shop_items (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        VARCHAR(200) NOT NULL,
+  description TEXT,
+  category    VARCHAR(50) NOT NULL CHECK (category IN ('badge','frame','boost','ticket','exclusive')),
+  icon        VARCHAR(20) DEFAULT '🎁',
+  price_mt    BIGINT NOT NULL CHECK (price_mt > 0),
+  stock       INTEGER DEFAULT NULL,   -- NULL = không giới hạn
+  sold_count  INTEGER DEFAULT 0,
+  is_active   BOOLEAN DEFAULT true,
+  is_limited  BOOLEAN DEFAULT false,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Shop purchases (lịch sử mua)
+CREATE TABLE IF NOT EXISTS shop_purchases (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id        UUID NOT NULL REFERENCES shop_items(id),
+  amount_mt      BIGINT NOT NULL,
+  ledger_entry_id UUID REFERENCES ledger_entries(id),
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_shop_purchases_user ON shop_purchases(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_shop_purchases_item ON shop_purchases(item_id);
+
+-- Unique constraint on shop item name
+CREATE UNIQUE INDEX IF NOT EXISTS idx_shop_items_name ON shop_items(name);
+
+-- Seed default shop items
+INSERT INTO shop_items (name, description, category, icon, price_mt, is_limited) VALUES
+  ('Badge Người Dùng Vàng',   'Hiển thị huy hiệu ✨ bên cạnh tên của bạn',           'badge',     '🏅', 5000,   false),
+  ('Badge Creator Nổi Bật',   'Huy hiệu đặc biệt dành cho creator tích cực',          'badge',     '⭐', 10000,  false),
+  ('Badge VIP Platinum',      'Huy hiệu cao cấp nhất — số lượng có hạn!',             'badge',     '💎', 50000,  true),
+  ('Khung Avatar Tím',        'Khung avatar gradient tím ánh kim',                    'frame',     '🖼', 8000,   false),
+  ('Khung Avatar Vàng',       'Khung avatar vàng rực rỡ cho người dùng thành tích',   'frame',     '🌟', 15000,  false),
+  ('Boost Hiển Thị x2',       'Tăng gấp đôi lượt hiển thị bài đăng trong 7 ngày',    'boost',     '🚀', 20000,  false),
+  ('Vé Sự Kiện Đặc Biệt',    'Vé tham gia sự kiện độc quyền tháng này',              'ticket',    '🎫', 30000,  true),
+  ('Gói Exclusive Member',    'Quyền lợi thành viên đặc biệt trong 30 ngày',          'exclusive', '👑', 100000, true)
+ON CONFLICT DO NOTHING;
+
 -- Platform stats (aggregate, updated via triggers or cron)
 CREATE TABLE IF NOT EXISTS platform_stats (
   id SERIAL PRIMARY KEY,

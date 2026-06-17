@@ -15,6 +15,7 @@ import Profile from './pages/Profile.jsx';
 import CreatorDashboard from './pages/CreatorDashboard.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Checkin from './pages/Checkin.jsx';
+import Shop from './pages/Shop.jsx';
 import Layout from './components/Layout.jsx';
 
 const styles = `
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="leaderboard" element={<Leaderboard />} />
             <Route path="checkin" element={<Checkin />} />
             <Route path="creator" element={<CreatorDashboard />} />
+            <Route path="shop" element={<Shop />} />
             <Route path="admin" element={<Admin />} />
           </Route>
         </Routes>

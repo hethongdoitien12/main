@@ -59,6 +59,7 @@ const NAV = [
   { to: '/history', label: 'Lịch sử', icon: '≡' },
   { to: '/leaderboard', label: 'Xếp hạng', icon: '◈' },
   { to: '/checkin',     label: 'Điểm danh', icon: '🗓' },
+  { to: '/shop',    label: 'Cửa hàng',  icon: '🛍' },
   { to: '/referral', label: 'Giới thiệu', icon: '◇' },
   { to: '/profile', label: 'Hồ sơ', icon: '◉' },
   { to: '/creator', label: 'Creator', icon: '★', creatorOnly: true },
