@@ -298,7 +298,7 @@ export default function LandingPage() {
             onMouseLeave={e => e.target.style.opacity='1'}>
             Đăng ký ngay
           </button>
-          <button style={s.heroBtnSecondary} onClick={() => document.getElementById('creators-section')?.scrollIntoView({ behavior:'smooth' })}
+          <button style={s.heroBtnSecondary} onClick={() => navigate('/explore')}
             onMouseEnter={e => { e.target.style.borderColor='#7c6af7'; e.target.style.color='#a78bfa'; }}
             onMouseLeave={e => { e.target.style.borderColor='#3a3a5c'; e.target.style.color='#b8b4cc'; }}>
             Khám phá Creator
@@ -350,10 +350,10 @@ export default function LandingPage() {
                 <div style={s.creatorTips}>
                   Nhận <span style={s.creatorTipsNum}>{formatNum(c.total_tips_received)} MT</span> từ {c.supporter_count || 0} fan
                 </div>
-                <button style={s.viewBtn} onClick={() => navigate('/login')}
+                <button style={s.viewBtn} onClick={(e) => { e.stopPropagation(); navigate(`/explore/${c.id}`); }}
                   onMouseEnter={e => e.target.style.background='rgba(124,106,247,.25)'}
                   onMouseLeave={e => e.target.style.background='rgba(124,106,247,.15)'}>
-                  Xem hồ sơ
+                  Xem hồ sơ →
                 </button>
               </div>
             ))}
@@ -468,7 +468,7 @@ export default function LandingPage() {
             onMouseLeave={e => e.target.style.opacity='1'}>
             Tạo tài khoản
           </button>
-          <button style={s.heroBtnSecondary} onClick={() => document.getElementById('creators-section')?.scrollIntoView({ behavior:'smooth' })}
+          <button style={s.heroBtnSecondary} onClick={() => navigate('/explore')}
             onMouseEnter={e => { e.target.style.borderColor='#7c6af7'; e.target.style.color='#a78bfa'; }}
             onMouseLeave={e => { e.target.style.borderColor='#3a3a5c'; e.target.style.color='#b8b4cc'; }}>
             Khám phá Creator

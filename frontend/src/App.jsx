@@ -24,6 +24,8 @@ import Marketplace from './pages/Marketplace.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Layout from './components/Layout.jsx';
 import LandingPage from './pages/LandingPage.jsx';
+import PublicCreators from './pages/PublicCreators.jsx';
+import PublicCreatorProfile from './pages/PublicCreatorProfile.jsx';
 
 const styles = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -67,6 +69,8 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/payment/result" element={<PaymentResult />} />
+          <Route path="/explore" element={<PublicCreators />} />
+          <Route path="/explore/:id" element={<PublicCreatorProfile />} />
           <Route path="/" element={<HomeRoute />}>
             <Route index element={<Dashboard />} />
             <Route path="wallet" element={<Wallet />} />

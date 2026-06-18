@@ -232,6 +232,16 @@ xu-economy/
 
 ---
 
+### ✅ TASK 17 — Phase 9 mở rộng: Public Creator Directory (2026-06-18)
+- [x] **Backend: `GET /api/public/creators/:id`** — profile creator công khai, không cần auth (tips, fans, fan club tiers, products, top fans)
+- [x] **Frontend: Page `PublicCreators.jsx`** (`/explore`) — standalone (own nav), search, filter Verified/Featured, grid cards, "Xem hồ sơ →"
+- [x] **Frontend: Page `PublicCreatorProfile.jsx`** (`/explore/:id`) — standalone (own nav), tabs Tổng quan / Fan Club / Sản phẩm / Top Fans, login prompt khi thực hiện action
+- [x] **Frontend: Route `/explore` + `/explore/:id`** — public, không cần login, không bị ảnh hưởng auth
+- [x] **LandingPage update** — nút "Khám phá Creator" → `/explore`; creator cards "Xem hồ sơ" → `/explore/:id`
+- [x] **UX khách:** nút "Tặng quà / Tham gia Fan Club / Mua sản phẩm" hiển thị LoginPrompt mời đăng nhập
+
+---
+
 ### ✅ TASK 16 — Phase 9: Public Landing Page (2026-06-18)
 - [x] **Backend: `GET /api/public/stats`** — thống kê công khai (total_users, total_creators, total_tips, total_transactions), không cần auth
 - [x] **Backend: `GET /api/public/creators`** — top/featured creators, không cần auth, filter `?featured=true`
