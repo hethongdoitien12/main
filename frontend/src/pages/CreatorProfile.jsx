@@ -77,12 +77,14 @@ export default function CreatorProfile() {
   const { token, user, wallet, refreshWallet } = useAuth();
   const navigate = useNavigate();
 
-  const [data,    setData]    = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(null);
-  const [buying,  setBuying]  = useState(null);
-  const [toast,   setToast]   = useState(null);
-  const [tab,     setTab]     = useState('overview');
+  const [data,       setData]       = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [joining,    setJoining]    = useState(null);
+  const [buying,     setBuying]     = useState(null);
+  const [toast,      setToast]      = useState(null);
+  const [tab,        setTab]        = useState('overview');
+  const [joinModal,  setJoinModal]  = useState(null);  // tier being joined
+  const [autoRenew,  setAutoRenew]  = useState(false);
 
   const showToast = (msg, ok = true) => {
     setToast({ msg, ok });
@@ -106,17 +108,25 @@ export default function CreatorProfile() {
 
   useEffect(() => { if (token && id) load(); }, [token, id]);
 
-  const joinTier = async (tierId) => {
-    if (joining) return;
+  const openJoinModal = (tier) => {
+    setAutoRenew(false);
+    setJoinModal(tier);
+  };
+
+  const joinTier = async () => {
+    if (!joinModal || joining) return;
+    const tierId = joinModal.id;
     setJoining(tierId);
     try {
       const r = await fetch(`/api/fanclub/join/${tierId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auto_renew: autoRenew }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
-      showToast(`🎉 Đã tham gia Fan Club ${d.tier_name}!`);
+      showToast(`🎉 Đã tham gia Fan Club ${d.tier_name}!${autoRenew ? ' (Tự động gia hạn bật)' : ''}`);
+      setJoinModal(null);
       refreshWallet && refreshWallet();
       load();
     } catch (e) {
@@ -152,6 +162,87 @@ export default function CreatorProfile() {
   const { creator, topFans, recentGifts, fanClubTiers, myMembership, products } = data;
   const isOwnProfile = user?.id === creator.id;
 
+  // Join modal
+  const JoinModal = joinModal ? (() => {
+    const level = joinModal.level;
+    const tc = { 1: '#cd7f32', 2: '#b2bec3', 3: '#fdcb6e' };
+    const canAfford = (wallet?.balance || 0) >= joinModal.price_mt;
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#000000cc', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        onClick={() => setJoinModal(null)}>
+        <div style={{ background: '#13131f', border: '1px solid #2a2a3a', borderRadius: 16, padding: '2rem', maxWidth: 420, width: '90%' }}
+          onClick={e => e.stopPropagation()}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+            Tham gia Fan Club
+          </div>
+          <div style={{ fontSize: 13, color: '#666', marginBottom: 20 }}>
+            {creator.username} · <span style={{ color: tc[level] || '#a29bfe' }}>{joinModal.name}</span>
+          </div>
+
+          <div style={{ background: '#0e0e17', borderRadius: 10, padding: '1rem', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 12, color: '#555', marginBottom: 4 }}>Chi phí / tháng</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>{Number(joinModal.price_mt).toLocaleString()} <span style={{ fontSize: 13, color: '#888' }}>MT</span></div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 12, color: '#555', marginBottom: 4 }}>Số dư hiện tại</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: canAfford ? '#6fcf97' : '#ff6b6b' }}>{Number(wallet?.balance || 0).toLocaleString()} MT</div>
+            </div>
+          </div>
+
+          {!canAfford && (
+            <div style={{ background: '#ff6b6b15', border: '1px solid #ff6b6b30', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#ff6b6b', marginBottom: 16 }}>
+              ⚠️ Số dư không đủ. Bạn cần thêm {(joinModal.price_mt - (wallet?.balance || 0)).toLocaleString()} MT.
+            </div>
+          )}
+
+          <div style={{ background: '#0e0e17', borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={autoRenew}
+                onChange={e => setAutoRenew(e.target.checked)}
+                style={{ marginTop: 2, accentColor: '#6C5CE7', width: 16, height: 16, flexShrink: 0 }}
+              />
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#ddd' }}>🔄 Tự động gia hạn</div>
+                <div style={{ fontSize: 12, color: '#666', marginTop: 2, lineHeight: 1.5 }}>
+                  Hệ thống sẽ tự trừ {Number(joinModal.price_mt).toLocaleString()} MT và gia hạn trước khi hết hạn. Bạn có thể tắt bất cứ lúc nào.
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div style={{ fontSize: 12, color: '#444', marginBottom: 16 }}>
+            Platform thu 10% phí · Creator nhận {Number(joinModal.price_mt - Math.floor(joinModal.price_mt * 0.1)).toLocaleString()} MT
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={joinTier}
+              disabled={!canAfford || joining === joinModal.id}
+              style={{
+                flex: 1, padding: '11px 0', border: 'none', borderRadius: 10,
+                background: canAfford ? (level === 3 ? '#fdcb6e' : level === 2 ? '#b2bec3' : '#cd7f32') : '#1a1a28',
+                color: canAfford ? '#0a0a0f' : '#555',
+                fontSize: 14, fontWeight: 700, cursor: canAfford ? 'pointer' : 'not-allowed',
+                opacity: joining === joinModal.id ? 0.6 : 1,
+              }}
+            >
+              {joining === joinModal.id ? 'Đang xử lý...' : `Tham gia — ${Number(joinModal.price_mt).toLocaleString()} MT`}
+            </button>
+            <button
+              onClick={() => setJoinModal(null)}
+              style={{ padding: '11px 18px', border: '1px solid #2a2a3a', borderRadius: 10, background: 'none', color: '#888', fontSize: 14, cursor: 'pointer' }}
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  })() : null;
+
   const TABS = [
     { key: 'overview', label: 'Tổng quan' },
     { key: 'fanclub',  label: `Fan Club (${fanClubTiers.length})` },
@@ -161,6 +252,7 @@ export default function CreatorProfile() {
 
   return (
     <div>
+      {JoinModal}
       {toast && (
         <div style={{
           position: 'fixed', top: 20, right: 20, zIndex: 9999,
@@ -306,10 +398,10 @@ export default function CreatorProfile() {
                     {!isOwnProfile && (
                       <button
                         style={S.joinBtn(tier.level, isMine)}
-                        disabled={isMine || joining === tier.id}
-                        onClick={() => joinTier(tier.id)}
+                        disabled={isMine}
+                        onClick={() => !isMine && openJoinModal(tier)}
                       >
-                        {isMine ? '✓ Đang tham gia' : joining === tier.id ? 'Đang xử lý...' : 'Tham gia ngay'}
+                        {isMine ? '✓ Đang tham gia' : 'Tham gia ngay'}
                       </button>
                     )}
                   </div>

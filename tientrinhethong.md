@@ -45,6 +45,7 @@
 | **Creator Economy — Phase 1: /creators** | ✅ Xong |
 | **Creator Economy — Phase 2: /creator/:id** | ✅ Xong |
 | **Creator Economy — Phase 3: Fan Club** | ✅ Xong |
+| **Fan Club nâng cấp: Auto-renew + Cancel + Subscriptions** | ✅ Xong |
 | **Creator Economy — Phase 4: Creator Shop** | ✅ Xong |
 | **Creator Economy — Phase 5: Top Fans** | ✅ Xong |
 | **Creator Economy — Phase 6: Advanced Dashboard** | ✅ Xong |
@@ -154,12 +155,29 @@ xu-economy/
 - [x] **DB: Bảng `fan_club_tiers`, `fan_club_memberships`, `fan_club_payments`**
 - [x] **Backend: `POST /api/fanclub/tiers`** — creator tạo/cập nhật tier (Bronze/Silver/Gold)
 - [x] **Backend: `GET /api/fanclub/my-tiers`** — creator xem tiers của mình
-- [x] **Backend: `GET /api/fanclub/members`** — danh sách members
+- [x] **Backend: `GET /api/fanclub/members`** — danh sách members (kèm auto_renew, renewal_count)
 - [x] **Backend: `POST /api/fanclub/join/:tierId`** — user tham gia Fan Club (deduct MT, credit creator 90%)
 - [x] **Backend: `GET /api/fanclub/my-memberships`** — user xem membership
 - [x] **Backend: `GET /api/fanclub/admin/revenue`** — admin xem doanh thu
 - [x] **Frontend: Fan Club tab** trong CreatorProfile — hiển thị tiers, nút tham gia
 - [x] **Frontend: Fan Club setup** trong CreatorDashboard — CRUD tiers
+
+---
+
+### ✅ TASK 13 — Fan Club nâng cấp: Auto-renew + Cancel + Subscriptions (2026-06-18)
+- [x] **DB: Cột `auto_renew`** thêm vào `fan_club_memberships`
+- [x] **DB: Bảng `membership_subscriptions`** — log mỗi lần gia hạn (manual/auto, period_start/end, status, fail_reason)
+- [x] **Backend: `POST /api/fanclub/join/:tierId`** — nhận param `auto_renew`, ghi vào `membership_subscriptions`
+- [x] **Backend: `PATCH /api/fanclub/memberships/:id/auto-renew`** — bật/tắt auto-renew
+- [x] **Backend: `POST /api/fanclub/memberships/:id/cancel`** — hủy membership (giữ quyền lợi đến hết hạn)
+- [x] **Backend: `GET /api/fanclub/memberships/:id/history`** — lịch sử gia hạn
+- [x] **Backend: Cron job `autoRenewMemberships`** — chạy mỗi giờ, gia hạn các membership sắp hết hạn trong 24h
+- [x] **Backend: Cron job `expireOldMemberships`** — expire membership không auto-renew đã quá hạn
+- [x] **Frontend: Modal tham gia** trong CreatorProfile — checkbox auto-renew, hiển thị số dư, kiểm tra đủ tiền
+- [x] **Frontend: Page `MyMemberships.jsx`** (`/memberships`) — quản lý tất cả memberships: bật/tắt auto-renew, hủy, xem hết hạn
+- [x] **Frontend: Sidebar** — thêm "Fan Club" link (`/memberships`) vào section "Tôi"
+- [x] **Frontend: CreatorDashboard members tab** — hiển thị cột auto-renew, số lần gia hạn, cảnh báo sắp hết hạn
+- [x] **Revenue: Platform 10%, Creator 90%** — áp dụng cả lần gia hạn auto
 
 ---
 

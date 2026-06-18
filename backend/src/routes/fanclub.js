@@ -80,9 +80,10 @@ router.get('/members', authMiddleware, async (req, res) => {
   }
   try {
     const { rows } = await query(`
-      SELECT fcm.id, fcm.status, fcm.expires_at, fcm.started_at,
+      SELECT fcm.id, fcm.status, fcm.expires_at, fcm.started_at, fcm.auto_renew,
              u.id AS user_id, u.username, u.avatar_url,
-             fct.name AS tier_name, fct.level, fct.price_mt
+             fct.name AS tier_name, fct.level, fct.price_mt,
+             (SELECT COUNT(*)::INT FROM membership_subscriptions ms WHERE ms.membership_id = fcm.id) AS renewal_count
       FROM fan_club_memberships fcm
       JOIN users u   ON u.id   = fcm.user_id
       JOIN fan_club_tiers fct ON fct.id = fcm.tier_id
@@ -99,6 +100,7 @@ router.get('/members', authMiddleware, async (req, res) => {
 router.post('/join/:tierId', authMiddleware, async (req, res) => {
   try {
     const { tierId } = req.params;
+    const { auto_renew = false } = req.body;
 
     const { rows: [tier] } = await query(`
       SELECT fct.*, u.username AS creator_name
@@ -114,7 +116,8 @@ router.post('/join/:tierId', authMiddleware, async (req, res) => {
 
     const platformFee = Math.floor(tier.price_mt * PLATFORM_FEE);
     const creatorReceives = tier.price_mt - platformFee;
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const txKey = `membership_purchase:${req.user.id}:${tierId}:${Date.now()}`;
 
     // Deduct from user
@@ -139,17 +142,25 @@ router.post('/join/:tierId', authMiddleware, async (req, res) => {
 
     // Upsert membership
     const { rows: [membership] } = await query(`
-      INSERT INTO fan_club_memberships (user_id, creator_id, tier_id, expires_at)
-      VALUES ($1,$2,$3,$4)
+      INSERT INTO fan_club_memberships (user_id, creator_id, tier_id, expires_at, auto_renew)
+      VALUES ($1,$2,$3,$4,$5)
       ON CONFLICT (user_id, creator_id) DO UPDATE SET
         tier_id    = EXCLUDED.tier_id,
         status     = 'active',
         expires_at = EXCLUDED.expires_at,
+        auto_renew = EXCLUDED.auto_renew,
         started_at = NOW()
       RETURNING *
-    `, [req.user.id, tier.creator_id, tierId, expiresAt]);
+    `, [req.user.id, tier.creator_id, tierId, expiresAt, Boolean(auto_renew)]);
 
-    // Record payment
+    // Record in membership_subscriptions
+    await query(`
+      INSERT INTO membership_subscriptions
+        (membership_id, user_id, creator_id, tier_id, amount_mt, platform_fee, renewal_type, period_start, period_end)
+      VALUES ($1,$2,$3,$4,$5,$6,'manual',$7,$8)
+    `, [membership.id, req.user.id, tier.creator_id, tierId, tier.price_mt, platformFee, now, expiresAt]);
+
+    // Legacy: also record in fan_club_payments
     await query(`
       INSERT INTO fan_club_payments (membership_id, user_id, creator_id, tier_id, amount_mt, platform_fee)
       VALUES ($1,$2,$3,$4,$5,$6)
@@ -173,16 +184,80 @@ router.post('/join/:tierId', authMiddleware, async (req, res) => {
 router.get('/my-memberships', authMiddleware, async (req, res) => {
   try {
     const { rows } = await query(`
-      SELECT fcm.id, fcm.status, fcm.expires_at, fcm.started_at,
+      SELECT fcm.id, fcm.status, fcm.expires_at, fcm.started_at, fcm.auto_renew,
              u.id AS creator_id, u.username AS creator_name, u.avatar_url AS creator_avatar,
-             fct.name AS tier_name, fct.level, fct.price_mt
+             fct.name AS tier_name, fct.level, fct.price_mt, fct.perks, fct.description,
+             (SELECT COUNT(*)::INT FROM membership_subscriptions ms WHERE ms.membership_id = fcm.id) AS renewal_count
       FROM fan_club_memberships fcm
       JOIN users u   ON u.id   = fcm.creator_id
       JOIN fan_club_tiers fct ON fct.id = fcm.tier_id
       WHERE fcm.user_id = $1
-      ORDER BY fcm.started_at DESC
+      ORDER BY fcm.status ASC, fcm.expires_at DESC
     `, [req.user.id]);
     res.json({ memberships: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── User: Bật/tắt auto-renew ─────────────────────────────────────────────────
+router.patch('/memberships/:id/auto-renew', authMiddleware, async (req, res) => {
+  try {
+    const { auto_renew } = req.body;
+    if (typeof auto_renew !== 'boolean') {
+      return res.status(400).json({ error: 'auto_renew phải là boolean' });
+    }
+    const { rows: [m] } = await query(`
+      UPDATE fan_club_memberships
+      SET auto_renew = $1
+      WHERE id = $2 AND user_id = $3 AND status = 'active'
+      RETURNING id, auto_renew
+    `, [auto_renew, req.params.id, req.user.id]);
+    if (!m) return res.status(404).json({ error: 'Membership không tồn tại hoặc không có quyền' });
+    res.json({ success: true, auto_renew: m.auto_renew });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── User: Hủy membership ──────────────────────────────────────────────────────
+router.post('/memberships/:id/cancel', authMiddleware, async (req, res) => {
+  try {
+    const { rows: [m] } = await query(`
+      UPDATE fan_club_memberships
+      SET status = 'cancelled', auto_renew = false
+      WHERE id = $1 AND user_id = $2 AND status = 'active'
+      RETURNING id, creator_id, tier_id
+    `, [req.params.id, req.user.id]);
+    if (!m) return res.status(404).json({ error: 'Membership không tồn tại hoặc đã hủy' });
+
+    // Notify creator
+    const { rows: [tier] } = await query(`SELECT name FROM fan_club_tiers WHERE id = $1`, [m.tier_id]);
+    await notify({
+      userId: m.creator_id,
+      type: 'system',
+      title: '👋 Thành viên rời Fan Club',
+      body: `Một thành viên đã hủy đăng ký Fan Club ${tier?.name || ''}`,
+      metadata: { membershipId: m.id },
+    });
+
+    res.json({ success: true, message: 'Đã hủy membership. Quyền lợi còn hiệu lực đến ngày hết hạn.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── User: Lịch sử gia hạn của 1 membership ───────────────────────────────────
+router.get('/memberships/:id/history', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await query(`
+      SELECT ms.*, fct.name AS tier_name
+      FROM membership_subscriptions ms
+      JOIN fan_club_tiers fct ON fct.id = ms.tier_id
+      WHERE ms.membership_id = $1 AND ms.user_id = $2
+      ORDER BY ms.created_at DESC
+    `, [req.params.id, req.user.id]);
+    res.json({ history: rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -206,7 +281,13 @@ router.get('/admin/revenue', authMiddleware, async (req, res) => {
              COUNT(*)::INT AS total_payments
       FROM fan_club_payments
     `);
-    res.json({ dailyRevenue: daily, totals });
+    const { rows: [autoStats] } = await query(`
+      SELECT
+        COUNT(*) FILTER (WHERE auto_renew = true AND status = 'active')::INT AS auto_renew_active,
+        COUNT(*) FILTER (WHERE status = 'active')::INT AS total_active
+      FROM fan_club_memberships
+    `);
+    res.json({ dailyRevenue: daily, totals, autoStats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

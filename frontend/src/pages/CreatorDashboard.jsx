@@ -352,20 +352,36 @@ export default function CreatorDashboard() {
                     <th style={S.th}>Thành viên</th>
                     <th style={S.th}>Tier</th>
                     <th style={S.th}>MT / tháng</th>
-                    <th style={S.th}>Từ ngày</th>
+                    <th style={S.th}>Auto-renew</th>
+                    <th style={S.th}>Gia hạn</th>
                     <th style={S.th}>Hết hạn</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map(m => (
-                    <tr key={m.id}>
-                      <td style={S.td}>{m.username}</td>
-                      <td style={S.td}>{m.tier_name}</td>
-                      <td style={S.td}>{Number(m.price_mt).toLocaleString()} MT</td>
-                      <td style={S.td}>{new Date(m.started_at).toLocaleDateString('vi-VN')}</td>
-                      <td style={S.td}>{new Date(m.expires_at).toLocaleDateString('vi-VN')}</td>
-                    </tr>
-                  ))}
+                  {members.map(m => {
+                    const daysLeft = Math.ceil((new Date(m.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
+                    return (
+                      <tr key={m.id}>
+                        <td style={S.td}>{m.username}</td>
+                        <td style={S.td}>{m.tier_name}</td>
+                        <td style={S.td}>{Number(m.price_mt).toLocaleString()} MT</td>
+                        <td style={S.td}>
+                          <span style={{
+                            padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                            background: m.auto_renew ? '#6C5CE720' : '#22222a',
+                            color: m.auto_renew ? '#a29bfe' : '#444',
+                          }}>
+                            {m.auto_renew ? '🔄 Bật' : '—'}
+                          </span>
+                        </td>
+                        <td style={S.td}>{m.renewal_count || 0} lần</td>
+                        <td style={{ ...S.td, color: daysLeft <= 5 ? '#fdcb6e' : '#ccc' }}>
+                          {new Date(m.expires_at).toLocaleDateString('vi-VN')}
+                          {daysLeft <= 5 && <span style={{ fontSize: 11, color: '#fdcb6e', marginLeft: 4 }}>({daysLeft}ngày)</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

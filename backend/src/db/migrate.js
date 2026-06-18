@@ -492,6 +492,33 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Auto-renew column cho fan_club_memberships
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='fan_club_memberships' AND column_name='auto_renew') THEN
+    ALTER TABLE fan_club_memberships ADD COLUMN auto_renew BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+
+-- Bảng membership_subscriptions — log mỗi lần gia hạn (manual + auto)
+CREATE TABLE IF NOT EXISTS membership_subscriptions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  membership_id UUID NOT NULL REFERENCES fan_club_memberships(id) ON DELETE CASCADE,
+  user_id       UUID NOT NULL REFERENCES users(id),
+  creator_id    UUID NOT NULL REFERENCES users(id),
+  tier_id       UUID NOT NULL REFERENCES fan_club_tiers(id),
+  amount_mt     BIGINT NOT NULL,
+  platform_fee  BIGINT DEFAULT 0,
+  renewal_type  VARCHAR(20) DEFAULT 'manual' CHECK (renewal_type IN ('manual','auto')),
+  period_start  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  period_end    TIMESTAMPTZ NOT NULL,
+  status        VARCHAR(20) DEFAULT 'completed' CHECK (status IN ('completed','failed')),
+  fail_reason   TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_msubs_membership ON membership_subscriptions(membership_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_msubs_user       ON membership_subscriptions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_msubs_creator    ON membership_subscriptions(creator_id, created_at DESC);
+
 -- Platform stats (aggregate, updated via triggers or cron)
 CREATE TABLE IF NOT EXISTS platform_stats (
   id SERIAL PRIMARY KEY,
