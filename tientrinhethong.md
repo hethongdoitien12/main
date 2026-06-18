@@ -50,6 +50,7 @@
 | **Creator Economy — Phase 5: Top Fans** | ✅ Xong |
 | **Creator Economy — Phase 6: Advanced Dashboard** | ✅ Xong |
 | **Phase 8: Creator Verification System** | ✅ Xong |
+| **Demo Seed Data** | ✅ Xong |
 | Deploy | 🔄 Sẵn sàng |
 
 ---
@@ -251,6 +252,22 @@ xu-economy/
 - [x] **SEO:** `<title>MT Economy</title>` + `<meta name="description">` được set trong `LandingPage.jsx`
 - [x] **Mobile responsive:** layout dùng `clamp()` font sizes + CSS Grid `auto-fit minmax` cho mọi breakpoint
 - [x] **Auth flow giữ nguyên:** `/login`, `/register`, Dashboard không bị ảnh hưởng
+
+---
+
+### ✅ TASK 18 — Demo Seed Data (2026-06-18)
+- [x] **Script:** `backend/src/db/seed-demo.js` — idempotent, kiểm tra `@demo.mt` trước khi insert
+- [x] **Command:** `npm run seed:demo` (đã có trong `package.json`)
+- [x] **10 Creators demo:** creator_linh, creator_huy, creator_khoa, creator_mai, creator_anh, creator_trang, creator_duc, creator_hong, creator_minh, creator_tuyen — avatar DiceBear, bio tiếng Việt, verified/featured mix
+- [x] **20 Users demo:** user_demo_01..20 — balance ngẫu nhiên 500–50,000 MT
+- [x] **100 Tips** — random amounts (50–5,000 MT), timestamps 30 ngày qua, fee 5% platform, ledger 2 chiều
+- [x] **Fan Club Tiers:** Bronze/Silver/Gold cho tất cả creators (level 1/2/3 = 200/500/1,000 MT)
+- [x] **50 Fan Club Memberships** — mix active/expired, auto_renew ngẫu nhiên, fan_club_payments ghi đủ
+- [x] **20 Sản phẩm demo** — 5 ebook + 4 template + 4 source_code + 4 prompt_ai + 3 preset (200–6,000 MT)
+- [x] **50 Orders** — đơn mua từ users demo, fee 10% platform, ledger product_purchase/product_sale
+- [x] **134 Notifications** — mỗi user/creator 3–6 thông báo mẫu
+- [x] **Wallet sync:** balance, total_earned, total_spent đồng bộ sau tất cả giao dịch
+- [x] **Kết quả:** 11 creators, 21 users, 101 tips, 25 products, 51 orders, 50 memberships, 410 ledger entries
 
 ---
 
