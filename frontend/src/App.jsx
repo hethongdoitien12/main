@@ -23,6 +23,7 @@ import MyMemberships from './pages/MyMemberships.jsx';
 import Marketplace from './pages/Marketplace.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Layout from './components/Layout.jsx';
+import LandingPage from './pages/LandingPage.jsx';
 
 const styles = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,6 +52,12 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" replace />;
 };
 
+const HomeRoute = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888' }}>Loading...</div>;
+  return user ? <Layout /> : <LandingPage />;
+};
+
 export default function App() {
   return (
     <AuthProvider>
@@ -60,7 +67,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/payment/result" element={<PaymentResult />} />
-          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+          <Route path="/" element={<HomeRoute />}>
             <Route index element={<Dashboard />} />
             <Route path="wallet" element={<Wallet />} />
             <Route path="quests" element={<Quests />} />

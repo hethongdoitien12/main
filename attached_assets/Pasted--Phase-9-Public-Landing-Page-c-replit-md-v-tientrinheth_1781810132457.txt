@@ -1,0 +1,216 @@
+# Phase 9 — Public Landing Page
+
+Đọc `replit.md` và `tientrinhethong.md` trước.
+
+Mục tiêu:
+
+Biến hệ thống từ dashboard nội bộ thành sản phẩm công khai mà người mới vào sẽ hiểu ngay:
+
+* MT là gì
+* Creator là ai
+* Có thể làm gì trên nền tảng
+* Tại sao nên đăng ký
+
+---
+
+## Route
+
+Tạo trang:
+
+```
+/
+```
+
+Nếu chưa đăng nhập:
+
+* Hiển thị Landing Page
+* Không redirect vào Login
+
+Nếu đã đăng nhập:
+
+* Cho phép vào Dashboard như hiện tại
+
+---
+
+## Hero Section
+
+Tiêu đề:
+
+```
+MT Economy
+Nền tảng Creator Economy sử dụng MT
+```
+
+Mô tả:
+
+```
+Hỗ trợ creator kiếm tiền từ cộng đồng
+thông qua Tip, Fan Club và Marketplace.
+```
+
+Buttons:
+
+* Đăng ký
+* Khám phá Creator
+
+---
+
+## Statistics Section
+
+API:
+
+GET /api/public/stats
+
+Trả về:
+
+* total_users
+* total_creators
+* total_tips
+* total_transactions
+
+Hiển thị dạng cards.
+
+---
+
+## Top Creators Section
+
+API:
+
+GET /api/creators?featured=true
+
+Hiển thị:
+
+* Avatar
+* Username
+* Verified badge
+* Featured badge
+* Tổng MT nhận
+
+Nút:
+
+```
+Xem hồ sơ
+```
+
+---
+
+## Top Products Section
+
+API:
+
+GET /api/products?featured=true
+
+Hiển thị:
+
+* Thumbnail
+* Tên sản phẩm
+* Creator
+* Giá MT
+
+Nút:
+
+```
+Xem chi tiết
+```
+
+Nếu Marketplace chưa hoàn thành:
+
+Hiển thị placeholder component.
+
+---
+
+## How It Works
+
+Bước 1:
+
+```
+Đăng ký tài khoản
+```
+
+Bước 2:
+
+```
+Nhận hoặc nạp MT
+```
+
+Bước 3:
+
+```
+Tip Creator hoặc mua sản phẩm
+```
+
+Bước 4:
+
+```
+Creator nhận thu nhập
+```
+
+---
+
+## Benefits Section
+
+Cho User:
+
+* Hỗ trợ creator yêu thích
+* Mua sản phẩm số
+* Tham gia Fan Club
+
+Cho Creator:
+
+* Nhận tip
+* Bán sản phẩm
+* Xây dựng cộng đồng
+
+---
+
+## CTA Section
+
+Tiêu đề:
+
+```
+Bắt đầu kiếm và sử dụng MT ngay hôm nay
+```
+
+Buttons:
+
+* Tạo tài khoản
+* Khám phá Creator
+
+---
+
+## SEO
+
+Thêm:
+
+```
+<title>MT Economy</title>
+<meta name="description" ... />
+```
+
+---
+
+## Mobile Responsive
+
+Bắt buộc:
+
+* Mobile
+* Tablet
+* Desktop
+
+---
+
+## Acceptance Tests
+
+1. Truy cập `/` không cần đăng nhập.
+2. Landing Page hiển thị đẹp trên mobile.
+3. Top Creators hiển thị đúng.
+4. CTA dẫn tới Register.
+5. Không làm hỏng Dashboard hiện tại.
+6. Không ảnh hưởng Auth flow.
+
+Sau khi hoàn thành:
+
+* Test frontend
+* Test backend
+* Cập nhật tientrinhethong.md
+* Đánh dấu Phase 9 hoàn thành

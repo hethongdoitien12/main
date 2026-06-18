@@ -232,6 +232,18 @@ xu-economy/
 
 ---
 
+### ✅ TASK 16 — Phase 9: Public Landing Page (2026-06-18)
+- [x] **Backend: `GET /api/public/stats`** — thống kê công khai (total_users, total_creators, total_tips, total_transactions), không cần auth
+- [x] **Backend: `GET /api/public/creators`** — top/featured creators, không cần auth, filter `?featured=true`
+- [x] **Backend: `GET /api/public/products`** — sản phẩm nổi bật, không cần auth, sort by sold_count
+- [x] **Frontend: Page `LandingPage.jsx`** — Hero, Stats, Top Creators, Marketplace, How It Works, Benefits, CTA, Footer
+- [x] **Frontend: Route `/`** — hiển thị LandingPage nếu chưa đăng nhập, Dashboard nếu đã đăng nhập (HomeRoute logic)
+- [x] **SEO:** `<title>MT Economy</title>` + `<meta name="description">` được set trong `LandingPage.jsx`
+- [x] **Mobile responsive:** layout dùng `clamp()` font sizes + CSS Grid `auto-fit minmax` cho mọi breakpoint
+- [x] **Auth flow giữ nguyên:** `/login`, `/register`, Dashboard không bị ảnh hưởng
+
+---
+
 ## 📦 ĐÃ BUILD XONG (tham khảo)
 
 <details>
