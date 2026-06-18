@@ -277,7 +277,19 @@ export default function CreatorProfile() {
             }
           </div>
           <div style={{ flex: 1 }}>
-            <div style={S.username}>{creator.username}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div style={S.username}>{creator.username}</div>
+              {creator.creator_verified && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#00b89420', border: '1px solid #00b89450', borderRadius: 20, fontSize: 12, fontWeight: 600, color: '#00b894' }}>
+                  ✔ Verified Creator
+                </span>
+              )}
+              {creator.creator_featured && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#fdcb6e20', border: '1px solid #fdcb6e50', borderRadius: 20, fontSize: 12, fontWeight: 600, color: '#fdcb6e' }}>
+                  ⭐ Featured Creator
+                </span>
+              )}
+            </div>
             {creator.bio && <div style={S.bio}>{creator.bio}</div>}
             <div style={S.statRow}>
               <div style={S.statBox}>

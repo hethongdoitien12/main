@@ -11,9 +11,13 @@ router.get('/', authMiddleware, async (req, res) => {
     const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
     const offset = parseInt(req.query.offset) || 0;
 
+    const filterVerified = req.query.verified === 'true';
+    const filterFeatured = req.query.featured === 'true';
+
     const { rows } = await query(`
       SELECT
         u.id, u.username, u.avatar_url, u.bio, u.role,
+        u.creator_verified, u.creator_featured,
         COALESCE(SUM(t.amount_xu), 0)::BIGINT          AS total_tips_received,
         COUNT(t.id)::INT                                AS total_tip_count,
         COUNT(DISTINCT t.sender_id)::INT                AS supporter_count,
@@ -23,10 +27,13 @@ router.get('/', authMiddleware, async (req, res) => {
       WHERE u.banned_at IS NULL
         AND u.role IN ('creator','admin')
         AND ($1 = '' OR u.username ILIKE '%' || $1 || '%')
-      GROUP BY u.id, u.username, u.avatar_url, u.bio, u.role
-      ORDER BY total_tips_received DESC
+        AND ($4 = false OR u.creator_verified = true)
+        AND ($5 = false OR u.creator_featured = true)
+      GROUP BY u.id, u.username, u.avatar_url, u.bio, u.role,
+               u.creator_verified, u.creator_featured
+      ORDER BY u.creator_featured DESC, u.creator_verified DESC, total_tips_received DESC
       LIMIT $2 OFFSET $3
-    `, [search, limit, offset]);
+    `, [search, limit, offset, filterVerified, filterFeatured]);
 
     res.json({ creators: rows, limit, offset });
   } catch (err) {
@@ -44,13 +51,15 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const { rows: [creator] } = await query(`
       SELECT
         u.id, u.username, u.avatar_url, u.bio, u.role, u.created_at,
+        u.creator_verified, u.creator_featured, u.verification_note,
         COALESCE(SUM(t.amount_xu), 0)::BIGINT AS total_tips_received,
         COUNT(t.id)::INT                       AS total_tip_count,
         COUNT(DISTINCT t.sender_id)::INT        AS supporter_count
       FROM users u
       LEFT JOIN tips t ON t.receiver_id = u.id
       WHERE u.id = $1 AND u.banned_at IS NULL AND u.role IN ('creator','admin')
-      GROUP BY u.id, u.username, u.avatar_url, u.bio, u.role, u.created_at
+      GROUP BY u.id, u.username, u.avatar_url, u.bio, u.role, u.created_at,
+               u.creator_verified, u.creator_featured, u.verification_note
     `, [id]);
 
     if (!creator) return res.status(404).json({ error: 'Creator không tồn tại' });

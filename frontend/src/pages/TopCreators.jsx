@@ -108,28 +108,36 @@ function CreatorModal({ creator, onClose, onGift }) {
 export default function TopCreators() {
   const { token } = useAuth();
   const navigate = useNavigate();
-  const [creators, setCreators]   = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState('');
-  const [selected, setSelected]   = useState(null);
+  const [creators, setCreators]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState('');
+  const [selected, setSelected]         = useState(null);
+  const [filterVerified, setFilterVerified] = useState(false);
+  const [filterFeatured, setFilterFeatured] = useState(false);
   const debounceRef = useRef(null);
 
-  const load = useCallback(async (q = '') => {
+  const load = useCallback(async (q = '', fv = false, ff = false) => {
     setLoading(true);
     try {
-      const r = await api.wallet.topCreators({ search: q, limit: 50 }, token);
-      setCreators(r.creators || []);
+      const params = new URLSearchParams({ search: q, limit: 50 });
+      if (fv) params.set('verified', 'true');
+      if (ff) params.set('featured', 'true');
+      const r = await fetch(`/api/creators?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const d = await r.json();
+      setCreators(d.creators || []);
     } catch { setCreators([]); }
     setLoading(false);
   }, [token]);
 
-  useEffect(() => { if (token) load(''); }, [token, load]);
+  useEffect(() => { if (token) load('', false, false); }, [token, load]);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => { if (token) load(search); }, 300);
+    debounceRef.current = setTimeout(() => { if (token) load(search, filterVerified, filterFeatured); }, 300);
     return () => clearTimeout(debounceRef.current);
-  }, [search, token, load]);
+  }, [search, filterVerified, filterFeatured, token, load]);
 
   const handleGift = (creator) => {
     navigate('/gifting', { state: { creator } });
@@ -159,8 +167,9 @@ export default function TopCreators() {
         <div style={{ fontSize: 13, color: '#555' }}>Xếp hạng creator theo tổng MT nhận được từ fans</div>
       </div>
 
-      {/* Search bar */}
-      <div style={{ position: 'relative', marginBottom: '1.5rem', maxWidth: 380 }}>
+      {/* Search + Filter bar */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ position: 'relative', maxWidth: 380, flex: 1, minWidth: 200 }}>
         <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
           color: '#555', fontSize: 15, pointerEvents: 'none' }}>🔍</span>
         <input
@@ -178,6 +187,23 @@ export default function TopCreators() {
             ×
           </button>
         )}
+      </div>
+
+      {/* Filter buttons */}
+      <button
+        onClick={() => setFilterVerified(v => !v)}
+        style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${filterVerified ? '#00b89470' : '#1e1e2e'}`,
+          background: filterVerified ? '#00b89415' : 'transparent', color: filterVerified ? '#00b894' : '#555',
+          fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .15s' }}>
+        ✔ Verified
+      </button>
+      <button
+        onClick={() => setFilterFeatured(f => !f)}
+        style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${filterFeatured ? '#fdcb6e70' : '#1e1e2e'}`,
+          background: filterFeatured ? '#fdcb6e15' : 'transparent', color: filterFeatured ? '#fdcb6e' : '#555',
+          fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .15s' }}>
+        ⭐ Featured
+      </button>
       </div>
 
       {loading && (
@@ -266,9 +292,17 @@ export default function TopCreators() {
 
                 {/* name + role */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#ddd',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {c.username}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#ddd',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.username}
+                    </span>
+                    {c.creator_verified && (
+                      <span title="Verified Creator" style={{ fontSize: 11, padding: '1px 7px', background: '#00b89420', border: '1px solid #00b89440', borderRadius: 20, color: '#00b894', fontWeight: 600, whiteSpace: 'nowrap' }}>✔ Verified</span>
+                    )}
+                    {c.creator_featured && (
+                      <span title="Featured Creator" style={{ fontSize: 11, padding: '1px 7px', background: '#fdcb6e20', border: '1px solid #fdcb6e40', borderRadius: 20, color: '#fdcb6e', fontWeight: 600, whiteSpace: 'nowrap' }}>⭐ Featured</span>
+                    )}
                   </div>
                   <div style={{ fontSize: 11, color: c.role === 'admin' ? '#a29bfe' : '#74b9ff', marginTop: 1 }}>
                     {c.role === 'admin' ? '⚡ Admin' : '🎨 Creator'}

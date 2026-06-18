@@ -2294,6 +2294,222 @@ function ProductsAdminTab({ token, showToast }) {
   );
 }
 
+// ── Phase 8: Creator Verification Tab ────────────────────────────────────────
+function CreatorVerificationTab({ token, showToast }) {
+  const [creators, setCreators]   = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [acting, setActing]       = useState(null);
+  const [noteModal, setNoteModal] = useState(null); // { creator, action }
+  const [note, setNote]           = useState('');
+
+  const load = async (q = '') => {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/admin/creators?search=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const d = await r.json();
+      setCreators(d.creators || []);
+    } catch { setCreators([]); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(''); }, [token]);
+
+  const debRef = useCallback((q) => {
+    clearTimeout(debRef._t);
+    debRef._t = setTimeout(() => load(q), 300);
+  }, []);
+
+  const doVerify = async (creator, verified, customNote) => {
+    setActing(creator.id + '_verify');
+    try {
+      const r = await fetch(`/api/admin/creator/${creator.id}/verify`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verified, note: customNote || undefined }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setCreators(prev => prev.map(c => c.id === creator.id ? { ...c, creator_verified: d.user.creator_verified, verification_note: d.user.verification_note } : c));
+      showToast(verified ? `✔ Đã verify ${creator.username}` : `Đã bỏ verify ${creator.username}`);
+    } catch (e) { showToast(e.message, false); }
+    finally { setActing(null); setNoteModal(null); setNote(''); }
+  };
+
+  const doFeatured = async (creator, featured) => {
+    setActing(creator.id + '_featured');
+    try {
+      const r = await fetch(`/api/admin/creator/${creator.id}/featured`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setCreators(prev => prev.map(c => c.id === creator.id ? { ...c, creator_featured: d.user.creator_featured } : c));
+      showToast(featured ? `⭐ Đã feature ${creator.username}` : `Đã bỏ feature ${creator.username}`);
+    } catch (e) { showToast(e.message); }
+    finally { setActing(null); }
+  };
+
+  const AVATAR_COLORS = ['#6C5CE7','#00cec9','#e17055','#fd79a8','#fdcb6e','#74b9ff'];
+  const aColor = (n = '') => AVATAR_COLORS[[...n].reduce((s,c)=>s+c.charCodeAt(0),0) % AVATAR_COLORS.length];
+
+  return (
+    <div>
+      {/* Note/Reason modal */}
+      {noteModal && (
+        <div onClick={() => setNoteModal(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'#0e0e17', border:'1px solid #2e2e44', borderRadius:14, padding:28, width:400, maxWidth:'90vw' }}>
+            <div style={{ fontSize:16, fontWeight:700, color:'#fff', marginBottom:12 }}>
+              Xác nhận Verify — <span style={{ color:'#a29bfe' }}>{noteModal.creator.username}</span>
+            </div>
+            <div style={{ marginBottom:12 }}>
+              <label style={{ fontSize:12, color:'#888', display:'block', marginBottom:6 }}>Ghi chú (tùy chọn)</label>
+              <input value={note} onChange={e=>setNote(e.target.value)}
+                placeholder="VD: Đã kiểm tra CCCD, kênh YouTube 10K subs..."
+                style={{ width:'100%', padding:'9px 12px', background:'#13131f', border:'1px solid #2a2a3a', borderRadius:8, color:'#ddd', fontSize:13, outline:'none', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+              <button onClick={()=>setNoteModal(null)} style={{ padding:'8px 16px', background:'transparent', border:'1px solid #2e2e44', borderRadius:8, color:'#888', fontSize:13, cursor:'pointer' }}>Huỷ</button>
+              <button onClick={()=>doVerify(noteModal.creator, true, note)}
+                style={{ padding:'8px 20px', background:'#00b894', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                ✔ Xác nhận Verify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginBottom:'1.25rem', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:16, fontWeight:700, color:'#fff', marginBottom:2 }}>Creator Verification</div>
+          <div style={{ fontSize:12, color:'#555' }}>Cấp badge xác minh và nổi bật cho creator</div>
+        </div>
+        <input
+          value={search}
+          onChange={e => { setSearch(e.target.value); debRef(e.target.value); }}
+          placeholder="Tìm creator..."
+          style={S.search}
+        />
+        <button onClick={() => load(search)} style={S.refreshBtn}>↻ Tải lại</button>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ ...S.grid4, marginBottom:'1.25rem' }}>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Tổng creator</div>
+          <div style={S.statVal('#a29bfe')}>{creators.length}</div>
+        </div>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Đã Verified</div>
+          <div style={S.statVal('#00b894')}>{creators.filter(c=>c.creator_verified).length}</div>
+        </div>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Đang Featured</div>
+          <div style={S.statVal('#fdcb6e')}>{creators.filter(c=>c.creator_featured).length}</div>
+        </div>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Chưa xác minh</div>
+          <div style={S.statVal('#ff6b6b')}>{creators.filter(c=>!c.creator_verified).length}</div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        {loading ? (
+          <div style={S.empty}>Đang tải...</div>
+        ) : creators.length === 0 ? (
+          <div style={S.empty}>Không có creator nào</div>
+        ) : (
+          <table style={S.table}>
+            <thead>
+              <tr>
+                <th style={S.th}>Creator</th>
+                <th style={S.th}>Tổng MT</th>
+                <th style={S.th}>Verified</th>
+                <th style={S.th}>Featured</th>
+                <th style={S.th}>Ghi chú</th>
+                <th style={S.th}>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {creators.map(c => {
+                const color = aColor(c.username);
+                const isActingVerify   = acting === c.id + '_verify';
+                const isActingFeatured = acting === c.id + '_featured';
+                return (
+                  <tr key={c.id}>
+                    <td style={S.td}>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ width:34, height:34, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                          {c.avatar_url
+                            ? <img src={c.avatar_url} alt={c.username} style={{ width:34, height:34, borderRadius:'50%', objectFit:'cover' }} />
+                            : (c.username||'?')[0].toUpperCase()
+                          }
+                        </div>
+                        <div>
+                          <div style={{ color:'#ddd', fontWeight:600 }}>{c.username}</div>
+                          <div style={{ fontSize:11, color:'#555' }}>{c.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={S.td}><span style={{ color:'#fdcb6e', fontWeight:600 }}>{Number(c.total_tips||0).toLocaleString()}</span> MT</td>
+                    <td style={S.td}>
+                      {c.creator_verified
+                        ? <span style={{ ...S.badge('completed'), padding:'4px 10px' }}>✔ Verified</span>
+                        : <span style={{ ...S.badge('expired') }}>—</span>
+                      }
+                    </td>
+                    <td style={S.td}>
+                      {c.creator_featured
+                        ? <span style={{ padding:'3px 9px', borderRadius:99, fontSize:11, fontWeight:500, background:'#fdcb6e20', color:'#fdcb6e' }}>⭐ Featured</span>
+                        : <span style={{ ...S.badge('expired') }}>—</span>
+                      }
+                    </td>
+                    <td style={S.td}>
+                      <span style={{ fontSize:12, color:'#555', fontStyle: c.verification_note ? 'normal' : 'italic' }}>
+                        {c.verification_note || 'Chưa có'}
+                      </span>
+                    </td>
+                    <td style={S.td}>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {c.creator_verified ? (
+                          <button disabled={isActingVerify} onClick={() => doVerify(c, false, null)}
+                            style={{ ...S.rejectBtn, opacity: isActingVerify ? .5 : 1 }}>
+                            {isActingVerify ? '...' : '✕ Bỏ Verify'}
+                          </button>
+                        ) : (
+                          <button disabled={isActingVerify} onClick={() => setNoteModal({ creator: c })}
+                            style={{ ...S.approveBtn, opacity: isActingVerify ? .5 : 1 }}>
+                            {isActingVerify ? '...' : '✔ Verify'}
+                          </button>
+                        )}
+                        {c.creator_featured ? (
+                          <button disabled={isActingFeatured} onClick={() => doFeatured(c, false)}
+                            style={{ padding:'5px 12px', background:'#2a200e', border:'1px solid #fdcb6e50', borderRadius:6, color:'#fdcb6e', fontSize:12, fontWeight:600, cursor:'pointer', opacity: isActingFeatured ? .5 : 1 }}>
+                            {isActingFeatured ? '...' : '✕ Bỏ Feature'}
+                          </button>
+                        ) : (
+                          <button disabled={isActingFeatured} onClick={() => doFeatured(c, true)}
+                            style={{ padding:'5px 12px', background:'#1a180e', border:'1px solid #fdcb6e40', borderRadius:6, color:'#fdcb6e80', fontSize:12, fontWeight:600, cursor:'pointer', opacity: isActingFeatured ? .5 : 1 }}>
+                            {isActingFeatured ? '...' : '⭐ Feature'}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { token, user } = useAuth();
   const [tab, setTab]       = useState('withdrawals');
@@ -2337,6 +2553,7 @@ export default function Admin() {
           ['transactions','≡ Giao dịch'],
           ['charts',      '📊 Biểu đồ'],
           ['kyc',         '🪪 KYC'],
+          ['verification','✔ Xác minh Creator'],
           ['notify',      '📣 Thông báo'],
           ['quests',      '🏆 Quests'],
           ['checkin',     '🗓 Điểm danh'],
@@ -2350,19 +2567,20 @@ export default function Admin() {
         ))}
       </div>
 
-      {tab === 'withdrawals'  && <WithdrawalTab   token={token} showToast={showToast} />}
-      {tab === 'deposits'     && <DepositTab      token={token} showToast={showToast} />}
-      {tab === 'transactions' && <TransactionTab  token={token} />}
-      {tab === 'charts'       && <ChartsTab       token={token} />}
-      {tab === 'kyc'          && <KycTab              token={token} showToast={showToast} />}
-      {tab === 'notify'       && <NotificationTab    token={token} showToast={showToast} />}
-      {tab === 'quests'       && <QuestManagementTab token={token} showToast={showToast} />}
-      {tab === 'checkin'      && <CheckinAdminTab    token={token} />}
-      {tab === 'users'        && <UserManagementTab  token={token} showToast={showToast} />}
-      {tab === 'products'     && <ProductsAdminTab   token={token} showToast={showToast} />}
-      {tab === 'config'       && <ConfigTab          token={token} showToast={showToast} />}
-      {tab === 'devtools'     && <DevToolsTab        token={token} showToast={showToast} />}
-      {tab === 'giftcodes'    && <GiftCodeTab        token={token} showToast={showToast} />}
+      {tab === 'withdrawals'  && <WithdrawalTab        token={token} showToast={showToast} />}
+      {tab === 'deposits'     && <DepositTab           token={token} showToast={showToast} />}
+      {tab === 'transactions' && <TransactionTab       token={token} />}
+      {tab === 'charts'       && <ChartsTab            token={token} />}
+      {tab === 'kyc'          && <KycTab               token={token} showToast={showToast} />}
+      {tab === 'verification' && <CreatorVerificationTab token={token} showToast={showToast} />}
+      {tab === 'notify'       && <NotificationTab      token={token} showToast={showToast} />}
+      {tab === 'quests'       && <QuestManagementTab   token={token} showToast={showToast} />}
+      {tab === 'checkin'      && <CheckinAdminTab      token={token} />}
+      {tab === 'users'        && <UserManagementTab    token={token} showToast={showToast} />}
+      {tab === 'products'     && <ProductsAdminTab     token={token} showToast={showToast} />}
+      {tab === 'config'       && <ConfigTab            token={token} showToast={showToast} />}
+      {tab === 'devtools'     && <DevToolsTab          token={token} showToast={showToast} />}
+      {tab === 'giftcodes'    && <GiftCodeTab          token={token} showToast={showToast} />}
 
       {toast && <div style={S.toast}>{toast}</div>}
     </div>

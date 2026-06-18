@@ -218,7 +218,7 @@ export default function CreatorDashboard() {
   if (loading) return <div style={{ color: '#555', padding: '2rem' }}>Đang tải...</div>;
   if (!stats)  return <div style={{ color: '#ff6b6b', padding: '2rem' }}>Không thể tải dữ liệu</div>;
 
-  const { totals, topTippers, dailyEarnings, withdrawals, revenue30, todayRevenue, fanClubCount, productSalesTotal } = stats;
+  const { totals, topTippers, dailyEarnings, withdrawals, revenue30, todayRevenue, fanClubCount, productSalesTotal, creatorVerified, creatorFeatured, verificationNote } = stats;
   const maxTip = topTippers?.[0]?.total_xu || 1;
   const totalRevenue = Number(revenue30 || 0) + Number(productSalesTotal || 0);
   const convRate = totals?.total_tips > 0 && members?.length > 0
@@ -236,7 +236,29 @@ export default function CreatorDashboard() {
   return (
     <div>
       {toast && <div style={S.toast(toast.ok)}>{toast.msg}</div>}
-      <div style={S.h1}>Creator Dashboard</div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.75rem', flexWrap: 'wrap' }}>
+        <div style={S.h1}>Creator Dashboard</div>
+        {creatorVerified && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 14px', background: '#00b89420', border: '1px solid #00b89450', borderRadius: 20, fontSize: 13, fontWeight: 600, color: '#00b894' }}>
+            ✔ Verified Creator
+          </span>
+        )}
+        {creatorFeatured && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 14px', background: '#fdcb6e20', border: '1px solid #fdcb6e50', borderRadius: 20, fontSize: 13, fontWeight: 600, color: '#fdcb6e' }}>
+            ⭐ Featured Creator
+          </span>
+        )}
+        {!creatorVerified && !creatorFeatured && (
+          <span style={{ fontSize: 12, color: '#444', fontStyle: 'italic' }}>Chưa được xác minh</span>
+        )}
+      </div>
+
+      {creatorVerified && verificationNote && (
+        <div style={{ background: '#00b89410', border: '1px solid #00b89430', borderRadius: 8, padding: '8px 14px', marginBottom: 16, fontSize: 12, color: '#00b894' }}>
+          📝 Ghi chú xác minh: {verificationNote}
+        </div>
+      )}
 
       {totals?.total_tips === 0 && (
         <div style={S.alert}>

@@ -901,4 +901,70 @@ router.delete('/products/:id', async (req, res) => {
   }
 });
 
+// ── Phase 8: Creator Verification ────────────────────────────────────────────
+
+// GET /api/admin/creators — danh sách creator với trạng thái xác minh
+router.get('/creators', async (req, res) => {
+  try {
+    const search = (req.query.search || '').trim();
+    const { rows } = await query(`
+      SELECT
+        u.id, u.username, u.email, u.avatar_url, u.role,
+        u.creator_verified, u.creator_featured, u.verification_note,
+        u.created_at,
+        COALESCE(SUM(t.amount_xu), 0)::BIGINT AS total_tips,
+        COUNT(t.id)::INT                       AS tip_count,
+        COUNT(DISTINCT t.sender_id)::INT        AS supporter_count
+      FROM users u
+      LEFT JOIN tips t ON t.receiver_id = u.id
+      WHERE u.role IN ('creator','admin')
+        AND u.banned_at IS NULL
+        AND ($1 = '' OR u.username ILIKE '%' || $1 || '%')
+      GROUP BY u.id, u.username, u.email, u.avatar_url, u.role,
+               u.creator_verified, u.creator_featured, u.verification_note, u.created_at
+      ORDER BY u.creator_featured DESC, u.creator_verified DESC, total_tips DESC
+    `, [search]);
+    res.json({ creators: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/creator/:id/verify — cấp / thu hồi verified
+router.post('/creator/:id/verify', async (req, res) => {
+  try {
+    const { verified, note } = req.body;
+    const { rows: [user] } = await query(`
+      UPDATE users
+      SET creator_verified = $2,
+          verification_note = COALESCE($3, verification_note),
+          updated_at = NOW()
+      WHERE id = $1 AND role IN ('creator','admin')
+      RETURNING id, username, creator_verified, creator_featured, verification_note
+    `, [req.params.id, !!verified, note || null]);
+    if (!user) return res.status(404).json({ error: 'Creator không tồn tại' });
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/creator/:id/featured — cấp / thu hồi featured
+router.post('/creator/:id/featured', async (req, res) => {
+  try {
+    const { featured } = req.body;
+    const { rows: [user] } = await query(`
+      UPDATE users
+      SET creator_featured = $2,
+          updated_at = NOW()
+      WHERE id = $1 AND role IN ('creator','admin')
+      RETURNING id, username, creator_verified, creator_featured
+    `, [req.params.id, !!featured]);
+    if (!user) return res.status(404).json({ error: 'Creator không tồn tại' });
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

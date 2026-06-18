@@ -99,6 +99,12 @@ router.get('/stats', authMiddleware, async (req, res) => {
       LIMIT 10
     `, [userId]);
 
+    // Verification status
+    const { rows: [verInfo] } = await query(`
+      SELECT creator_verified, creator_featured, verification_note
+      FROM users WHERE id = $1
+    `, [userId]);
+
     res.json({
       totals,
       topTippers,
@@ -109,6 +115,9 @@ router.get('/stats', authMiddleware, async (req, res) => {
       todayRevenue:       revToday.revenue_today,
       fanClubCount:       fanClubRow.fan_club_count,
       productSalesTotal:  productRow.product_sales_total,
+      creatorVerified:    verInfo?.creator_verified || false,
+      creatorFeatured:    verInfo?.creator_featured || false,
+      verificationNote:   verInfo?.verification_note || null,
     });
   } catch (err) {
     console.error(err);

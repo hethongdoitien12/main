@@ -49,6 +49,7 @@
 | **Creator Economy — Phase 4: Creator Shop** | ✅ Xong |
 | **Creator Economy — Phase 5: Top Fans** | ✅ Xong |
 | **Creator Economy — Phase 6: Advanced Dashboard** | ✅ Xong |
+| **Phase 8: Creator Verification System** | ✅ Xong |
 | Deploy | 🔄 Sẵn sàng |
 
 ---
@@ -213,6 +214,21 @@ xu-economy/
 - [x] **Frontend:** 8 stat cards (total, today, 30 ngày, số dư, fan club, product, tips, conversion rate)
 - [x] **Frontend: Chart 30 ngày** (bar chart)
 - [x] **Frontend: Tabs:** Tổng quan / Doanh thu / Fan Club / Sản phẩm / Rút tiền
+
+---
+
+### ✅ TASK 15 — Phase 8: Creator Verification System (2026-06-18)
+- [x] **DB: 3 cột mới** — `creator_verified BOOLEAN DEFAULT FALSE`, `creator_featured BOOLEAN DEFAULT FALSE`, `verification_note TEXT` trong bảng `users` (migration an toàn với DO $$ IF NOT EXISTS)
+- [x] **Backend: `GET /api/creators`** — trả thêm `creator_verified`, `creator_featured`; filter `?verified=true`, `?featured=true`; sort ưu tiên: Featured → Verified → MT
+- [x] **Backend: `GET /api/creators/:id`** — trả thêm `creator_verified`, `creator_featured`, `verification_note`
+- [x] **Backend: `GET /api/creator/stats`** — trả thêm `creatorVerified`, `creatorFeatured`, `verificationNote`
+- [x] **Backend: `POST /api/admin/creator/:id/verify`** — cấp/thu hồi verified + lưu note
+- [x] **Backend: `POST /api/admin/creator/:id/featured`** — cấp/thu hồi featured
+- [x] **Backend: `GET /api/admin/creators`** — danh sách creator với trạng thái xác minh, total_tips, sort featured→verified→tips
+- [x] **Frontend: `CreatorProfile.jsx`** — badge ✔ Verified Creator + ⭐ Featured Creator cạnh username
+- [x] **Frontend: `TopCreators.jsx`** — 2 filter button (✔ Verified / ⭐ Featured), badge trong list, sort theo backend
+- [x] **Frontend: `Admin.jsx`** — tab "✔ Xác minh Creator": bảng creators, nút Verify/Bỏ Verify (có modal ghi chú), nút Feature/Bỏ Feature, stat 4 ô
+- [x] **Frontend: `CreatorDashboard.jsx`** — hiển thị badge trạng thái Verified/Featured/Chưa xác minh + ghi chú xác minh
 
 ---
 
