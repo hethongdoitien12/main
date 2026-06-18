@@ -132,7 +132,10 @@ export default function Layout() {
         <div style={S.userBox}>
           <div style={S.avatar}>{user?.username?.[0]?.toUpperCase()}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#ddd', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.username}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#ddd', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+              {user?.username}
+              {user?.kyc_status === 'verified' && <span title="Đã xác minh KYC" style={{ fontSize: 13, lineHeight: 1 }}>✨</span>}
+            </div>
             <div style={{ fontSize: 11, color: '#555', textTransform: 'capitalize' }}>{user?.role}</div>
           </div>
           <button onClick={() => { logout(); navigate('/login'); }} style={{ background: 'none', border: 'none', color: '#555', fontSize: 16, padding: 4 }} title="Đăng xuất">⏻</button>

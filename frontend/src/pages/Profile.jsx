@@ -142,7 +142,12 @@ export default function Profile() {
             <div style={S.avatar(avatarUrl)}>
               {!avatarUrl && (profile.username?.[0]?.toUpperCase() || '?')}
             </div>
-            <span style={S.badge(profile.role)}>{profile.role}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={S.badge(profile.role)}>{profile.role}</span>
+              {kyc?.kyc_status === 'verified' && (
+                <span title="Đã xác minh KYC" style={{ fontSize: 18, lineHeight: 1 }}>✨</span>
+              )}
+            </div>
           </div>
 
           {msg && <div style={msg.type === 'success' ? S.success : S.err}>{msg.text}</div>}
