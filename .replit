@@ -51,3 +51,6 @@ ZALOPAY_APP_ID = "2553"
 ZALOPAY_ENDPOINT = "https://sb-openapi.zalopay.vn"
 BACKEND_URL = "https://200572ca-3d8a-441c-ac4a-556d5d4879dd-00-2hqzoidsf73mh.pike.replit.dev"
 JWT_SECRET = "0446b2ced3cce98cb85a827756d159dff782dd8214cece4096f965ae932b9e1b"
+
+[deployment]
+deploymentTarget = "cloudrun"

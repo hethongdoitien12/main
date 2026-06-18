@@ -49,6 +49,7 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -68,6 +69,7 @@ export default function Profile() {
         setProfile(data);
         setUsername(data.username || '');
         setAvatarUrl(data.avatar_url || '');
+        setBio(data.bio || '');
       })
       .catch(() => {});
   }, [token]);
@@ -105,7 +107,7 @@ export default function Profile() {
       const res = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ username, avatar_url: avatarUrl }),
+        body: JSON.stringify({ username, avatar_url: avatarUrl, bio }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -119,7 +121,11 @@ export default function Profile() {
     } finally { setSaving(false); }
   };
 
-  const changed = profile && (username !== profile.username || avatarUrl !== (profile.avatar_url || ''));
+  const changed = profile && (
+    username !== profile.username ||
+    avatarUrl !== (profile.avatar_url || '') ||
+    bio !== (profile.bio || '')
+  );
 
   if (!profile) return <div style={{ color: '#555', padding: '2rem' }}>Đang tải...</div>;
 
@@ -148,6 +154,15 @@ export default function Profile() {
           <label style={S.label}>Avatar URL</label>
           <input style={S.input} value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)}
             placeholder="https://... (để trống để dùng ký tự)" />
+
+          <label style={S.label}>Bio (tối đa 300 ký tự)</label>
+          <textarea
+            style={{ ...S.input, height: 72, resize: 'vertical', marginBottom: '1.25rem' }}
+            value={bio} onChange={e => setBio(e.target.value)}
+            placeholder="Giới thiệu ngắn về bạn..."
+            maxLength={300}
+          />
+          <div style={{ fontSize: 11, color: '#444', marginTop: -16, marginBottom: '1.25rem', textAlign: 'right' }}>{bio.length}/300</div>
 
           <label style={S.label}>Email</label>
           <input style={{ ...S.input, color: '#555', cursor: 'not-allowed' }} value={profile.email} disabled />

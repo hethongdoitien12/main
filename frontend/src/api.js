@@ -80,6 +80,27 @@ export const api = {
     adminUpdate:    (id,b,t)  => req('PATCH', `/shop/admin/items/${id}`, b, t),
     adminPurchases: (t)       => req('GET',   '/shop/admin/purchases', null, t),
   },
+  creators: {
+    list:      (p, t)  => req('GET',  `/creators?${new URLSearchParams(p||{})}`, null, t),
+    get:       (id, t) => req('GET',  `/creators/${id}`, null, t),
+  },
+  fanclub: {
+    myTiers:      (t)      => req('GET',  '/fanclub/my-tiers', null, t),
+    saveTier:     (b, t)   => req('POST', '/fanclub/tiers', b, t),
+    deleteTier:   (id, t)  => req('DELETE', `/fanclub/tiers/${id}`, null, t),
+    members:      (t)      => req('GET',  '/fanclub/members', null, t),
+    join:         (id, t)  => req('POST', `/fanclub/join/${id}`, {}, t),
+    myMemberships:(t)      => req('GET',  '/fanclub/my-memberships', null, t),
+    adminRevenue: (t)      => req('GET',  '/fanclub/admin/revenue', null, t),
+  },
+  creatorProducts: {
+    create:    (b, t)      => req('POST',   '/creator-products', b, t),
+    update:    (id, b, t)  => req('PATCH',  `/creator-products/${id}`, b, t),
+    remove:    (id, t)     => req('DELETE', `/creator-products/${id}`, null, t),
+    mine:      (t)         => req('GET',    '/creator-products/mine', null, t),
+    buy:       (id, t)     => req('POST',   `/creator-products/${id}/buy`, {}, t),
+    myOrders:  (t)         => req('GET',    '/creator-products/my-orders', null, t),
+  },
   admin: {
     checkinStats:   (t)    => req('GET',  '/admin/checkin/stats', null, t),
     stats:          (t)    => req('GET',  '/admin/stats', null, t),

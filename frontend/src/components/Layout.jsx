@@ -18,7 +18,8 @@ const S = {
     fontSize: 18, fontWeight: 700, color: '#fff'
   },
   logoText: { fontSize: 17, fontWeight: 700, color: '#fff' },
-  nav: { padding: '1rem .75rem', flex: 1 },
+  nav: { padding: '1rem .75rem', flex: 1, overflowY: 'auto' },
+  navSection: { fontSize: 10, color: '#333', textTransform: 'uppercase', letterSpacing: '.08em', padding: '10px 12px 4px' },
   navItem: (active) => ({
     display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
     borderRadius: 8, marginBottom: 2, fontSize: 14, fontWeight: 500,
@@ -51,20 +52,45 @@ const S = {
   main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
 };
 
-const NAV = [
-  { to: '/', label: 'Tổng quan', icon: '◈', exact: true },
-  { to: '/wallet', label: 'Ví MT', icon: '◎' },
-  { to: '/quests', label: 'Nhiệm vụ', icon: '◆' },
-  { to: '/gifting', label: 'Tip & Gift', icon: '♥' },
-  { to: '/history', label: 'Lịch sử', icon: '≡' },
-  { to: '/leaderboard',   label: 'Xếp hạng',    icon: '◈' },
-  { to: '/top-creators',  label: 'Top Creators', icon: '🌟' },
-  { to: '/checkin',     label: 'Điểm danh', icon: '🗓' },
-  { to: '/shop',    label: 'Cửa hàng',  icon: '🛍' },
-  { to: '/referral', label: 'Giới thiệu', icon: '◇' },
-  { to: '/profile', label: 'Hồ sơ', icon: '◉' },
-  { to: '/creator', label: 'Creator', icon: '★', creatorOnly: true },
-  { to: '/admin', label: 'Admin', icon: '⊛', adminOnly: true },
+const NAV_SECTIONS = [
+  {
+    label: 'Tổng quan',
+    items: [
+      { to: '/',          label: 'Dashboard',   icon: '◈', exact: true },
+      { to: '/wallet',    label: 'Ví MT',        icon: '◎' },
+      { to: '/history',   label: 'Lịch sử',      icon: '≡' },
+    ],
+  },
+  {
+    label: 'Khám phá',
+    items: [
+      { to: '/creators',    label: 'Creators',     icon: '🌟' },
+      { to: '/gifting',     label: 'Tip & Gift',   icon: '♥' },
+      { to: '/leaderboard', label: 'Xếp hạng',     icon: '◈' },
+      { to: '/shop',        label: 'Cửa hàng',     icon: '🛍' },
+    ],
+  },
+  {
+    label: 'Tôi',
+    items: [
+      { to: '/quests',   label: 'Nhiệm vụ',    icon: '◆' },
+      { to: '/checkin',  label: 'Điểm danh',   icon: '🗓' },
+      { to: '/referral', label: 'Giới thiệu',  icon: '◇' },
+      { to: '/profile',  label: 'Hồ sơ',       icon: '◉' },
+    ],
+  },
+  {
+    label: 'Creator',
+    items: [
+      { to: '/creator', label: 'Dashboard', icon: '★', creatorOnly: true },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { to: '/admin', label: 'Admin Panel', icon: '⊛', adminOnly: true },
+    ],
+  },
 ];
 
 export default function Layout() {
@@ -75,18 +101,27 @@ export default function Layout() {
     <div style={S.shell}>
       <aside style={S.sidebar}>
         <div style={S.logo}>
-          <div style={S.logoIcon}>X</div>
+          <div style={S.logoIcon}>M</div>
           <span style={S.logoText}>MT Economy</span>
         </div>
         <nav style={S.nav}>
-          {NAV.filter(n =>
-            (!n.adminOnly   || user?.role === 'admin') &&
-            (!n.creatorOnly || user?.role === 'creator' || user?.role === 'admin')
-          ).map(({ to, label, icon, exact }) => (
-            <NavLink key={to} to={to} end={exact} style={({ isActive }) => S.navItem(isActive)}>
-              <span style={{ fontSize: 16 }}>{icon}</span> {label}
-            </NavLink>
-          ))}
+          {NAV_SECTIONS.map(section => {
+            const visibleItems = section.items.filter(n =>
+              (!n.adminOnly   || user?.role === 'admin') &&
+              (!n.creatorOnly || user?.role === 'creator' || user?.role === 'admin')
+            );
+            if (!visibleItems.length) return null;
+            return (
+              <div key={section.label}>
+                <div style={S.navSection}>{section.label}</div>
+                {visibleItems.map(({ to, label, icon, exact }) => (
+                  <NavLink key={to} to={to} end={exact} style={({ isActive }) => S.navItem(isActive)}>
+                    <span style={{ fontSize: 16 }}>{icon}</span> {label}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
         <div style={S.balanceBox}>
           <div style={S.balanceLbl}>Số dư</div>
@@ -103,7 +138,6 @@ export default function Layout() {
       </aside>
 
       <div style={S.main}>
-        {/* Top bar với bell */}
         <div style={S.topbar}>
           <NotificationBell />
         </div>

@@ -42,6 +42,12 @@
 | KYC Placeholder | ✅ Xong |
 | KYC nâng cấp (ảnh + modal Admin) | ✅ Xong |
 | Replit Migration | ✅ Xong |
+| **Creator Economy — Phase 1: /creators** | ✅ Xong |
+| **Creator Economy — Phase 2: /creator/:id** | ✅ Xong |
+| **Creator Economy — Phase 3: Fan Club** | ✅ Xong |
+| **Creator Economy — Phase 4: Creator Shop** | ✅ Xong |
+| **Creator Economy — Phase 5: Top Fans** | ✅ Xong |
+| **Creator Economy — Phase 6: Advanced Dashboard** | ✅ Xong |
 | Deploy | 🔄 Sẵn sàng |
 
 ---
@@ -54,12 +60,12 @@ xu-economy/
 │   ├── src/
 │   │   ├── db/             ← migrate.js, seed.js, seed-if-empty.js, pool.js
 │   │   ├── middleware/     ← auth.js (JWT verify)
-│   │   ├── routes/         ← auth, wallet, quests, events, admin, creator...
-│   │   └── services/       ← ledger.js, cron.js, gateways/momo, gateways/zalopay
+│   │   ├── routes/         ← auth, wallet, quests, events, admin, creator, creators, fanclub, creatorProducts...
+│   │   └── services/       ← ledger.js, cron.js, gateways/momo, gateways/zalopay, notifier.js
 │   └── package.json
 ├── frontend/               ← React + Vite (port 5000)
 │   ├── src/
-│   │   ├── pages/          ← Dashboard, Wallet, Quests, History, Admin...
+│   │   ├── pages/          ← Dashboard, Wallet, Quests, History, Admin, Creators, CreatorProfile, CreatorDashboard...
 │   │   ├── components/     ← Layout, sidebar nav
 │   │   └── hooks/          ← useAuth, useSSE
 │   └── vite.config.js      ← proxy /api → localhost:3001
@@ -72,61 +78,109 @@ xu-economy/
 ## 🔢 THỨ TỰ BUILD — LÀM THEO THỨ TỰ NÀY
 
 ### ✅ TASK 1 — Real-time SSE (Live gift feed + Balance auto-refresh)
-- [x] **Backend: SSE endpoint** `GET /api/stream` — giữ kết nối, push event khi có tip/gift mới
-- [x] **Backend: Gửi event SSE** khi `tip_received` — notif qua SSE thay vì chỉ polling
-- [x] **Frontend: Live gift feed** trong `Gifting.jsx` — connect SSE, hiển thị gift cuộn realtime
-- [x] **Frontend: Balance auto-refresh** — lắng nghe SSE event `balance_update`, cập nhật số dư không cần F5
-
-> ⚠️ Chú ý: Replit proxy không hỗ trợ tốt SSE long-lived connection — dùng `EventSource` với `retry` tự động, set header `X-Accel-Buffering: no` ở backend.
+- [x] **Backend: SSE endpoint** `GET /api/stream`
+- [x] **Backend: Gửi event SSE** khi `tip_received`
+- [x] **Frontend: Live gift feed** trong `Gifting.jsx`
+- [x] **Frontend: Balance auto-refresh** — lắng nghe SSE event `balance_update`
 
 ---
 
 ### ✅ TASK 2 — Trang Profile (`/profile`)
-- [x] **Backend: `GET /api/user/profile`** — trả về username, email, avatar_url, role, created_at, referral stats
-- [x] **Backend: `PATCH /api/user/profile`** — cập nhật username, avatar_url (validate unique username)
-- [x] **Frontend: Page `Profile.jsx`** — form đổi username, ô nhập avatar URL, hiển thị stats cá nhân (tổng xu đã kiếm, đã tiêu, ngày tham gia)
-- [x] **Frontend: Thêm link `/profile`** vào sidebar `Layout.jsx`
+- [x] **Backend: `GET /api/user/profile`** + bio field
+- [x] **Backend: `PATCH /api/user/profile`** — cập nhật username, avatar, bio
+- [x] **Frontend: Page `Profile.jsx`** — form đổi username, avatar, bio
+- [x] **Frontend: Thêm link `/profile`** vào sidebar
 
 ---
 
 ### ✅ TASK 3 — Creator Dashboard (`/creator`)
-- [x] **Backend: `GET /api/creator/stats`** — tổng xu nhận, top 10 người tip, tip theo ngày (7 ngày gần nhất), withdrawal history
-- [x] **Frontend: Page `CreatorDashboard.jsx`** — chỉ hiển thị nếu `role === 'creator'`, bảng top tippers, biểu đồ thu nhập 7 ngày, nút rút tiền nhanh
+- [x] **Backend: `GET /api/creator/stats`** — tổng xu nhận, top 10 người tip, tip theo ngày (7 ngày), revenue 30 ngày, hôm nay, fan club count, product sales
+- [x] **Frontend: Page `CreatorDashboard.jsx`** nâng cao — 4 stat card, biểu đồ, fan club setup, product CRUD, rút tiền
 - [x] **Frontend: Thêm link `/creator`** vào sidebar (chỉ hiện với creator)
 
 ---
 
 ### ✅ TASK 4 — Admin: Biểu đồ + Export CSV
-- [x] **Backend: `GET /api/admin/chart-data`** — doanh thu theo ngày 30 ngày gần nhất, số user mới theo ngày
-- [x] **Frontend: Chart trong `Admin.jsx`** — dùng `recharts`, 2 chart: doanh thu VND + user mới
-- [x] **Backend: `GET /api/admin/export/transactions`** — xuất CSV ledger entries (filter by date range)
-- [x] **Backend: `GET /api/admin/export/users`** — xuất CSV danh sách users
-- [x] **Frontend: Nút Export CSV** trong Admin — download file thẳng từ API
+- [x] **Backend: `GET /api/admin/chart-data`**
+- [x] **Frontend: Chart trong `Admin.jsx`**
+- [x] **Backend: `GET /api/admin/export/transactions`**
+- [x] **Backend: `GET /api/admin/export/users`**
+- [x] **Frontend: Nút Export CSV** trong Admin
 
 ---
 
 ### ✅ TASK 5 — Admin: Approve Deposit Thủ Công
-- [x] **Backend: `POST /api/admin/deposits/:id/approve`** — admin confirm deposit ngân hàng thủ công, cộng MT vào ví
-- [x] **Backend: `POST /api/admin/deposits/:id/reject`** — từ chối, cập nhật status
-- [x] **Frontend: Tab "Nạp chờ duyệt"** trong `Admin.jsx` — danh sách deposit pending, nút Approve/Reject từng cái
+- [x] **Backend: `POST /api/admin/deposits/:id/approve`**
+- [x] **Backend: `POST /api/admin/deposits/:id/reject`**
+- [x] **Frontend: Tab "Nạp chờ duyệt"** trong `Admin.jsx`
 
 ---
 
 ### ✅ TASK 6 — KYC Placeholder
-- [x] **Backend: Thêm cột `kyc_status`** vào bảng `users` — `'none' | 'pending' | 'verified'`, default `'none'`
-- [x] **Backend: Chặn rút** nếu `amount_xu > 1_000_000` và `kyc_status !== 'verified'` — trả lỗi rõ ràng
-- [x] **Backend: `POST /api/user/kyc/submit`** — user nộp thông tin (tên, CCCD mock), set `kyc_status = 'pending'`
-- [x] **Backend: `POST /api/admin/kyc/:userId/approve`** — admin duyệt KYC, set `kyc_status = 'verified'`
-- [x] **Frontend: Banner KYC** trong trang Wallet khi số dư > 800,000 MT — nhắc user xác minh trước khi rút lớn
+- [x] Thêm cột `kyc_status` vào bảng `users`
+- [x] Chặn rút nếu amount > 1M và chưa KYC
+- [x] `POST /api/user/kyc/submit`
+- [x] `POST /api/admin/kyc/:userId/approve`
+- [x] Banner KYC trong trang Wallet
 
 ---
 
 ### ✅ TASK 7 — Deploy
-- [x] **Frontend build test** — chạy `npm run build` trong `frontend/`, fix lỗi nếu có
-- [x] **Backend production config** — khi `NODE_ENV=production`: tắt stack trace trong error handler, bật `trust proxy`
-- [x] **Replit Migration** — secrets chuyển vào Replit Secrets, DB dùng Replit PostgreSQL, `.env` không còn cần thiết
+- [x] **Frontend build test**
+- [x] **Backend production config**
+- [x] **Replit Migration**
 - [ ] **Deploy trên Replit** — nhấn **Publish** trong Replit UI → app lên `.replit.app`
 - [ ] **Kiểm tra IPN webhook URL** — sau khi deploy, cập nhật `BACKEND_URL` trong Secrets thành URL production
+
+---
+
+### ✅ TASK 8 — Creator Economy Phase 1: /creators (2025-06-18)
+- [x] **Backend: `GET /api/creators`** — danh sách creator (sort by tips, search)
+- [x] **Frontend: Page `Creators.jsx`** — grid cards, search, avatar, stats, nút Tặng quà
+- [x] **Layout: Thêm link `/creators`** vào sidebar section "Khám phá"
+
+---
+
+### ✅ TASK 9 — Creator Economy Phase 2+5: /creator/:id (2025-06-18)
+- [x] **Backend: `GET /api/creators/:id`** — creator info, top fans, recent gifts, fan club tiers, products
+- [x] **Frontend: Page `CreatorProfile.jsx`** — hero card, tabs (Tổng quan / Fan Club / Sản phẩm / Top Fans)
+- [x] **Top Fans leaderboard** trong tab "Top Fans"
+- [x] **Recent gifts** trong tab "Tổng quan"
+- [x] **Nút "Tặng quà ngay"** liên kết tới /gifting với pre-selected creator
+
+---
+
+### ✅ TASK 10 — Creator Economy Phase 3: Fan Club (2025-06-18)
+- [x] **DB: Bảng `fan_club_tiers`, `fan_club_memberships`, `fan_club_payments`**
+- [x] **Backend: `POST /api/fanclub/tiers`** — creator tạo/cập nhật tier (Bronze/Silver/Gold)
+- [x] **Backend: `GET /api/fanclub/my-tiers`** — creator xem tiers của mình
+- [x] **Backend: `GET /api/fanclub/members`** — danh sách members
+- [x] **Backend: `POST /api/fanclub/join/:tierId`** — user tham gia Fan Club (deduct MT, credit creator 90%)
+- [x] **Backend: `GET /api/fanclub/my-memberships`** — user xem membership
+- [x] **Backend: `GET /api/fanclub/admin/revenue`** — admin xem doanh thu
+- [x] **Frontend: Fan Club tab** trong CreatorProfile — hiển thị tiers, nút tham gia
+- [x] **Frontend: Fan Club setup** trong CreatorDashboard — CRUD tiers
+
+---
+
+### ✅ TASK 11 — Creator Economy Phase 4: Creator Shop (2025-06-18)
+- [x] **DB: Bảng `creator_products`, `creator_orders`**
+- [x] **Backend: `POST /api/creator-products`** — creator tạo sản phẩm
+- [x] **Backend: `PATCH /api/creator-products/:id`** — creator cập nhật
+- [x] **Backend: `DELETE /api/creator-products/:id`** — creator ẩn sản phẩm
+- [x] **Backend: `GET /api/creator-products/mine`** — danh sách sản phẩm creator
+- [x] **Backend: `POST /api/creator-products/:id/buy`** — user mua (deduct MT, credit creator 90%)
+- [x] **Backend: `GET /api/creator-products/my-orders`** — lịch sử mua của user
+- [x] **Frontend: Products tab** trong CreatorProfile — grid sản phẩm, nút mua
+- [x] **Frontend: Products tab** trong CreatorDashboard — CRUD sản phẩm
+
+---
+
+### ✅ TASK 12 — Creator Economy Phase 6: Advanced Dashboard (2025-06-18)
+- [x] **Backend stats mở rộng:** revenue30, todayRevenue, fanClubCount, productSalesTotal, dailyEarnings30
+- [x] **Frontend:** 8 stat cards (total, today, 30 ngày, số dư, fan club, product, tips, conversion rate)
+- [x] **Frontend: Chart 30 ngày** (bar chart)
+- [x] **Frontend: Tabs:** Tổng quan / Doanh thu / Fan Club / Sản phẩm / Rút tiền
 
 ---
 
@@ -144,33 +198,46 @@ xu-economy/
 - Route Quests: list, progress, claim, admin-create
 - Route Events: trigger 10 loại action
 - Route Withdrawals: mine, queue, approve/reject
-- Route Admin: stats, user list, adjust balance, chart-data, export CSV
+- Route Admin: stats, user list, adjust balance, chart-data, export CSV, fan club revenue
 - Route Notifications: list, read, delete
 - Route Referral: my-code, use, stats
 - Route Stream: SSE endpoint
-- Route User: profile get/update, KYC submit
-- Route Creator: stats dashboard
+- Route User: profile get/update (username, avatar, bio), KYC submit
+- Route Creator: stats dashboard nâng cao (revenue30, todayRevenue, fanClubCount, productSalesTotal)
+- Route Creators: GET /api/creators (list), GET /api/creators/:id (profile)
+- Route Fan Club: tiers CRUD, join, my-memberships, members, admin revenue
+- Route Creator Products: CRUD, buy, my-orders
 - Route Checkin: daily check-in
 - Service Ledger: double-entry, idempotency key
 - Service QuestTrigger: auto-award MT
 - Gateway MoMo + ZaloPay (sandbox)
-- MoMo IPN Webhook (`POST /api/wallet/momo/ipn`)
-- ZaloPay IPN Webhook (`POST /api/wallet/zalopay/ipn`)
-- Cronjob: MT expiry 01:00 GMT+7 + cleanup pending mỗi 30 phút
-- Security: `helmet` + rate limit (auth 5/phút, API 100/phút)
+- MoMo IPN + ZaloPay IPN Webhooks
+- Cronjob: MT expiry + cleanup pending
+- Security: helmet + rate limit
 
 ### Frontend
 - React + Vite, proxy `/api` → port 3001
 - React Router v6, PrivateRoute
-- API client với Bearer token
-- Hook `useAuth` — context, login, logout, persist
+- Hook `useAuth` — context, login, logout, persist, refreshWallet
 - Hook `useSSE` — real-time events
-- Layout + sidebar nav
-- Pages: Login, Register, Dashboard, Wallet, Quests, History, Admin, Gifting, Referral, PaymentResult, Profile, CreatorDashboard
+- Layout + sidebar nav (sections: Tổng quan / Khám phá / Tôi / Creator / Admin)
+- Pages: Login, Register, Dashboard, Wallet, Quests, History, Admin, Gifting, Referral, PaymentResult, Profile, CreatorDashboard, Leaderboard, TopCreators, Checkin, Shop
+- **NEW Pages:** Creators (/creators), CreatorProfile (/creator/:id)
+- **Creators page:** grid cards, search, avatar, stats (MT nhận, lượt tip, fans), nút tặng quà
+- **CreatorProfile page:** hero card, 4 tabs (Tổng quan / Fan Club / Sản phẩm / Top Fans), join fan club, buy products, recent gifts
+- **CreatorDashboard (enhanced):** 8 stat cards, 5 tabs, chart 30 ngày, fan club setup, product CRUD
+
+### Database (new tables)
+- `fan_club_tiers` — creator defines Bronze/Silver/Gold tiers
+- `fan_club_memberships` — user subscriptions (30 ngày)
+- `fan_club_payments` — payment history
+- `creator_products` — digital products (ebook, template, preset, source_code, prompt_ai, other)
+- `creator_orders` — purchase records
+- `users.bio` column — creator bio text
 
 ### Replit
 - Workflow tự chạy khi mở project (`bash start.sh`)
-- Tất cả secrets trong Replit Secrets (không có trong code)
+- Tất cả secrets trong Replit Secrets
 - DB dùng Replit PostgreSQL (tự quản lý)
 - DB đã migrate + seed xong
 
@@ -223,56 +290,74 @@ POST /api/auth/login      { email, password }
 ### Wallet (cần Bearer token)
 ```
 GET  /api/wallet/balance          — số dư ví
-POST /api/wallet/deposit/create   — nạp tiền { amountVnd, paymentMethod }
-POST /api/wallet/spend            — tiêu MT  { amount, type, itemId, description }
-POST /api/wallet/tip              — tip       { receiverId, amountXu, message }
-GET  /api/wallet/history          — lịch sử  ?limit=20&offset=0&type=...
-GET  /api/wallet/platform-stats   — (admin) thống kê toàn nền tảng
-POST /api/wallet/momo/ipn         — MoMo IPN webhook
-POST /api/wallet/zalopay/ipn      — ZaloPay IPN webhook
+POST /api/wallet/deposit/create   — nạp tiền
+POST /api/wallet/spend            — tiêu MT
+POST /api/wallet/tip              — tip creator
+GET  /api/wallet/history          — lịch sử
+GET  /api/wallet/platform-stats   — (admin) thống kê
 ```
 
-### Quests (cần Bearer token)
+### Creators (public, cần Bearer token)
 ```
-GET  /api/quests              — danh sách quest + tiến trình user
-POST /api/quests/:id/progress — cập nhật tiến trình { action, count }
-POST /api/quests/:id/claim    — nhận thưởng
-POST /api/quests              — (admin) tạo quest mới
+GET /api/creators               — danh sách creator (search, sort by tips)
+GET /api/creators/:id           — profile creator (topFans, recentGifts, fanClubTiers, products)
+```
+
+### Fan Club (cần Bearer token)
+```
+POST   /api/fanclub/tiers           — (creator) tạo/cập nhật tier
+GET    /api/fanclub/my-tiers        — (creator) tiers của mình
+DELETE /api/fanclub/tiers/:id       — (creator) xóa tier
+GET    /api/fanclub/members         — (creator) danh sách members
+POST   /api/fanclub/join/:tierId    — (user) tham gia Fan Club
+GET    /api/fanclub/my-memberships  — (user) memberships của mình
+GET    /api/fanclub/admin/revenue   — (admin) doanh thu Fan Club
+```
+
+### Creator Products (cần Bearer token)
+```
+POST   /api/creator-products         — (creator) tạo sản phẩm
+PATCH  /api/creator-products/:id     — (creator) cập nhật
+DELETE /api/creator-products/:id     — (creator) ẩn sản phẩm
+GET    /api/creator-products/mine    — (creator) sản phẩm của mình
+POST   /api/creator-products/:id/buy — (user) mua sản phẩm
+GET    /api/creator-products/my-orders — (user) lịch sử mua
+```
+
+### Creator Dashboard (cần creator/admin token)
+```
+GET /api/creator/stats   — dashboard nâng cao (revenue30, todayRevenue, fanClubCount, productSalesTotal, dailyEarnings30)
 ```
 
 ### Admin (cần admin token)
 ```
-GET  /api/admin/stats                     — tổng quan hệ thống
-GET  /api/admin/users                     — danh sách users
-POST /api/admin/users/:id/adjust          — điều chỉnh số dư
-GET  /api/admin/chart-data                — dữ liệu chart 30 ngày
-GET  /api/admin/export/transactions       — xuất CSV giao dịch
-GET  /api/admin/export/users              — xuất CSV users
-POST /api/admin/deposits/:id/approve      — duyệt nạp thủ công
-POST /api/admin/deposits/:id/reject       — từ chối nạp
-POST /api/admin/kyc/:userId/approve       — duyệt KYC
+GET  /api/admin/stats
+GET  /api/admin/users
+POST /api/admin/users/:id/adjust
+GET  /api/admin/chart-data
+GET  /api/admin/export/transactions
+GET  /api/admin/export/users
+POST /api/admin/deposits/:id/approve
+POST /api/admin/deposits/:id/reject
+POST /api/admin/kyc/:userId/approve
+GET  /api/fanclub/admin/revenue
 ```
 
 ### User (cần Bearer token)
 ```
-GET   /api/user/profile       — thông tin profile
-PATCH /api/user/profile       — cập nhật username, avatar
+GET   /api/user/profile       — thông tin profile (bao gồm bio)
+PATCH /api/user/profile       — cập nhật username, avatar, bio
 POST  /api/user/kyc/submit    — nộp thông tin KYC
-```
-
-### Creator (cần creator/admin token)
-```
-GET /api/creator/stats   — dashboard creator: top tippers, biểu đồ 7 ngày
 ```
 
 ### Khác
 ```
 GET /api/stream          — SSE real-time stream
-GET /api/events          — danh sách events
-GET /api/checkin/today   — trạng thái check-in hôm nay
+GET /api/checkin/status  — trạng thái check-in hôm nay
 POST /api/checkin        — check-in hàng ngày
 GET  /api/notifications  — thông báo
 GET  /api/referral/my-code — mã giới thiệu
+GET  /api/shop/items       — shop items
 ```
 
 ---
@@ -283,6 +368,8 @@ GET  /api/referral/my-code — mã giới thiệu
 |-------|-------|
 | Phí rút MT ra VNĐ | 10% |
 | Phí tip creator | 5% |
+| Phí Fan Club | 10% |
+| Phí Creator Products | 10% |
 | Float (tiền nạp chưa tiêu) | lãi ngân hàng |
 | MT miễn phí expire sau 90 ngày | 100% |
 

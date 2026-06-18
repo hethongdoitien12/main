@@ -385,6 +385,113 @@ INSERT INTO shop_items (name, description, category, icon, price_mt, is_limited)
   ('Gói Exclusive Member',    'Quyền lợi thành viên đặc biệt trong 30 ngày',          'exclusive', '👑', 100000, true)
 ON CONFLICT DO NOTHING;
 
+-- ─── Creator Economy Extensions ──────────────────────────────────────────────
+
+-- bio column on users
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='bio') THEN
+    ALTER TABLE users ADD COLUMN bio TEXT DEFAULT NULL;
+  END IF;
+END $$;
+
+-- Fan Club Tiers (creator defines)
+CREATE TABLE IF NOT EXISTS fan_club_tiers (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        VARCHAR(50) NOT NULL,          -- Bronze / Silver / Gold
+  level       SMALLINT NOT NULL DEFAULT 1,   -- 1=Bronze 2=Silver 3=Gold
+  price_mt    BIGINT NOT NULL CHECK (price_mt > 0),
+  description TEXT,
+  perks       TEXT[],
+  is_active   BOOLEAN DEFAULT true,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(creator_id, level)
+);
+CREATE INDEX IF NOT EXISTS idx_fan_tiers_creator ON fan_club_tiers(creator_id);
+
+-- Fan Club Memberships
+CREATE TABLE IF NOT EXISTS fan_club_memberships (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  creator_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tier_id     UUID NOT NULL REFERENCES fan_club_tiers(id),
+  status      VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active','expired','cancelled')),
+  started_at  TIMESTAMPTZ DEFAULT NOW(),
+  expires_at  TIMESTAMPTZ NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, creator_id)
+);
+CREATE INDEX IF NOT EXISTS idx_memberships_user    ON fan_club_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_memberships_creator ON fan_club_memberships(creator_id, status);
+
+-- Fan Club Payments
+CREATE TABLE IF NOT EXISTS fan_club_payments (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  membership_id UUID NOT NULL REFERENCES fan_club_memberships(id) ON DELETE CASCADE,
+  user_id       UUID NOT NULL REFERENCES users(id),
+  creator_id    UUID NOT NULL REFERENCES users(id),
+  tier_id       UUID NOT NULL REFERENCES fan_club_tiers(id),
+  amount_mt     BIGINT NOT NULL,
+  platform_fee  BIGINT DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_fanpayments_creator ON fan_club_payments(creator_id, created_at DESC);
+
+-- Creator Products (digital goods)
+CREATE TABLE IF NOT EXISTS creator_products (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title        VARCHAR(200) NOT NULL,
+  description  TEXT,
+  type         VARCHAR(30) NOT NULL CHECK (type IN ('ebook','template','preset','source_code','prompt_ai','other')),
+  price_mt     BIGINT NOT NULL CHECK (price_mt > 0),
+  thumbnail_url TEXT,
+  download_url TEXT,
+  is_active    BOOLEAN DEFAULT true,
+  sold_count   INTEGER DEFAULT 0,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_products_creator ON creator_products(creator_id, is_active);
+
+-- Creator Orders
+CREATE TABLE IF NOT EXISTS creator_orders (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id   UUID NOT NULL REFERENCES creator_products(id),
+  buyer_id     UUID NOT NULL REFERENCES users(id),
+  creator_id   UUID NOT NULL REFERENCES users(id),
+  amount_mt    BIGINT NOT NULL,
+  platform_fee BIGINT DEFAULT 0,
+  status       VARCHAR(20) DEFAULT 'completed' CHECK (status IN ('pending','completed','refunded')),
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(product_id, buyer_id)
+);
+CREATE INDEX IF NOT EXISTS idx_orders_buyer   ON creator_orders(buyer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_creator ON creator_orders(creator_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_product ON creator_orders(product_id);
+
+-- Update ledger constraint to include new types
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'ledger_entries_type_check'
+      AND check_clause LIKE '%membership_purchase%'
+  ) THEN
+    ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check;
+    ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK (type IN (
+      'deposit','withdrawal',
+      'earn_quest','earn_game','earn_referral','earn_content','earn_checkin','earn_bonus',
+      'spend_ticket','spend_item','spend_agent','spend_music','spend_boost',
+      'tip_sent','tip_received',
+      'transfer_sent','transfer_received',
+      'gift_redeem',
+      'membership_purchase','membership_received',
+      'product_purchase','product_sale',
+      'expire','refund','admin_adjust'
+    ));
+  END IF;
+END $$;
+
 -- Platform stats (aggregate, updated via triggers or cron)
 CREATE TABLE IF NOT EXISTS platform_stats (
   id SERIAL PRIMARY KEY,

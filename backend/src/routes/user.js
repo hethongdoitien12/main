@@ -9,7 +9,7 @@ const router = Router();
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
     const { rows: [user] } = await query(
-      `SELECT u.id, u.username, u.email, u.avatar_url, u.role, u.referral_code, u.created_at,
+      `SELECT u.id, u.username, u.email, u.avatar_url, u.bio, u.role, u.referral_code, u.created_at,
               w.balance, w.total_earned, w.total_spent, w.total_withdrawn,
               (SELECT COUNT(*) FROM users WHERE referred_by = u.id) AS referral_count
        FROM users u
@@ -27,7 +27,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 // PATCH /api/user/profile
 router.patch('/profile', authMiddleware, async (req, res) => {
   try {
-    const { username, avatar_url } = req.body;
+    const { username, avatar_url, bio } = req.body;
     const updates = [];
     const values = [];
     let idx = 1;
@@ -43,6 +43,13 @@ router.patch('/profile', authMiddleware, async (req, res) => {
       updates.push(`avatar_url = $${idx++}`);
       values.push(avatar_url || null);
     }
+    if (bio !== undefined) {
+      if (bio && bio.length > 300) {
+        return res.status(400).json({ error: 'Bio tối đa 300 ký tự' });
+      }
+      updates.push(`bio = $${idx++}`);
+      values.push(bio || null);
+    }
     if (!updates.length) return res.status(400).json({ error: 'Không có gì để cập nhật' });
 
     updates.push(`updated_at = NOW()`);
@@ -50,7 +57,7 @@ router.patch('/profile', authMiddleware, async (req, res) => {
 
     const { rows: [updated] } = await query(
       `UPDATE users SET ${updates.join(', ')} WHERE id = $${idx}
-       RETURNING id, username, email, avatar_url, role, referral_code, created_at`,
+       RETURNING id, username, email, avatar_url, bio, role, referral_code, created_at`,
       values
     );
     res.json(updated);

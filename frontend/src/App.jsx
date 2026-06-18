@@ -17,6 +17,8 @@ import Leaderboard from './pages/Leaderboard.jsx';
 import TopCreators from './pages/TopCreators.jsx';
 import Checkin from './pages/Checkin.jsx';
 import Shop from './pages/Shop.jsx';
+import Creators from './pages/Creators.jsx';
+import CreatorProfile from './pages/CreatorProfile.jsx';
 import Layout from './components/Layout.jsx';
 
 const styles = `
@@ -69,6 +71,8 @@ export default function App() {
             <Route path="creator" element={<CreatorDashboard />} />
             <Route path="shop" element={<Shop />} />
             <Route path="admin" element={<Admin />} />
+            <Route path="creators" element={<Creators />} />
+            <Route path="creator/:id" element={<CreatorProfile />} />
           </Route>
         </Routes>
       </BrowserRouter>

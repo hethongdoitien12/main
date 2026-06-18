@@ -18,6 +18,9 @@ import userRoutes from './routes/user.js';
 import creatorRoutes from './routes/creator.js';
 import checkinRoutes from './routes/checkin.js';
 import shopRoutes from './routes/shop.js';
+import creatorsRoutes from './routes/creators.js';
+import fanclubRoutes from './routes/fanclub.js';
+import creatorProductsRoutes from './routes/creatorProducts.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -52,9 +55,12 @@ app.use('/api/notifications', generalLimiter, notificationRoutes);
 app.use('/api/referral',    generalLimiter, referralRoutes);
 app.use('/api/stream',     streamRoutes);
 app.use('/api/user',      generalLimiter, userRoutes);
-app.use('/api/creator',   generalLimiter, creatorRoutes);
-app.use('/api/checkin',   generalLimiter, checkinRoutes);
-app.use('/api/shop',      generalLimiter, shopRoutes);
+app.use('/api/creator',          generalLimiter, creatorRoutes);
+app.use('/api/checkin',          generalLimiter, checkinRoutes);
+app.use('/api/shop',             generalLimiter, shopRoutes);
+app.use('/api/creators',         generalLimiter, creatorsRoutes);
+app.use('/api/fanclub',          generalLimiter, fanclubRoutes);
+app.use('/api/creator-products', generalLimiter, creatorProductsRoutes);
 
 app.get('/health', async (req, res) => {
   try {
