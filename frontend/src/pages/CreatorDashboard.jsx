@@ -138,6 +138,8 @@ export default function CreatorDashboard() {
   const [prodForm, setProdForm] = useState({ title: '', description: '', type: 'ebook', price_mt: '', thumbnail_url: '', download_url: '' });
   const [tierForm, setTierForm] = useState({ name: 'Bronze', level: 1, price_mt: '', description: '', perks: '' });
   const [saving,   setSaving]   = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   const showToast = (msg, ok = true) => {
     setToast({ msg, ok });
@@ -190,6 +192,41 @@ export default function CreatorDashboard() {
       body: JSON.stringify({ is_active }),
     });
     setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active } : p));
+  };
+
+  const startEdit = (p) => {
+    setEditingProductId(p.id);
+    setEditForm({ title: p.title, description: p.description || '', type: p.type, price_mt: String(p.price_mt), thumbnail_url: p.thumbnail_url || '', download_url: p.download_url || '' });
+  };
+
+  const saveEdit = async (id) => {
+    setSaving(true);
+    try {
+      const r = await fetch(`/api/creator-products/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editForm, price_mt: parseInt(editForm.price_mt) }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...d.product } : p));
+      setEditingProductId(null);
+      showToast('✅ Đã cập nhật sản phẩm!');
+    } catch (e) { showToast(e.message, false); }
+    finally { setSaving(false); }
+  };
+
+  const deleteProduct = async (id, title) => {
+    if (!window.confirm(`Xóa sản phẩm "${title}"?\nSản phẩm sẽ bị ẩn khỏi Marketplace.`)) return;
+    try {
+      const r = await fetch(`/api/creator-products/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error('Xóa thất bại');
+      setProducts(prev => prev.filter(p => p.id !== id));
+      showToast('🗑 Đã xóa sản phẩm');
+    } catch (e) { showToast(e.message, false); }
   };
 
   const saveTier = async () => {
@@ -506,20 +543,61 @@ export default function CreatorDashboard() {
           </div>
 
           <div style={S.card}>
-            <div style={S.sectionTitle}>Sản phẩm của tôi</div>
+            <div style={S.sectionTitle}>Sản phẩm của tôi ({products.length})</div>
             {!products.length ? <div style={S.noData}>Chưa có sản phẩm nào</div>
               : products.map(p => (
-                <div key={p.id} style={{ marginBottom: 12, padding: '1rem', background: '#13131f', borderRadius: 10, border: `1px solid ${p.is_active ? '#1e1e2e' : '#2a1a1a'}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div key={p.id} style={{ marginBottom: 12, padding: '1rem', background: '#13131f', borderRadius: 10, border: `1px solid ${editingProductId === p.id ? '#6C5CE7' : p.is_active ? '#1e1e2e' : '#2a1a1a'}` }}>
+                  {editingProductId === p.id ? (
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: p.is_active ? '#fff' : '#555' }}>{p.title}</div>
-                      <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{TYPE_LABELS[p.type]} · {Number(p.price_mt).toLocaleString()} MT · {p.order_count} đơn · {Number(p.revenue_mt).toLocaleString()} MT doanh thu</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#a29bfe', marginBottom: 10 }}>✏️ Sửa sản phẩm</div>
+                      {[['title','Tiêu đề *'],['description','Mô tả'],['thumbnail_url','URL thumbnail'],['download_url','URL tải xuống']].map(([f, lbl]) => (
+                        <div key={f} style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 11, color: '#666', marginBottom: 3 }}>{lbl}</div>
+                          <input style={{ ...S.input, marginBottom: 0 }} value={editForm[f]} onChange={e => setEditForm(ef => ({ ...ef, [f]: e.target.value }))} />
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, color: '#666', marginBottom: 3 }}>Loại</div>
+                          <select style={{ ...S.select }} value={editForm.type} onChange={e => setEditForm(ef => ({ ...ef, type: e.target.value }))}>
+                            {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, color: '#666', marginBottom: 3 }}>Giá (MT)</div>
+                          <input style={{ ...S.input, marginBottom: 0 }} type="number" value={editForm.price_mt} onChange={e => setEditForm(ef => ({ ...ef, price_mt: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                        <button style={{ ...S.submitBtn, flex: 1 }} onClick={() => saveEdit(p.id)} disabled={saving}>{saving ? 'Đang lưu...' : '💾 Lưu'}</button>
+                        <button style={{ padding: '8px 14px', background: 'none', border: '1px solid #2a2a3a', borderRadius: 8, color: '#666', fontSize: 13, cursor: 'pointer' }} onClick={() => setEditingProductId(null)}>Hủy</button>
+                      </div>
                     </div>
-                    <button onClick={() => toggleProduct(p.id, !p.is_active)}
-                      style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #2a2a3a', background: 'none', color: p.is_active ? '#ff6b6b' : '#6fcf97', fontSize: 11, cursor: 'pointer' }}>
-                      {p.is_active ? 'Ẩn' : 'Hiện'}
-                    </button>
-                  </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: p.is_active ? '#fff' : '#555', marginBottom: 2 }}>{p.title}</div>
+                          <div style={{ fontSize: 11, color: '#555' }}>{TYPE_LABELS[p.type]} · {Number(p.price_mt).toLocaleString()} MT · {p.order_count || 0} đơn</div>
+                          {p.order_count > 0 && <div style={{ fontSize: 11, color: '#00b894', marginTop: 2 }}>+{Number(p.revenue_mt || 0).toLocaleString()} MT doanh thu</div>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => startEdit(p)}
+                            style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #2a2a3a', background: 'none', color: '#a29bfe', fontSize: 11, cursor: 'pointer' }}>
+                            ✏️ Sửa
+                          </button>
+                          <button onClick={() => toggleProduct(p.id, !p.is_active)}
+                            style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #2a2a3a', background: 'none', color: p.is_active ? '#fdcb6e' : '#6fcf97', fontSize: 11, cursor: 'pointer' }}>
+                            {p.is_active ? 'Ẩn' : 'Hiện'}
+                          </button>
+                          <button onClick={() => deleteProduct(p.id, p.title)}
+                            style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #2a1a1a', background: 'none', color: '#ff6b6b', fontSize: 11, cursor: 'pointer' }}>
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             }
