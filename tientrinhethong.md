@@ -194,6 +194,20 @@ xu-economy/
 
 ---
 
+### ✅ TASK 14 — Creator Shop: Marketplace + Product Detail + Admin (2026-06-18)
+- [x] **Backend: `GET /api/creator-products`** — public marketplace list (search, filter type/creator, sort newest/popular/price, already_bought flag, pagination)
+- [x] **Backend: `GET /api/creator-products/:id/detail`** — chi tiết sản phẩm (creator info, already_bought, download_url)
+- [x] **Backend: `GET /api/admin/products`** — admin danh sách tất cả sản phẩm (filter active/inactive, search, order_count, gross_mt)
+- [x] **Backend: `PATCH /api/admin/products/:id/toggle`** — admin ẩn/khôi phục sản phẩm vi phạm
+- [x] **Backend: `DELETE /api/admin/products/:id`** — admin xóa vĩnh viễn (vi phạm nặng)
+- [x] **Frontend: Page `Marketplace.jsx`** (`/marketplace`) — grid sản phẩm, search, filter loại, sort, stat row, pagination, badge "Đã mua"
+- [x] **Frontend: Page `ProductDetail.jsx`** (`/marketplace/:id`) — ảnh/placeholder, mô tả, nút mua với confirm modal, download link sau mua
+- [x] **Frontend: Admin tab "🛒 Sản phẩm"** — stat grid 4 ô, bảng tất cả sản phẩm, ẩn/khôi phục, xóa vĩnh viễn với confirm dialog
+- [x] **Frontend: Sidebar** — thêm "Marketplace 🛒" vào section "Khám phá"
+- [x] **Revenue: Platform 10%, Creator 90%** — verify qua admin stats
+
+---
+
 ### ✅ TASK 12 — Creator Economy Phase 6: Advanced Dashboard (2025-06-18)
 - [x] **Backend stats mở rộng:** revenue30, todayRevenue, fanClubCount, productSalesTotal, dailyEarnings30
 - [x] **Frontend:** 8 stat cards (total, today, 30 ngày, số dư, fan club, product, tips, conversion rate)

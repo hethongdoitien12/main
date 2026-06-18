@@ -20,6 +20,8 @@ import Shop from './pages/Shop.jsx';
 import Creators from './pages/Creators.jsx';
 import CreatorProfile from './pages/CreatorProfile.jsx';
 import MyMemberships from './pages/MyMemberships.jsx';
+import Marketplace from './pages/Marketplace.jsx';
+import ProductDetail from './pages/ProductDetail.jsx';
 import Layout from './components/Layout.jsx';
 
 const styles = `
@@ -75,6 +77,8 @@ export default function App() {
             <Route path="creators" element={<Creators />} />
             <Route path="creator/:id" element={<CreatorProfile />} />
             <Route path="memberships" element={<MyMemberships />} />
+            <Route path="marketplace" element={<Marketplace />} />
+            <Route path="marketplace/:id" element={<ProductDetail />} />
           </Route>
         </Routes>
       </BrowserRouter>

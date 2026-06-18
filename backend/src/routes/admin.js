@@ -829,4 +829,76 @@ router.delete('/gift-codes/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Admin: Danh sách tất cả sản phẩm ────────────────────────────────────────
+router.get('/products', async (req, res) => {
+  try {
+    const { search, status = 'all' } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 50);
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+    const params = [];
+
+    if (status === 'active')   { conditions.push(`cp.is_active = true`); }
+    if (status === 'inactive') { conditions.push(`cp.is_active = false`); }
+
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(cp.title ILIKE $${params.length} OR u.username ILIKE $${params.length})`);
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    params.push(limit, offset);
+
+    const { rows } = await query(`
+      SELECT cp.id, cp.title, cp.type, cp.price_mt, cp.sold_count,
+             cp.is_active, cp.created_at, cp.thumbnail_url,
+             u.id AS creator_id, u.username AS creator_name, u.email AS creator_email,
+             COUNT(o.id)::INT AS order_count,
+             COALESCE(SUM(o.amount_mt),0)::BIGINT AS gross_mt
+      FROM creator_products cp
+      JOIN users u ON u.id = cp.creator_id
+      LEFT JOIN creator_orders o ON o.product_id = cp.id AND o.status = 'completed'
+      ${where}
+      GROUP BY cp.id, u.id
+      ORDER BY cp.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params);
+
+    const { rows: [{ cnt }] } = await query(`
+      SELECT COUNT(*)::INT AS cnt FROM creator_products cp JOIN users u ON u.id = cp.creator_id ${where}
+    `, params.slice(0, -2));
+
+    res.json({ products: rows, total: cnt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Admin: Gỡ / khôi phục sản phẩm ─────────────────────────────────────────
+router.patch('/products/:id/toggle', async (req, res) => {
+  try {
+    const { rows: [product] } = await query(`
+      UPDATE creator_products SET is_active = NOT is_active, updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, title, is_active
+    `, [req.params.id]);
+    if (!product) return res.status(404).json({ error: 'Sản phẩm không tồn tại' });
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Admin: Xóa vĩnh viễn sản phẩm (vi phạm nặng) ────────────────────────────
+router.delete('/products/:id', async (req, res) => {
+  try {
+    await query(`DELETE FROM creator_products WHERE id = $1`, [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

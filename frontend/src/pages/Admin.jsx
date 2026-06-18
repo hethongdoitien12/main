@@ -2109,6 +2109,191 @@ function GiftCodeTab({ token, showToast }) {
   );
 }
 
+// ─── products admin tab ──────────────────────────────────────────────────────
+const TYPE_LABELS_ADMIN = {
+  ebook:'📚 eBook', template:'📐 Template', preset:'🎨 Preset',
+  source_code:'💻 Source Code', prompt_ai:'🤖 AI Prompt', other:'📦 Khác',
+};
+
+function ProductsAdminTab({ token, showToast }) {
+  const [products, setProducts]   = useState([]);
+  const [total, setTotal]         = useState(0);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [status, setStatus]       = useState('all');
+  const [confirm, setConfirm]     = useState(null);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const q = new URLSearchParams({ status, limit: 50 });
+      if (search) q.set('search', search);
+      const r = await fetch(`/api/admin/products?${q}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      setProducts(d.products || []);
+      setTotal(d.total || 0);
+    } catch {} finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchProducts(); }, [search, status]);
+
+  const handleToggle = async (id) => {
+    try {
+      const r = await fetch(`/api/admin/products/${id}/toggle`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      showToast(d.product.is_active ? '✅ Đã khôi phục sản phẩm' : '🚫 Đã ẩn sản phẩm');
+      fetchProducts();
+    } catch (e) { showToast('❌ Lỗi: ' + e.message); }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await fetch(`/api/admin/products/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      showToast('🗑 Đã xóa vĩnh viễn sản phẩm');
+      setConfirm(null);
+      fetchProducts();
+    } catch (e) { showToast('❌ Lỗi: ' + e.message); }
+  };
+
+  const totalRevenue = products.reduce((a, p) => a + Number(p.gross_mt || 0), 0);
+  const totalOrders  = products.reduce((a, p) => a + Number(p.order_count || 0), 0);
+
+  return (
+    <div>
+      <div style={S.grid4}>
+        <div style={S.stat('#2a2044')}>
+          <div style={S.statLbl}>Tổng sản phẩm</div>
+          <div style={S.statVal('#a29bfe')}>{total}</div>
+        </div>
+        <div style={S.stat('#0e2a1e')}>
+          <div style={S.statLbl}>Tổng đơn hàng</div>
+          <div style={S.statVal('#6fcf97')}>{totalOrders.toLocaleString()}</div>
+        </div>
+        <div style={S.stat('#0e1e2a')}>
+          <div style={S.statLbl}>Doanh thu gross</div>
+          <div style={S.statVal('#74b9ff')}>{totalRevenue.toLocaleString()} MT</div>
+        </div>
+        <div style={S.stat()}>
+          <div style={S.statLbl}>Platform (10%)</div>
+          <div style={S.statVal('#fdcb6e')}>{Math.floor(totalRevenue * 0.1).toLocaleString()} MT</div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <div style={S.toolbar}>
+          <input
+            style={S.search}
+            placeholder="🔍 Tìm sản phẩm hoặc creator..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <select
+            style={{ ...S.search, width: 'auto' }}
+            value={status}
+            onChange={e => setStatus(e.target.value)}
+          >
+            <option value="all">Tất cả</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Đã ẩn</option>
+          </select>
+          <button style={S.refreshBtn} onClick={fetchProducts}>↻ Làm mới</button>
+          <span style={{ marginLeft: 'auto', color: '#444', fontSize: 12 }}>
+            {total} sản phẩm
+          </span>
+        </div>
+
+        {loading ? (
+          <div style={S.empty}>Đang tải...</div>
+        ) : products.length === 0 ? (
+          <div style={S.empty}>Không có sản phẩm nào</div>
+        ) : (
+          <table style={S.table}>
+            <thead>
+              <tr>
+                <th style={S.th}>Sản phẩm</th>
+                <th style={S.th}>Creator</th>
+                <th style={S.th}>Loại</th>
+                <th style={S.th}>Giá</th>
+                <th style={S.th}>Đơn</th>
+                <th style={S.th}>Doanh thu</th>
+                <th style={S.th}>Trạng thái</th>
+                <th style={S.th}>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map(p => (
+                <tr key={p.id}>
+                  <td style={S.td}>
+                    <div style={{ fontWeight: 600, color: '#ddd', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                    <div style={{ fontSize: 11, color: '#444' }}>{fmtDate(p.created_at)}</div>
+                  </td>
+                  <td style={S.td}>
+                    <div style={{ fontWeight: 500, color: '#ccc' }}>{p.creator_name}</div>
+                    <div style={{ fontSize: 11, color: '#444' }}>{p.creator_email}</div>
+                  </td>
+                  <td style={S.td}>
+                    <span style={{ fontSize: 11 }}>{TYPE_LABELS_ADMIN[p.type] || p.type}</span>
+                  </td>
+                  <td style={{ ...S.td, color: '#a29bfe', fontWeight: 600 }}>
+                    {Number(p.price_mt).toLocaleString()} MT
+                  </td>
+                  <td style={S.td}>{p.order_count}</td>
+                  <td style={{ ...S.td, color: '#6fcf97' }}>
+                    {Number(p.gross_mt).toLocaleString()} MT
+                  </td>
+                  <td style={S.td}>
+                    <span style={S.badge(p.is_active ? 'completed' : 'expired')}>
+                      {p.is_active ? 'Hoạt động' : 'Đã ẩn'}
+                    </span>
+                  </td>
+                  <td style={S.td}>
+                    <button
+                      style={p.is_active ? S.rejectBtn : S.approveBtn}
+                      onClick={() => handleToggle(p.id)}
+                    >
+                      {p.is_active ? '🚫 Ẩn' : '✅ Khôi phục'}
+                    </button>
+                    <button
+                      style={{ ...S.rejectBtn, marginTop: 4, display: 'block' }}
+                      onClick={() => setConfirm(p)}
+                    >
+                      🗑 Xóa
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {confirm && (
+        <div style={{ position:'fixed', inset:0, background:'#000b', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ background:'#13131f', border:'1px solid #2e2e44', borderRadius:16, padding:'2rem', maxWidth:400, width:'90%' }}>
+            <div style={{ fontSize:18, fontWeight:700, color:'#ff6b6b', marginBottom:8 }}>⚠ Xóa vĩnh viễn?</div>
+            <div style={{ fontSize:13, color:'#666', marginBottom:'1.5rem', lineHeight:1.6 }}>
+              Sản phẩm <strong style={{ color:'#fff' }}>"{confirm.title}"</strong> của creator <strong style={{ color:'#aaa' }}>{confirm.creator_name}</strong> sẽ bị xóa hoàn toàn. Hành động này không thể hoàn tác.
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button style={{ flex:1, padding:'10px', background:'transparent', border:'1px solid #2e2e44', borderRadius:8, color:'#888', cursor:'pointer' }} onClick={() => setConfirm(null)}>Hủy</button>
+              <button style={{ flex:1, padding:'10px', background:'#ff6b6b', border:'none', borderRadius:8, color:'#fff', fontWeight:600, cursor:'pointer' }} onClick={() => handleDelete(confirm.id)}>Xóa vĩnh viễn</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Admin() {
   const { token, user } = useAuth();
   const [tab, setTab]       = useState('withdrawals');
@@ -2156,6 +2341,7 @@ export default function Admin() {
           ['quests',      '🏆 Quests'],
           ['checkin',     '🗓 Điểm danh'],
           ['users',       '👥 Users'],
+          ['products',    '🛒 Sản phẩm'],
           ['config',      '⚙️ Cấu hình'],
           ['devtools',    '🔧 Dev Tools'],
           ['giftcodes',   '🎁 Gift Codes'],
@@ -2173,6 +2359,7 @@ export default function Admin() {
       {tab === 'quests'       && <QuestManagementTab token={token} showToast={showToast} />}
       {tab === 'checkin'      && <CheckinAdminTab    token={token} />}
       {tab === 'users'        && <UserManagementTab  token={token} showToast={showToast} />}
+      {tab === 'products'     && <ProductsAdminTab   token={token} showToast={showToast} />}
       {tab === 'config'       && <ConfigTab          token={token} showToast={showToast} />}
       {tab === 'devtools'     && <DevToolsTab        token={token} showToast={showToast} />}
       {tab === 'giftcodes'    && <GiftCodeTab        token={token} showToast={showToast} />}

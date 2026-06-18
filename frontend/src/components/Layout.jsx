@@ -65,6 +65,7 @@ const NAV_SECTIONS = [
     label: 'Khám phá',
     items: [
       { to: '/creators',    label: 'Creators',     icon: '🌟' },
+      { to: '/marketplace', label: 'Marketplace',  icon: '🛒' },
       { to: '/gifting',     label: 'Tip & Gift',   icon: '♥' },
       { to: '/leaderboard', label: 'Xếp hạng',     icon: '◈' },
       { to: '/shop',        label: 'Cửa hàng',     icon: '🛍' },

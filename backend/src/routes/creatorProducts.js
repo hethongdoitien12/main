@@ -173,6 +173,95 @@ router.post('/:id/buy', authMiddleware, async (req, res) => {
   }
 });
 
+// ── Public: Danh sách sản phẩm marketplace ───────────────────────────────────
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const { search, creator_id, type, sort = 'newest' } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(50, parseInt(req.query.limit) || 24);
+    const offset = (page - 1) * limit;
+
+    const params = [];
+    const conditions = ['cp.is_active = true'];
+
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(cp.title ILIKE $${params.length} OR u.username ILIKE $${params.length})`);
+    }
+    if (creator_id) {
+      params.push(creator_id);
+      conditions.push(`cp.creator_id = $${params.length}`);
+    }
+    if (type) {
+      params.push(type);
+      conditions.push(`cp.type = $${params.length}`);
+    }
+
+    const orderMap = {
+      newest:     'cp.created_at DESC',
+      popular:    'cp.sold_count DESC, cp.created_at DESC',
+      price_asc:  'cp.price_mt ASC',
+      price_desc: 'cp.price_mt DESC',
+    };
+    const orderBy = orderMap[sort] || 'cp.created_at DESC';
+    const where   = 'WHERE ' + conditions.join(' AND ');
+
+    const buyerParam = params.length + 1;
+    params.push(req.user.id, limit, offset);
+
+    const { rows } = await query(`
+      SELECT cp.id, cp.title, cp.description, cp.type, cp.price_mt,
+             cp.thumbnail_url, cp.sold_count, cp.created_at,
+             u.id          AS creator_id,
+             u.username    AS creator_name,
+             u.avatar_url  AS creator_avatar,
+             (bo.id IS NOT NULL) AS already_bought
+      FROM creator_products cp
+      JOIN users u ON u.id = cp.creator_id
+      LEFT JOIN creator_orders bo
+        ON bo.product_id = cp.id AND bo.buyer_id = $${buyerParam} AND bo.status = 'completed'
+      ${where}
+      ORDER BY ${orderBy}
+      LIMIT $${buyerParam + 1} OFFSET $${buyerParam + 2}
+    `, params);
+
+    const { rows: [{ cnt }] } = await query(`
+      SELECT COUNT(*)::INT AS cnt
+      FROM creator_products cp
+      JOIN users u ON u.id = cp.creator_id
+      WHERE cp.is_active = true
+    `);
+
+    res.json({ products: rows, total: cnt, page, limit });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Public: Chi tiết sản phẩm ─────────────────────────────────────────────────
+router.get('/:id/detail', authMiddleware, async (req, res) => {
+  try {
+    const { rows: [product] } = await query(`
+      SELECT cp.*,
+             u.id         AS creator_id,
+             u.username   AS creator_name,
+             u.avatar_url AS creator_avatar,
+             u.bio        AS creator_bio,
+             (bo.id IS NOT NULL) AS already_bought
+      FROM creator_products cp
+      JOIN users u ON u.id = cp.creator_id
+      LEFT JOIN creator_orders bo
+        ON bo.product_id = cp.id AND bo.buyer_id = $2 AND bo.status = 'completed'
+      WHERE cp.id = $1 AND cp.is_active = true
+    `, [req.params.id, req.user.id]);
+
+    if (!product) return res.status(404).json({ error: 'Sản phẩm không tồn tại' });
+    res.json({ product });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── User: Lịch sử mua ─────────────────────────────────────────────────────────
 router.get('/my-orders', authMiddleware, async (req, res) => {
   try {
