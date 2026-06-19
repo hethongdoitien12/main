@@ -237,6 +237,67 @@ const s = {
 
 const typeEmoji = { ebook: '📚', template: '🎨', preset: '⚙️', source_code: '💻', prompt_ai: '🤖', other: '📦' };
 
+const ACTIVITY_META = {
+  TIP_SENT:          { icon: '🎁', color: '#6fcf97' },
+  PRODUCT_PURCHASED: { icon: '🛒', color: '#74b9ff' },
+  FANCLUB_JOINED:    { icon: '👑', color: '#fd79a8' },
+  CREATOR_VERIFIED:  { icon: '✔',  color: '#00b894' },
+  CREATOR_FEATURED:  { icon: '⭐', color: '#fdcb6e' },
+  MILESTONE_REACHED: { icon: '🏆', color: '#a29bfe' },
+};
+function activityText(a) {
+  switch (a.activity_type) {
+    case 'TIP_SENT':          return `${a.actor_username} tipped ${a.target_name}${a.amount_mt > 0 ? ' ' + Number(a.amount_mt).toLocaleString() + ' MT' : ''}`;
+    case 'PRODUCT_PURCHASED': return `${a.actor_username} mua "${a.target_name}"`;
+    case 'FANCLUB_JOINED':    return `${a.actor_username} gia nhập Fan Club ${a.target_name}`;
+    case 'CREATOR_VERIFIED':  return `${a.actor_username} trở thành ✔ Verified Creator`;
+    case 'CREATOR_FEATURED':  return `${a.actor_username} được gắn ⭐ Featured`;
+    case 'MILESTONE_REACHED': return `${a.actor_username} đạt mốc ${a.target_name} MT!`;
+    default: return `${a.actor_username} ${a.target_name}`;
+  }
+}
+function timeAgo(ts) {
+  const d = (Date.now() - new Date(ts)) / 1000;
+  if (d < 60) return `${Math.floor(d)}s`;
+  if (d < 3600) return `${Math.floor(d / 60)}p`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h`;
+  return `${Math.floor(d / 86400)}d`;
+}
+
+function LiveActivityWidget() {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    const load = () => fetch('/api/activity?limit=8').then(r => r.json()).then(d => setItems(d.activities || [])).catch(() => {});
+    load();
+    const iv = setInterval(load, 15000);
+    return () => clearInterval(iv);
+  }, []);
+  if (!items.length) return null;
+  return (
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 5%' }}>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ fontSize: 13, color: '#6C5CE7', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 10 }}>📡 Live Feed</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>Hoạt động mới nhất</div>
+        <div style={{ fontSize: 14, color: '#555', marginTop: 6 }}>Đang diễn ra trên nền tảng • Cập nhật mỗi 15 giây</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 10 }}>
+        {items.map(a => {
+          const m = ACTIVITY_META[a.activity_type] || { icon: '📌', color: '#888' };
+          return (
+            <div key={a.id} style={{ background: '#0d0d16', border: '1px solid #1a1a28', borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${m.color}20`, border: `1px solid ${m.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{m.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: '#aaa', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activityText(a)}</div>
+                <div style={{ fontSize: 10, color: '#444', marginTop: 3 }}>{timeAgo(a.created_at)} trước</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function formatNum(n) {
   if (!n) return '0';
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
@@ -457,6 +518,9 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+
+      {/* LIVE ACTIVITY FEED WIDGET */}
+      <LiveActivityWidget />
 
       {/* CTA */}
       <div style={s.cta}>

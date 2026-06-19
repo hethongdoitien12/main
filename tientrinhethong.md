@@ -255,6 +255,23 @@ xu-economy/
 
 ---
 
+### ✅ TASK 19 — Phase 12: Activity Feed & Social Activity System (2026-06-19)
+- [x] **DB: Bảng `activity_feed`** — id, actor_id/username/avatar, activity_type, target_id/name, amount_mt, metadata, created_at; 3 index (created_at DESC, actor_id, activity_type)
+- [x] **Backend: `ActivityService`** (`backend/src/services/activity.js`) — `postActivity()`, `checkMilestone()`, hằng số `A.*`
+- [x] **Backend: `GET /api/activity`** — public, filter `?activity_type=`, `?actor_id=`, pagination, `has_more`
+- [x] **Hook TIP_SENT** trong `wallet.js` — fire-and-forget sau khi broadcast SSE, trigger `checkMilestone(receiver_id)`
+- [x] **Hook FANCLUB_JOINED** trong `fanclub.js` — fire-and-forget sau notify creator
+- [x] **Hook PRODUCT_PURCHASED** trong `creatorProducts.js` — fire-and-forget sau notify creator, trigger `checkMilestone`
+- [x] **Hook CREATOR_VERIFIED / CREATOR_FEATURED** trong `admin.js` — chỉ post khi `verified/featured = true`
+- [x] **Auto-milestone:** `checkMilestone()` tự post `MILESTONE_REACHED` tại các mốc 1K/5K/10K/50K/100K/500K/1M MT (idempotent)
+- [x] **Frontend: Page `ActivityFeed.jsx`** (`/activity`) — filter by type (7 loại), load-more, auto-poll 15 giây, avatar DiceBear fallback
+- [x] **Frontend: Widget `LiveActivityWidget`** trong `LandingPage.jsx` — grid 8 thẻ, cập nhật mỗi 15s (chỉ hiện khi có data)
+- [x] **Frontend: Component `RecentActivity`** trong `CreatorProfile.jsx` — overview tab hiển thị 8 activities gần nhất của creator
+- [x] **Frontend: Nav link "📡 Activity Feed"** trong `Layout.jsx` sidebar (section Khám phá)
+- [x] **Demo data:** 80 activity records seed trực tiếp (không qua seed-demo.js vì idempotency check @demo.mt)
+
+---
+
 ### ✅ TASK 18 — Demo Seed Data (2026-06-18)
 - [x] **Script:** `backend/src/db/seed-demo.js` — idempotent, kiểm tra `@demo.mt` trước khi insert
 - [x] **Command:** `npm run seed:demo` (đã có trong `package.json`)

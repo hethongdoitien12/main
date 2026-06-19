@@ -6,6 +6,7 @@ import { createPayment as momoCreate, verifyIPN as momoVerify } from '../service
 import { createPayment as zaloCreate, verifyIPN as zaloVerify } from '../services/gateways/zalopay.js';
 import { notify } from '../services/notifier.js';
 import { sendToUser, broadcast } from '../services/sse.js';
+import { postActivity, checkMilestone, A } from '../services/activity.js';
 
 const router = Router();
 
@@ -290,6 +291,21 @@ router.post('/tip', authMiddleware, async (req, res) => {
       message,
       time: new Date().toISOString(),
     });
+
+    // Activity feed — fire and forget
+    query('SELECT username, avatar_url FROM users WHERE id=$1', [receiver_id])
+      .then(({ rows: [rx] }) => {
+        postActivity({
+          actorId:       req.user.id,
+          actorUsername: req.user.username,
+          type:          A.TIP_SENT,
+          targetId:      receiver_id,
+          targetName:    rx?.username || 'creator',
+          amountMt:      parseInt(amount_xu),
+          metadata:      { message: message || null, receiverAmount: result.receiverAmount },
+        });
+        checkMilestone(receiver_id);
+      }).catch(() => {});
 
     res.json({ success: true, tip: result.tip, receiver_amount: result.receiverAmount, platform_fee: result.platformFee });
   } catch (err) {

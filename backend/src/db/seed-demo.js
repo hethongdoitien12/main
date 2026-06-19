@@ -559,6 +559,88 @@ async function seedDemo() {
         (SELECT COUNT(*) FROM ledger_entries)             AS ledger
     `);
 
+    // ── Activity feed demo ─────────────────────────────────────────────────────
+    // Check if activity_feed table exists
+    const { rows: [tbl] } = await client.query(`
+      SELECT to_regclass('public.activity_feed') AS tbl
+    `);
+    if (tbl.tbl) {
+      // Get real users from DB
+      const { rows: allUsers } = await client.query(`SELECT id, username, avatar_url FROM users LIMIT 40`);
+      const { rows: allCreators } = await client.query(`SELECT id, username FROM users WHERE role='creator' LIMIT 20`);
+      const { rows: allProducts } = await client.query(`SELECT id, title, price_mt FROM creator_products LIMIT 20`);
+
+      if (allUsers.length && allCreators.length) {
+        const actTypes = ['TIP_SENT','PRODUCT_PURCHASED','FANCLUB_JOINED','CREATOR_VERIFIED','CREATOR_FEATURED','MILESTONE_REACHED'];
+        const milestones = ['1,000','5,000','10,000','50,000','100,000'];
+        const activityRows = [];
+
+        for (let i = 0; i < 120; i++) {
+          const actor = pick(allUsers);
+          const creator = pick(allCreators);
+          const type = pick(actTypes);
+          let targetId = creator.id, targetName = creator.username, amountMt = 0, metadata = {};
+          switch (type) {
+            case 'TIP_SENT':
+              amountMt = pick([500,1000,2000,5000,10000]);
+              targetName = creator.username;
+              metadata = { message: pick(['Cảm ơn bạn!', 'Great content!', 'Keep it up!', null]) };
+              break;
+            case 'PRODUCT_PURCHASED':
+              if (allProducts.length) {
+                const prod = pick(allProducts);
+                targetId = prod.id;
+                targetName = prod.title;
+                amountMt = prod.price_mt || pick([2000,5000,9900,19900]);
+              } else {
+                targetName = 'Ebook thiết kế 2024';
+                amountMt = 9900;
+              }
+              break;
+            case 'FANCLUB_JOINED':
+              amountMt = pick([3000,5000,10000]);
+              targetName = `${creator.username} Bronze`;
+              metadata = { tierName: 'Bronze', creatorName: creator.username };
+              break;
+            case 'CREATOR_VERIFIED':
+              amountMt = 0;
+              targetName = actor.username;
+              targetId = actor.id;
+              break;
+            case 'CREATOR_FEATURED':
+              amountMt = 0;
+              targetName = actor.username;
+              targetId = actor.id;
+              break;
+            case 'MILESTONE_REACHED':
+              amountMt = parseInt(pick(milestones).replace(',',''));
+              targetName = pick(milestones);
+              targetId = creator.id;
+              break;
+          }
+          activityRows.push({
+            actor_id: actor.id,
+            actor_username: actor.username,
+            actor_avatar: actor.avatar_url,
+            activity_type: type,
+            target_id: targetId,
+            target_name: targetName,
+            amount_mt: amountMt,
+            metadata,
+            created_at: randDate(60),
+          });
+        }
+
+        for (const row of activityRows) {
+          await client.query(`
+            INSERT INTO activity_feed (actor_id, actor_username, actor_avatar, activity_type, target_id, target_name, amount_mt, metadata, created_at)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+          `, [row.actor_id, row.actor_username, row.actor_avatar, row.activity_type, row.target_id, row.target_name, row.amount_mt, JSON.stringify(row.metadata), row.created_at]);
+        }
+        console.log(`  📡 Activity feed: ${activityRows.length} entries`);
+      }
+    }
+
     console.log('\n🎉 SEED DEMO HOÀN TẤT!');
     console.log('──────────────────────────────────');
     console.log('  👥 Creators:        ', s.creators);

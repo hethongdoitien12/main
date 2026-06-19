@@ -2,6 +2,63 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 
+const ACT_META = {
+  TIP_SENT:          { icon: '🎁', color: '#6fcf97' },
+  PRODUCT_PURCHASED: { icon: '🛒', color: '#74b9ff' },
+  FANCLUB_JOINED:    { icon: '👑', color: '#fd79a8' },
+  CREATOR_VERIFIED:  { icon: '✔',  color: '#00b894' },
+  CREATOR_FEATURED:  { icon: '⭐', color: '#fdcb6e' },
+  MILESTONE_REACHED: { icon: '🏆', color: '#a29bfe' },
+};
+function actText(a) {
+  switch (a.activity_type) {
+    case 'TIP_SENT':          return `${a.actor_username} tip ${a.amount_mt > 0 ? Number(a.amount_mt).toLocaleString() + ' MT' : ''}`;
+    case 'PRODUCT_PURCHASED': return `${a.actor_username} mua "${a.target_name}"`;
+    case 'FANCLUB_JOINED':    return `${a.actor_username} gia nhập Fan Club`;
+    case 'CREATOR_VERIFIED':  return `✔ Trở thành Verified Creator`;
+    case 'CREATOR_FEATURED':  return `⭐ Được gắn Featured`;
+    case 'MILESTONE_REACHED': return `🏆 Đạt mốc ${a.target_name}!`;
+    default: return `${a.actor_username} — ${a.target_name}`;
+  }
+}
+function tagoAct(ts) {
+  const d = (Date.now() - new Date(ts)) / 1000;
+  if (d < 60) return `${Math.floor(d)}s`;
+  if (d < 3600) return `${Math.floor(d / 60)}p`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h`;
+  return `${Math.floor(d / 86400)}d`;
+}
+function RecentActivity({ creatorId }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!creatorId) return;
+    fetch(`/api/activity?limit=8&actor_id=${creatorId}`)
+      .then(r => r.json())
+      .then(d => setItems(d.activities || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [creatorId]);
+  if (loading) return <div style={{ color: '#444', fontSize: 13, textAlign: 'center', padding: '1rem' }}>Đang tải...</div>;
+  if (!items.length) return <div style={{ color: '#333', fontSize: 13, textAlign: 'center', padding: '1.5rem 0' }}>Chưa có hoạt động nào</div>;
+  return (
+    <div>
+      {items.map(a => {
+        const m = ACT_META[a.activity_type] || { icon: '📌', color: '#888' };
+        return (
+          <div key={a.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #111' }}>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${m.color}20`, border: `1px solid ${m.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>{m.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: '#bbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{actText(a)}</div>
+              <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>{tagoAct(a.created_at)} trước</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const S = {
   back:    { fontSize: 13, color: '#666', cursor: 'pointer', marginBottom: '1.25rem', display: 'inline-flex', alignItems: 'center', gap: 6 },
   hero:    { background: '#0e0e17', border: '1px solid #1e1e2e', borderRadius: 16, padding: '2rem', marginBottom: 20 },
@@ -340,6 +397,10 @@ export default function CreatorProfile() {
       {/* Tab: Tổng quan */}
       {tab === 'overview' && (
         <div style={S.grid2}>
+          <div style={S.card}>
+            <div style={S.sectionTitle}>📡 Hoạt động gần đây</div>
+            <RecentActivity creatorId={creator.id} />
+          </div>
           <div style={S.card}>
             <div style={S.sectionTitle}>🎁 Quà tặng gần đây</div>
             {recentGifts.length === 0 ? <div style={S.noData}>Chưa có quà nào</div> : recentGifts.map((g, i) => (

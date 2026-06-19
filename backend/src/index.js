@@ -22,6 +22,7 @@ import creatorsRoutes from './routes/creators.js';
 import fanclubRoutes from './routes/fanclub.js';
 import creatorProductsRoutes from './routes/creatorProducts.js';
 import publicRoutes from './routes/public.js';
+import activityRoutes from './routes/activity.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -63,6 +64,7 @@ app.use('/api/creators',         generalLimiter, creatorsRoutes);
 app.use('/api/fanclub',          generalLimiter, fanclubRoutes);
 app.use('/api/creator-products', generalLimiter, creatorProductsRoutes);
 app.use('/api/public',          publicRoutes);
+app.use('/api/activity',        activityRoutes);
 
 app.get('/health', async (req, res) => {
   try {

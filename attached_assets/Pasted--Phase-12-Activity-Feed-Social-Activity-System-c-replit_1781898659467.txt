@@ -1,0 +1,206 @@
+# Phase 12 — Activity Feed & Social Activity System
+
+Đọc replit.md và tientrinhethong.md trước.
+
+Mục tiêu:
+
+Biến MT Economy thành nền tảng "sống".
+
+Người dùng luôn thấy hoạt động mới.
+
+---
+
+## Database
+
+activity_feed
+
+Fields:
+
+- id
+- actor_id
+- actor_username
+- actor_avatar
+- activity_type
+- target_id
+- target_name
+- amount_mt
+- metadata
+- created_at
+
+Indexes:
+- created_at DESC
+- activity_type
+
+---
+
+## Activity Types
+
+TIP_SENT
+
+Ví dụ:
+
+user_demo_01 tipped creator_nam 500 MT
+
+---
+
+PRODUCT_PURCHASED
+
+Ví dụ:
+
+user_demo_03 purchased React Dashboard Template
+
+---
+
+FANCLUB_JOINED
+
+Ví dụ:
+
+user_demo_05 joined creator_huy Gold Fan Club
+
+---
+
+CREATOR_VERIFIED
+
+Ví dụ:
+
+creator_linh became a Verified Creator
+
+---
+
+CREATOR_FEATURED
+
+Ví dụ:
+
+creator_khoa is now Featured
+
+---
+
+MILESTONE_REACHED
+
+Ví dụ:
+
+creator_huy reached 10,000 MT earned
+
+---
+
+## Backend
+
+POST activity automatically when:
+
+- Tip success
+- Product purchase
+- Fan Club join
+- Verification
+- Featured
+- Milestone
+
+API:
+
+GET /api/activity
+
+Query:
+
+- limit
+- page
+- activity_type
+
+Return latest first.
+
+---
+
+## Frontend
+
+Create page:
+
+/activity
+
+Display:
+
+- Avatar
+- Username
+- Activity text
+- Amount MT
+- Timestamp
+
+Infinite scroll.
+
+---
+
+## Homepage Widget
+
+Add:
+
+Live Activity Feed
+
+Show latest 20 activities.
+
+Auto refresh every 15 seconds.
+
+---
+
+## Creator Profile
+
+Show:
+
+Recent Activity
+
+Latest 10 actions related to creator.
+
+---
+
+## Realtime
+
+If SSE already exists:
+
+Push new activities instantly.
+
+Otherwise:
+
+Poll every 15 seconds.
+
+---
+
+## UI
+
+Activity Cards:
+
+- Tip → gift icon
+- Product → shopping icon
+- Fan Club → crown icon
+- Verified → badge icon
+- Milestone → trophy icon
+
+---
+
+## Demo Data
+
+Generate:
+
+- 200 activities
+
+Distributed over:
+
+- Tips
+- Purchases
+- Fan Club joins
+
+So activity feed looks alive.
+
+---
+
+## Acceptance Tests
+
+1. Tip creates activity.
+2. Product purchase creates activity.
+3. Fan Club join creates activity.
+4. Activity page loads.
+5. Homepage widget updates.
+6. Creator profile shows activity.
+7. No performance issues.
+
+After completion:
+
+- Test backend
+- Test frontend
+- Update tientrinhethong.md
+- Mark Phase 12 completed

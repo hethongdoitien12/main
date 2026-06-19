@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
+import { postActivity, A } from '../services/activity.js';
 import { query } from '../db/pool.js';
 import { clearConfigCache } from '../services/ledger.js';
 
@@ -940,9 +941,17 @@ router.post('/creator/:id/verify', async (req, res) => {
           verification_note = COALESCE($3, verification_note),
           updated_at = NOW()
       WHERE id = $1 AND role IN ('creator','admin')
-      RETURNING id, username, creator_verified, creator_featured, verification_note
+      RETURNING id, username, avatar_url, creator_verified, creator_featured, verification_note
     `, [req.params.id, !!verified, note || null]);
     if (!user) return res.status(404).json({ error: 'Creator không tồn tại' });
+
+    if (!!verified) {
+      postActivity({
+        actorId: user.id, actorUsername: user.username, actorAvatar: user.avatar_url,
+        type: A.CREATOR_VERIFIED, targetName: user.username, amountMt: 0,
+        metadata: { note: note || null },
+      }).catch(() => {});
+    }
     res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -958,9 +967,17 @@ router.post('/creator/:id/featured', async (req, res) => {
       SET creator_featured = $2,
           updated_at = NOW()
       WHERE id = $1 AND role IN ('creator','admin')
-      RETURNING id, username, creator_verified, creator_featured
+      RETURNING id, username, avatar_url, creator_verified, creator_featured
     `, [req.params.id, !!featured]);
     if (!user) return res.status(404).json({ error: 'Creator không tồn tại' });
+
+    if (!!featured) {
+      postActivity({
+        actorId: user.id, actorUsername: user.username, actorAvatar: user.avatar_url,
+        type: A.CREATOR_FEATURED, targetName: user.username, amountMt: 0,
+        metadata: {},
+      }).catch(() => {});
+    }
     res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ error: err.message });

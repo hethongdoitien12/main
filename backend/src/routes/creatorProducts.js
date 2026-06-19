@@ -3,6 +3,7 @@ import { query } from '../db/pool.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { LedgerService } from '../services/ledger.js';
 import { notify } from '../services/notifier.js';
+import { postActivity, checkMilestone, A } from '../services/activity.js';
 
 const router = Router();
 const PLATFORM_FEE = 0.10;
@@ -166,6 +167,18 @@ router.post('/:id/buy', authMiddleware, async (req, res) => {
       body: `Có người mua "${product.title}" — +${creatorReceives.toLocaleString()} MT`,
       metadata: { productId: id, buyerId: req.user.id },
     });
+
+    // Activity feed — fire and forget
+    postActivity({
+      actorId:       req.user.id,
+      actorUsername: req.user.username,
+      type:          A.PRODUCT_PURCHASED,
+      targetId:      id,
+      targetName:    product.title,
+      amountMt:      product.price_mt,
+      metadata:      { creatorId: product.creator_id, productType: product.type },
+    }).catch(() => {});
+    checkMilestone(product.creator_id).catch(() => {});
 
     res.json({ success: true, order, download_url: product.download_url });
   } catch (err) {

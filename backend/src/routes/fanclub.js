@@ -3,6 +3,7 @@ import { query } from '../db/pool.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { LedgerService } from '../services/ledger.js';
 import { notify } from '../services/notifier.js';
+import { postActivity, checkMilestone, A } from '../services/activity.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -173,6 +174,18 @@ router.post('/join/:tierId', authMiddleware, async (req, res) => {
       body: `Có thành viên mới tham gia Fan Club ${tier.name} của bạn`,
       metadata: { userId: req.user.id, tierId },
     });
+
+    // Activity feed — fire and forget
+    postActivity({
+      actorId:       req.user.id,
+      actorUsername: req.user.username,
+      type:          A.FANCLUB_JOINED,
+      targetId:      tier.creator_id,
+      targetName:    `${tier.creator_name} ${tier.name}`,
+      amountMt:      tier.price_mt,
+      metadata:      { tierId, tierName: tier.name, creatorName: tier.creator_name },
+    }).catch(() => {});
+    checkMilestone(tier.creator_id).catch(() => {});
 
     res.json({ success: true, membership, tier_name: tier.name, expires_at: expiresAt });
   } catch (err) {

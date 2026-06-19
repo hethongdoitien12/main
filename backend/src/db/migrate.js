@@ -282,6 +282,23 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Activity Feed
+CREATE TABLE IF NOT EXISTS activity_feed (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id       UUID REFERENCES users(id) ON DELETE CASCADE,
+  actor_username VARCHAR(100),
+  actor_avatar   TEXT,
+  activity_type  VARCHAR(50) NOT NULL,
+  target_id      UUID,
+  target_name    VARCHAR(255),
+  amount_mt      BIGINT DEFAULT 0,
+  metadata       JSONB DEFAULT '{}',
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_activity_feed_created_at ON activity_feed(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_feed_type       ON activity_feed(activity_type);
+CREATE INDEX IF NOT EXISTS idx_activity_feed_actor      ON activity_feed(actor_id);
+
 -- Mở rộng status cho withdrawal_requests: thêm approved/rejected/paid
 DO $$ BEGIN
   ALTER TABLE withdrawal_requests DROP CONSTRAINT IF EXISTS withdrawal_requests_status_check;
@@ -604,6 +621,23 @@ BEGIN
   RETURN v_entry;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Activity Feed
+CREATE TABLE IF NOT EXISTS activity_feed (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id     UUID REFERENCES users(id) ON DELETE SET NULL,
+  actor_username VARCHAR(100),
+  actor_avatar TEXT,
+  activity_type VARCHAR(50) NOT NULL,
+  target_id    UUID,
+  target_name  TEXT,
+  amount_mt    BIGINT DEFAULT 0,
+  metadata     JSONB DEFAULT '{}',
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_activity_feed_created_at ON activity_feed (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_feed_actor_id   ON activity_feed (actor_id);
+CREATE INDEX IF NOT EXISTS idx_activity_feed_type       ON activity_feed (activity_type);
 `;
 
 async function migrate() {
