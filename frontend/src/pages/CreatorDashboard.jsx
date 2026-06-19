@@ -402,6 +402,183 @@ function EarningsTab({ earnings, loading, period, onPeriodChange }) {
   );
 }
 
+const STATUS_COLOR = {
+  pending:  '#fdcb6e',
+  approved: '#74b9ff',
+  paid:     '#6fcf97',
+  rejected: '#ff6b6b',
+};
+
+function WithdrawalTab({ token, wallet, showToast }) {
+  const [history,    setHistory]    = useState([]);
+  const [histLoading,setHistLoading]= useState(true);
+  const [amount,     setAmount]     = useState('');
+  const [note,       setNote]       = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchHistory = async () => {
+    try {
+      const r = await fetch('/api/withdrawals/mine', { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      setHistory(Array.isArray(d) ? d : []);
+    } catch { setHistory([]); }
+    finally { setHistLoading(false); }
+  };
+
+  useEffect(() => { if (token) fetchHistory(); }, [token]);
+
+  const hasPending = history.some(w => w.status === 'pending');
+  const balance    = Number(wallet?.balance || 0);
+
+  const submit = async () => {
+    if (submitting) return;
+    const amt = parseInt(amount);
+    if (!amt || amt < 1000) { showToast('Tối thiểu 1,000 MT', false); return; }
+    if (amt > balance)      { showToast('Số dư không đủ', false); return; }
+    if (hasPending)         { showToast('Bạn đang có yêu cầu chờ duyệt', false); return; }
+    setSubmitting(true);
+    try {
+      const r = await fetch('/api/withdrawals', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount_mt: amt, note: note || undefined }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      showToast('✅ Yêu cầu rút đã được gửi!');
+      setAmount(''); setNote('');
+      fetchHistory();
+    } catch (e) { showToast(e.message, false); }
+    finally { setSubmitting(false); }
+  };
+
+  return (
+    <div style={S.grid2}>
+      {/* ── Form gửi yêu cầu ── */}
+      <div style={S.card}>
+        <div style={S.sectionTitle}>Tạo yêu cầu rút tiền</div>
+
+        <div style={{ background: '#0e0e17', borderRadius: 10, padding: '1rem', marginBottom: 16, border: '1px solid #1e1e2e' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 12, color: '#555' }}>Số dư ví hiện tại</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#a29bfe' }}>{balance.toLocaleString()} MT</div>
+          </div>
+        </div>
+
+        <div style={S.formGroup}>
+          <label style={S.label}>Số MT muốn rút * <span style={{ color: '#444', fontWeight: 400 }}>(tối thiểu 1,000 MT)</span></label>
+          <input
+            style={S.input} type="number" min="1000" step="100"
+            placeholder="Nhập số MT (vd: 5000)"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+          />
+          {amount && parseInt(amount) >= 1000 && parseInt(amount) <= balance && (
+            <div style={{ fontSize: 12, color: '#6fcf97', marginTop: 4 }}>
+              ✓ Hợp lệ — sẽ trừ ngay {parseInt(amount).toLocaleString()} MT khỏi ví
+            </div>
+          )}
+          {amount && parseInt(amount) > balance && (
+            <div style={{ fontSize: 12, color: '#ff6b6b', marginTop: 4 }}>✕ Số dư không đủ</div>
+          )}
+          {amount && parseInt(amount) < 1000 && parseInt(amount) > 0 && (
+            <div style={{ fontSize: 12, color: '#fdcb6e', marginTop: 4 }}>✕ Tối thiểu 1,000 MT</div>
+          )}
+        </div>
+
+        <div style={S.formGroup}>
+          <label style={S.label}>Ghi chú (tùy chọn)</label>
+          <input
+            style={S.input}
+            placeholder="VD: Rút về tài khoản Vietcombank 1234"
+            value={note}
+            onChange={e => setNote(e.target.value)}
+          />
+        </div>
+
+        {hasPending && (
+          <div style={{ background: '#fdcb6e15', border: '1px solid #fdcb6e30', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: '#fdcb6e' }}>
+            ⏳ Bạn đang có 1 yêu cầu đang chờ duyệt. Không thể tạo yêu cầu mới.
+          </div>
+        )}
+
+        <button
+          style={{ ...S.submitBtn, opacity: hasPending || submitting ? .5 : 1 }}
+          onClick={submit}
+          disabled={submitting || hasPending}
+        >
+          {submitting ? 'Đang gửi...' : '💸 Gửi yêu cầu rút'}
+        </button>
+
+        <div style={{ marginTop: 12, padding: '10px 14px', background: '#13131f', borderRadius: 8, fontSize: 11, color: '#444', lineHeight: 1.7 }}>
+          ℹ️ <strong style={{ color: '#555' }}>Quy trình:</strong><br/>
+          1. Gửi yêu cầu → MT bị trừ ngay<br/>
+          2. Admin <strong style={{ color: '#74b9ff' }}>Duyệt</strong> yêu cầu<br/>
+          3. Admin <strong style={{ color: '#6fcf97' }}>Mark Paid</strong> → tiền được chuyển<br/>
+          4. Nếu bị từ chối → MT hoàn về ví
+        </div>
+      </div>
+
+      {/* ── Lịch sử ── */}
+      <div style={S.card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={S.sectionTitle}>Lịch sử yêu cầu</div>
+          <button onClick={fetchHistory} style={{ background: 'none', border: '1px solid #2a2a3a', borderRadius: 6, color: '#555', fontSize: 12, padding: '4px 10px', cursor: 'pointer' }}>
+            ↻ Làm mới
+          </button>
+        </div>
+
+        {histLoading ? (
+          <div style={S.noData}>Đang tải...</div>
+        ) : !history.length ? (
+          <div style={S.noData}>Chưa có yêu cầu rút nào</div>
+        ) : (
+          <table style={S.table}>
+            <thead>
+              <tr>
+                <th style={S.th}>Ngày</th>
+                <th style={S.th}>Số MT</th>
+                <th style={S.th}>Ghi chú</th>
+                <th style={S.th}>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map(w => (
+                <tr key={w.id}>
+                  <td style={{ ...S.td, fontSize: 12, color: '#555', whiteSpace: 'nowrap' }}>
+                    {new Date(w.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                  </td>
+                  <td style={{ ...S.td, fontWeight: 700, color: '#fd79a8' }}>
+                    {Number(w.amount_xu).toLocaleString()} MT
+                  </td>
+                  <td style={{ ...S.td, fontSize: 12, color: '#555', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {w.notes || '—'}
+                    {w.bank_transfer_ref && (
+                      <div style={{ fontSize: 11, color: '#74b9ff', marginTop: 2 }}>🏦 {w.bank_transfer_ref}</div>
+                    )}
+                  </td>
+                  <td style={S.td}>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      background: `${STATUS_COLOR[w.status] || '#888'}20`,
+                      color: STATUS_COLOR[w.status] || '#888',
+                    }}>
+                      {w.status === 'pending'  ? '⏳ Chờ duyệt' :
+                       w.status === 'approved' ? '✅ Đã duyệt'  :
+                       w.status === 'paid'     ? '💸 Đã trả'    :
+                       w.status === 'rejected' ? '❌ Từ chối'   : w.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CreatorDashboard() {
   const { user, token, wallet } = useAuth();
   const navigate = useNavigate();
@@ -860,36 +1037,7 @@ export default function CreatorDashboard() {
 
       {/* Tab: Rút tiền */}
       {tab === 'withdrawals' && (
-        <div style={S.card}>
-          <div style={S.sectionTitle}>Lịch sử rút tiền</div>
-          {!withdrawals?.length ? <div style={S.noData}>Chưa có lịch sử rút tiền</div> : (
-            <table style={S.table}>
-              <thead>
-                <tr>
-                  <th style={S.th}>Ngày</th>
-                  <th style={S.th}>MT rút</th>
-                  <th style={S.th}>VNĐ nhận</th>
-                  <th style={S.th}>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {withdrawals.map(w => (
-                  <tr key={w.id}>
-                    <td style={S.td}>{new Date(w.created_at).toLocaleDateString('vi-VN')}</td>
-                    <td style={S.td}>{Number(w.amount_xu).toLocaleString()} MT</td>
-                    <td style={S.td}>{Number(w.amount_vnd).toLocaleString()}₫</td>
-                    <td style={S.td}><span style={S.badge(w.status)}>{w.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <div style={{ marginTop: 16 }}>
-            <button style={{ ...S.submitBtn, background: '#00b894' }} onClick={() => navigate('/wallet')}>
-              💰 Tới trang rút tiền
-            </button>
-          </div>
-        </div>
+        <WithdrawalTab token={token} wallet={wallet} showToast={showToast} />
       )}
     </div>
   );

@@ -1,74 +1,69 @@
 import { Router } from 'express';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import { query } from '../db/pool.js';
-import { LedgerService, getConfig } from '../services/ledger.js';
+import { LedgerService } from '../services/ledger.js';
 import { notify } from '../services/notifier.js';
 import { sendWithdrawalApproved, sendWithdrawalRejected } from '../services/mailer.js';
 
 const router = Router();
 router.use(authMiddleware);
 
-// POST /api/withdrawals — tạo yêu cầu rút tiền
+const MIN_MT = 1000;
+
+// POST /api/withdrawals — creator tạo yêu cầu rút tiền
 router.post('/', async (req, res) => {
   try {
-    const { amount_xu, bank_name, bank_account, account_name } = req.body;
-    const cfg = await getConfig();
-
-    if (!amount_xu || amount_xu < cfg.MIN_WITHDRAWAL_XU) {
-      return res.status(400).json({ error: `Số MT tối thiểu để rút là ${Number(cfg.MIN_WITHDRAWAL_XU).toLocaleString('vi-VN')}` });
-    }
-    if (!bank_name || !bank_account || !account_name) {
-      return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin ngân hàng' });
+    if (req.user.role !== 'creator' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Chỉ creator mới có thể rút tiền' });
     }
 
-    if (amount_xu > cfg.KYC_THRESHOLD_XU) {
-      const { rows: [u] } = await query('SELECT kyc_status FROM users WHERE id=$1', [req.user.id]);
-      if (u?.kyc_status !== 'verified') {
-        return res.status(403).json({
-          error: `Rút trên ${Number(cfg.KYC_THRESHOLD_XU).toLocaleString('vi-VN')} MT yêu cầu xác minh KYC.`,
-          kyc_required: true,
-        });
-      }
+    const { amount_mt, note } = req.body;
+    const amount = parseInt(amount_mt);
+
+    if (!amount || isNaN(amount) || amount < MIN_MT) {
+      return res.status(400).json({ error: `Số MT tối thiểu để rút là ${MIN_MT.toLocaleString('vi-VN')} MT` });
     }
 
-    const fee_xu     = Math.floor(amount_xu * cfg.WITHDRAWAL_FEE_PCT);
-    const net_xu     = amount_xu - fee_xu;
-    const amount_vnd = Math.floor(net_xu / cfg.VND_PER_XU);
+    // Kiểm tra số dư
+    const { rows: [wallet] } = await query('SELECT balance FROM wallets WHERE user_id=$1', [req.user.id]);
+    if (!wallet || Number(wallet.balance) < amount) {
+      return res.status(400).json({ error: 'Số dư không đủ' });
+    }
 
+    // Trừ MT ngay khi tạo yêu cầu
     await LedgerService.transact({
       userId: req.user.id,
-      amount: -amount_xu,
+      amount: -amount,
       type: 'withdrawal',
       idempotencyKey: `withdrawal:${req.user.id}:${Date.now()}`,
-      description: `Rút ${amount_xu.toLocaleString()} MT → ${amount_vnd.toLocaleString()} VNĐ`,
+      description: `Yêu cầu rút ${amount.toLocaleString()} MT`,
     });
 
     const { rows: [wr] } = await query(`
       INSERT INTO withdrawal_requests
-        (user_id, amount_xu, fee_xu, amount_vnd, bank_name, bank_account, account_name, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+        (user_id, amount_xu, amount_vnd, fee_xu, notes, status)
+      VALUES ($1, $2, $2, 0, $3, 'pending')
       RETURNING *
-    `, [req.user.id, amount_xu, fee_xu, amount_vnd, bank_name, bank_account, account_name]);
+    `, [req.user.id, amount, note || null]);
 
     res.status(201).json({
       withdrawal: wr,
-      amount_vnd,
-      fee_xu,
-      fee_pct: cfg.WITHDRAWAL_FEE_PCT,
-      message: `Đã gửi yêu cầu rút. Bạn sẽ nhận ${amount_vnd.toLocaleString()} VNĐ sau khi admin duyệt.`
+      message: `Đã gửi yêu cầu rút ${amount.toLocaleString()} MT. Admin sẽ xử lý sớm.`,
     });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// GET /api/withdrawals/mine — creator xem yêu cầu rút của mình
+// GET /api/withdrawals/mine — creator xem lịch sử yêu cầu rút của mình
 router.get('/mine', async (req, res) => {
   try {
     const { rows } = await query(`
-      SELECT * FROM withdrawal_requests
+      SELECT id, amount_xu, notes, status, bank_transfer_ref, created_at, processed_at
+      FROM withdrawal_requests
       WHERE user_id = $1
-      ORDER BY created_at DESC LIMIT 50
+      ORDER BY created_at DESC
+      LIMIT 50
     `, [req.user.id]);
     res.json(rows);
   } catch (err) {
@@ -76,7 +71,7 @@ router.get('/mine', async (req, res) => {
   }
 });
 
-// GET /api/withdrawals/queue — ADMIN: xem toàn bộ queue chờ duyệt
+// GET /api/withdrawals/queue — ADMIN: xem queue theo status
 router.get('/queue', adminOnly, async (req, res) => {
   try {
     const { status = 'pending' } = req.query;
@@ -93,10 +88,10 @@ router.get('/queue', adminOnly, async (req, res) => {
   }
 });
 
-// POST /api/withdrawals/:id/approve — ADMIN: duyệt & chuyển tiền
+// POST /api/withdrawals/:id/approve — ADMIN: duyệt yêu cầu (pending → approved)
 router.post('/:id/approve', adminOnly, async (req, res) => {
   try {
-    const { notes, bank_transfer_ref } = req.body;
+    const { notes } = req.body;
     const { rows: [wr] } = await query(
       `SELECT wr.*, u.email, u.username FROM withdrawal_requests wr
        JOIN users u ON u.id = wr.user_id WHERE wr.id = $1`,
@@ -107,35 +102,25 @@ router.post('/:id/approve', adminOnly, async (req, res) => {
 
     const { rows: [updated] } = await query(`
       UPDATE withdrawal_requests
-      SET status = 'completed', processed_at = NOW(), notes = $2, bank_transfer_ref = $3
+      SET status = 'approved', processed_at = NOW(), notes = $2
       WHERE id = $1 RETURNING *
-    `, [req.params.id, notes || 'Đã chuyển khoản', bank_transfer_ref || null]);
+    `, [req.params.id, notes || 'Đã duyệt']);
 
     await notify({
       userId: wr.user_id,
       type: 'withdrawal_approved',
       title: '✅ Yêu cầu rút tiền được duyệt',
-      body: `${parseInt(wr.amount_vnd).toLocaleString('vi-VN')} VNĐ sẽ được chuyển vào tài khoản của bạn${bank_transfer_ref ? `. Mã GD: ${bank_transfer_ref}` : ''}`,
-      metadata: { withdrawal_id: req.params.id, amount_vnd: wr.amount_vnd, bank_transfer_ref },
+      body: `Yêu cầu rút ${Number(wr.amount_xu).toLocaleString()} MT đã được duyệt. Admin sẽ chuyển tiền cho bạn sớm.`,
+      metadata: { withdrawal_id: req.params.id, amount_mt: wr.amount_xu },
     });
 
-    sendWithdrawalApproved({
-      email: wr.email,
-      username: wr.username,
-      amountVnd: wr.amount_vnd,
-      bankTransferRef: bank_transfer_ref,
-    }).catch(() => {});
-
-    res.json({
-      withdrawal: updated,
-      message: `Đã duyệt ${parseInt(wr.amount_vnd).toLocaleString('vi-VN')}đ cho ${wr.username}`
-    });
+    res.json({ withdrawal: updated, message: `Đã duyệt yêu cầu của ${wr.username}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/withdrawals/:id/reject — ADMIN: từ chối & hoàn MT
+// POST /api/withdrawals/:id/reject — ADMIN: từ chối & hoàn MT (pending → rejected)
 router.post('/:id/reject', adminOnly, async (req, res) => {
   try {
     const { rows: [wr] } = await query(
@@ -144,21 +129,21 @@ router.post('/:id/reject', adminOnly, async (req, res) => {
       [req.params.id]
     );
     if (!wr) return res.status(404).json({ error: 'Không tìm thấy' });
-    if (wr.status !== 'pending') return res.status(400).json({ error: 'Yêu cầu không ở trạng thái pending' });
+    if (wr.status !== 'pending') return res.status(400).json({ error: 'Chỉ từ chối được yêu cầu ở trạng thái pending' });
 
     await LedgerService.transact({
       userId: wr.user_id,
-      amount: wr.amount_xu,
+      amount: Number(wr.amount_xu),
       type: 'refund',
       idempotencyKey: `refund_withdrawal:${wr.id}`,
       referenceId: wr.id,
       referenceType: 'withdrawal_request',
-      description: `Hoàn MT do từ chối rút: ${req.body.reason || 'Không đủ điều kiện'}`
+      description: `Hoàn MT do từ chối rút: ${req.body.reason || 'Không đủ điều kiện'}`,
     });
 
     await query(`
       UPDATE withdrawal_requests
-      SET status = 'failed', notes = $2, processed_at = NOW()
+      SET status = 'rejected', notes = $2, processed_at = NOW()
       WHERE id = $1
     `, [req.params.id, req.body.reason || 'Từ chối']);
 
@@ -166,7 +151,7 @@ router.post('/:id/reject', adminOnly, async (req, res) => {
       userId: wr.user_id,
       type: 'withdrawal_rejected',
       title: '❌ Yêu cầu rút tiền bị từ chối',
-      body: `${parseInt(wr.amount_xu).toLocaleString('vi-VN')} MT đã được hoàn về ví. Lý do: ${req.body.reason || 'Không đủ điều kiện'}`,
+      body: `${Number(wr.amount_xu).toLocaleString()} MT đã được hoàn về ví. Lý do: ${req.body.reason || 'Không đủ điều kiện'}`,
       metadata: { withdrawal_id: req.params.id, amount_xu: wr.amount_xu },
     });
 
@@ -177,7 +162,46 @@ router.post('/:id/reject', adminOnly, async (req, res) => {
       reason: req.body.reason || 'Không đủ điều kiện',
     }).catch(() => {});
 
-    res.json({ message: `Đã từ chối và hoàn ${parseInt(wr.amount_xu).toLocaleString('vi-VN')} MT về ví` });
+    res.json({ message: `Đã từ chối và hoàn ${Number(wr.amount_xu).toLocaleString()} MT về ví` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/withdrawals/:id/paid — ADMIN: đánh dấu đã chuyển tiền (approved → paid)
+router.post('/:id/paid', adminOnly, async (req, res) => {
+  try {
+    const { bank_transfer_ref, notes } = req.body;
+    const { rows: [wr] } = await query(
+      `SELECT wr.*, u.email, u.username FROM withdrawal_requests wr
+       JOIN users u ON u.id = wr.user_id WHERE wr.id = $1`,
+      [req.params.id]
+    );
+    if (!wr) return res.status(404).json({ error: 'Không tìm thấy' });
+    if (wr.status !== 'approved') return res.status(400).json({ error: 'Chỉ đánh dấu paid được yêu cầu ở trạng thái approved' });
+
+    const { rows: [updated] } = await query(`
+      UPDATE withdrawal_requests
+      SET status = 'paid', bank_transfer_ref = $2, notes = $3, processed_at = NOW()
+      WHERE id = $1 RETURNING *
+    `, [req.params.id, bank_transfer_ref || null, notes || 'Đã chuyển tiền']);
+
+    await notify({
+      userId: wr.user_id,
+      type: 'withdrawal_paid',
+      title: '💸 Tiền đã được chuyển',
+      body: `${Number(wr.amount_xu).toLocaleString()} MT đã được chuyển khoản thành công${bank_transfer_ref ? `. Mã GD: ${bank_transfer_ref}` : ''}.`,
+      metadata: { withdrawal_id: req.params.id, bank_transfer_ref },
+    });
+
+    sendWithdrawalApproved({
+      email: wr.email,
+      username: wr.username,
+      amountVnd: wr.amount_vnd,
+      bankTransferRef: bank_transfer_ref,
+    }).catch(() => {});
+
+    res.json({ withdrawal: updated, message: `Đã đánh dấu paid cho ${wr.username}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -188,11 +212,13 @@ router.get('/stats', adminOnly, async (req, res) => {
   try {
     const { rows: [stats] } = await query(`
       SELECT
-        COUNT(*) FILTER (WHERE status='pending') as pending_count,
-        COALESCE(SUM(amount_vnd) FILTER (WHERE status='pending'), 0) as pending_vnd,
-        COUNT(*) FILTER (WHERE status='completed') as completed_count,
-        COALESCE(SUM(amount_vnd) FILTER (WHERE status='completed'), 0) as completed_vnd,
-        COALESCE(SUM(fee_xu) FILTER (WHERE status='completed'), 0) as total_fee_xu
+        COUNT(*) FILTER (WHERE status='pending')::INT  AS pending_count,
+        COALESCE(SUM(amount_xu) FILTER (WHERE status='pending'),  0)::BIGINT AS pending_mt,
+        COUNT(*) FILTER (WHERE status='approved')::INT AS approved_count,
+        COALESCE(SUM(amount_xu) FILTER (WHERE status='approved'), 0)::BIGINT AS approved_mt,
+        COUNT(*) FILTER (WHERE status='paid')::INT     AS paid_count,
+        COALESCE(SUM(amount_xu) FILTER (WHERE status='paid'),     0)::BIGINT AS paid_mt,
+        COUNT(*) FILTER (WHERE status='rejected')::INT AS rejected_count
       FROM withdrawal_requests
     `);
     res.json(stats);

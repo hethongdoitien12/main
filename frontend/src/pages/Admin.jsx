@@ -102,41 +102,78 @@ function WithdrawalTab({ token, showToast }) {
 
   useEffect(() => { fetchQueue(tab); fetchWStats(); }, [tab, fetchQueue, fetchWStats]);
 
-  const approve = async (id, username, amountVnd, w) => {
-    const bankRef = prompt(`Mã giao dịch ngân hàng khi chuyển cho ${username} (${fmtVnd(amountVnd)}):\n\nNgân hàng: ${w.bank_name} — STK: ${w.bank_account} — Tên: ${w.account_name}\n\n(Bỏ trống nếu chưa có mã)`);
-    if (bankRef === null) return;
+  const approve = async (id, username) => {
+    if (!window.confirm(`Duyệt yêu cầu rút của ${username}?`)) return;
     const r = await fetch(`/api/withdrawals/${id}/approve`, {
       method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-      body: JSON.stringify({ notes:'Đã chuyển khoản', bank_transfer_ref: bankRef || undefined })
+      body: JSON.stringify({ notes: 'Đã duyệt' }),
     });
     const d = await r.json();
     if (!r.ok) { showToast(`❌ ${d.error}`); return; }
-    showToast(`✅ Đã duyệt ${fmtVnd(amountVnd)} cho ${username}${bankRef ? ` — Mã GD: ${bankRef}` : ''}`);
+    showToast(`✅ Đã duyệt yêu cầu của ${username}`);
     fetchQueue(tab); fetchWStats();
   };
 
   const reject = async (id, username) => {
     const reason = prompt(`Lý do từ chối rút của ${username}:`);
     if (!reason) return;
-    await fetch(`/api/withdrawals/${id}/reject`, {
+    const r = await fetch(`/api/withdrawals/${id}/reject`, {
       method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-      body: JSON.stringify({ reason })
+      body: JSON.stringify({ reason }),
     });
+    if (!r.ok) { showToast('❌ Từ chối thất bại'); return; }
     showToast(`❌ Đã từ chối và hoàn MT cho ${username}`);
     fetchQueue(tab); fetchWStats();
   };
+
+  const markPaid = async (id, username, amountMt) => {
+    const ref = prompt(`Mã giao dịch ngân hàng khi chuyển ${Number(amountMt).toLocaleString()} MT cho ${username}:\n(Bỏ trống nếu chưa có mã)`);
+    if (ref === null) return;
+    const r = await fetch(`/api/withdrawals/${id}/paid`, {
+      method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+      body: JSON.stringify({ bank_transfer_ref: ref || undefined, notes: 'Đã chuyển tiền' }),
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast(`❌ ${d.error}`); return; }
+    showToast(`💸 Đã đánh dấu paid cho ${username}${ref ? ` — Mã: ${ref}` : ''}`);
+    fetchQueue(tab); fetchWStats();
+  };
+
+  const STATUS_TABS = [
+    ['pending',  '⏳ Chờ duyệt'],
+    ['approved', '✅ Đã duyệt'],
+    ['paid',     '💸 Đã trả'],
+    ['rejected', '❌ Từ chối'],
+  ];
 
   return (
     <>
       {wStats && (
         <div style={{...S.grid4, gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))'}}>
-          <div style={S.stat('#2a1e0e')}><div style={S.statLbl}>Chờ duyệt</div><div style={S.statVal('#fdcb6e')}>{wStats.pending_count}</div><div style={S.statSub}>{fmtVnd(wStats.pending_vnd)}</div></div>
-          <div style={S.stat('#0e2a1e')}><div style={S.statLbl}>Đã duyệt</div><div style={S.statVal('#6fcf97')}>{wStats.completed_count}</div><div style={S.statSub}>{fmtVnd(wStats.completed_vnd)}</div></div>
-          <div style={S.stat('#2a0e2a')}><div style={S.statLbl}>Phí thu được</div><div style={S.statVal('#a29bfe')}>{fmtXu(wStats.total_fee_xu)}</div><div style={S.statSub}>10% mỗi lệnh</div></div>
+          <div style={S.stat('#2a1e0e')}>
+            <div style={S.statLbl}>Chờ duyệt</div>
+            <div style={S.statVal('#fdcb6e')}>{wStats.pending_count}</div>
+            <div style={S.statSub}>{fmtXu(wStats.pending_mt)} MT</div>
+          </div>
+          <div style={S.stat('#0e1e2a')}>
+            <div style={S.statLbl}>Đã duyệt</div>
+            <div style={S.statVal('#74b9ff')}>{wStats.approved_count}</div>
+            <div style={S.statSub}>{fmtXu(wStats.approved_mt)} MT chờ trả</div>
+          </div>
+          <div style={S.stat('#0e2a1e')}>
+            <div style={S.statLbl}>Đã trả</div>
+            <div style={S.statVal('#6fcf97')}>{wStats.paid_count}</div>
+            <div style={S.statSub}>{fmtXu(wStats.paid_mt)} MT</div>
+          </div>
+          <div style={S.stat('#2a1a1a')}>
+            <div style={S.statLbl}>Từ chối</div>
+            <div style={S.statVal('#ff6b6b')}>{wStats.rejected_count}</div>
+            <div style={S.statSub}>đã hoàn MT</div>
+          </div>
         </div>
       )}
       <div style={S.subTabs}>
-        {[['pending','⏳ Chờ duyệt'],['completed','✅ Đã duyệt'],['failed','❌ Từ chối']].map(([k,l])=>(
+        {STATUS_TABS.map(([k,l])=>(
           <button key={k} style={S.subTab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
         <button style={{...S.refreshBtn, marginLeft:'auto'}} onClick={()=>{fetchQueue(tab);fetchWStats();}}>↻ Làm mới</button>
@@ -147,7 +184,7 @@ function WithdrawalTab({ token, showToast }) {
         ) : (
           <table style={S.table}>
             <thead><tr>
-              {['User','Số MT rút','Nhận VNĐ','Phí','Ngân hàng / STK','Thời gian','Trạng thái',''].map(h=>(
+              {['Creator','Số MT','Ghi chú','Thời gian','Trạng thái','Thao tác'].map(h=>(
                 <th key={h} style={S.th}>{h}</th>
               ))}
             </tr></thead>
@@ -158,25 +195,32 @@ function WithdrawalTab({ token, showToast }) {
                     <div style={{fontWeight:600,color:'#fff'}}>{w.username}</div>
                     <div style={{fontSize:11,color:'#555'}}>{w.email}</div>
                   </td>
-                  <td style={S.td}><span style={{color:'#fd79a8',fontWeight:600}}>{fmtXu(w.amount_xu)}</span></td>
-                  <td style={S.td}><span style={{color:'#6fcf97',fontWeight:600}}>{fmtVnd(w.amount_vnd)}</span></td>
-                  <td style={S.td}><span style={{color:'#666'}}>{fmtXu(w.fee_xu)}</span></td>
                   <td style={S.td}>
-                    <div style={{fontWeight:500}}>{w.bank_name||'—'}</div>
-                    <code style={{fontSize:11,color:'#888'}}>{w.bank_account||'—'}</code>
-                    <div style={{fontSize:11,color:'#555'}}>{w.account_name}</div>
+                    <span style={{color:'#fd79a8',fontWeight:700,fontSize:15}}>{fmtXu(w.amount_xu)} MT</span>
+                  </td>
+                  <td style={S.td}>
+                    <span style={{fontSize:12,color:'#666',maxWidth:160,display:'block',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {w.notes || '—'}
+                    </span>
+                    {w.bank_transfer_ref && (
+                      <div style={{fontSize:11,color:'#74b9ff',marginTop:2}}>🏦 {w.bank_transfer_ref}</div>
+                    )}
                   </td>
                   <td style={S.td}><span style={{fontSize:12,color:'#555'}}>{fmtDate(w.created_at)}</span></td>
                   <td style={S.td}><span style={S.badge(w.status)}>{w.status}</span></td>
                   <td style={S.td}>
                     {w.status==='pending' && (
-                      <>
-                        <button style={S.approveBtn} onClick={()=>approve(w.id,w.username,w.amount_vnd,w)}>✓ Duyệt</button>
-                        <button style={S.rejectBtn} onClick={()=>reject(w.id,w.username)}>✕ Từ chối</button>
-                      </>
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                        <button style={S.approveBtn} onClick={()=>approve(w.id,w.username)}>✓ Duyệt</button>
+                        <button style={S.rejectBtn}  onClick={()=>reject(w.id,w.username)}>✕ Từ chối</button>
+                      </div>
                     )}
-                    {w.bank_transfer_ref && <div style={{fontSize:11,color:'#74b9ff',marginTop:4}}>🏦 {w.bank_transfer_ref}</div>}
-                    {w.notes && <div style={{fontSize:11,color:'#555',marginTop:2,maxWidth:140}}>{w.notes}</div>}
+                    {w.status==='approved' && (
+                      <button
+                        style={{padding:'5px 12px',borderRadius:6,border:'none',background:'#00b89430',color:'#00b894',fontSize:12,fontWeight:600,cursor:'pointer'}}
+                        onClick={()=>markPaid(w.id,w.username,w.amount_xu)}
+                      >💸 Mark Paid</button>
+                    )}
                   </td>
                 </tr>
               ))}

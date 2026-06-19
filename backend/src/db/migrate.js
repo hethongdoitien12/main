@@ -282,6 +282,16 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Mở rộng status cho withdrawal_requests: thêm approved/rejected/paid
+DO $$ BEGIN
+  ALTER TABLE withdrawal_requests DROP CONSTRAINT IF EXISTS withdrawal_requests_status_check;
+  ALTER TABLE withdrawal_requests ADD CONSTRAINT withdrawal_requests_status_check
+    CHECK (status IN ('pending','processing','approved','rejected','paid','completed','failed','cancelled'));
+END $$;
+
+-- Cập nhật MIN_WITHDRAWAL_XU xuống 1000 MT theo spec mới
+UPDATE platform_config SET value = '1000' WHERE key = 'MIN_WITHDRAWAL_XU';
+
 -- Thêm các cột KYC vào users nếu chưa có
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kyc_status') THEN
