@@ -123,17 +123,299 @@ const TYPE_LABELS = {
 };
 const TIER_NAMES = { 1: 'Bronze 🥉', 2: 'Silver 🥈', 3: 'Gold 🥇' };
 
+const PERIOD_OPTS = [
+  { key: 'today', label: 'Hôm nay' },
+  { key: '7d',    label: '7 ngày'  },
+  { key: '30d',   label: '30 ngày' },
+  { key: 'all',   label: 'Tất cả'  },
+];
+
+const SRC_META = {
+  tip:     { label: '🎁 Tip',         color: '#6fcf97' },
+  fanclub: { label: '👑 Fan Club',     color: '#a29bfe' },
+  product: { label: '🛒 Sản phẩm',    color: '#74b9ff' },
+};
+
+function fmt(n) { return Number(n || 0).toLocaleString(); }
+
+function RevCard({ label, gross, fee, net, color }) {
+  return (
+    <div style={{ background: '#0e0e17', border: '1px solid #1e1e2e', borderRadius: 12, padding: '1.25rem' }}>
+      <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 10 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: color || '#fff', marginBottom: 8 }}>
+        {fmt(net)} MT
+      </div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 10, color: '#444', marginBottom: 2 }}>THU VÀO</div>
+          <div style={{ fontSize: 13, color: '#888' }}>{fmt(gross)} MT</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: '#444', marginBottom: 2 }}>PHÍ NỀN TẢNG</div>
+          <div style={{ fontSize: 13, color: '#ff6b6b' }}>−{fmt(fee)} MT</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: '#444', marginBottom: 2 }}>THỰC NHẬN</div>
+          <div style={{ fontSize: 13, color: color || '#fff', fontWeight: 600 }}>{fmt(net)} MT</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EarningsTab({ earnings, loading, period, onPeriodChange }) {
+  const Sth = { ...S.th, padding: '10px 12px' };
+  const Std = { ...S.td, padding: '10px 12px' };
+
+  return (
+    <div>
+      {/* ── Time filter ─────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+        {PERIOD_OPTS.map(p => (
+          <button key={p.key} onClick={() => onPeriodChange(p.key)} style={{
+            padding: '7px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            background: period === p.key ? '#6C5CE7' : '#13131f',
+            color:      period === p.key ? '#fff'    : '#555',
+            transition: 'all .15s',
+          }}>{p.label}</button>
+        ))}
+        {loading && <span style={{ fontSize: 12, color: '#555', alignSelf: 'center', marginLeft: 8 }}>Đang tải...</span>}
+      </div>
+
+      {!earnings && !loading && (
+        <div style={S.noData}>Không có dữ liệu</div>
+      )}
+
+      {earnings && (
+        <>
+          {/* ── 4 Revenue cards ──────────────────────────────────────── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+            <RevCard label="💰 Tổng doanh thu"
+              gross={earnings.summary.total.gross}
+              fee={earnings.summary.total.fee}
+              net={earnings.summary.total.net}
+              color="#a29bfe" />
+            <RevCard label="🎁 Từ Tip"
+              gross={earnings.summary.tips.gross}
+              fee={earnings.summary.tips.fee}
+              net={earnings.summary.tips.net}
+              color="#6fcf97" />
+            <RevCard label="👑 Từ Fan Club"
+              gross={earnings.summary.fanclub.gross}
+              fee={earnings.summary.fanclub.fee}
+              net={earnings.summary.fanclub.net}
+              color="#fd79a8" />
+            <RevCard label="🛒 Từ Sản phẩm"
+              gross={earnings.summary.products.gross}
+              fee={earnings.summary.products.fee}
+              net={earnings.summary.products.net}
+              color="#74b9ff" />
+          </div>
+
+          {/* ── Revenue Breakdown table ──────────────────────────────── */}
+          <div style={{ ...S.card, marginBottom: 16 }}>
+            <div style={S.sectionTitle}>Phân tích doanh thu</div>
+            <table style={S.table}>
+              <thead>
+                <tr>
+                  <th style={Sth}>Nguồn</th>
+                  <th style={{ ...Sth, textAlign: 'right' }}>Giao dịch</th>
+                  <th style={{ ...Sth, textAlign: 'right' }}>Thu vào</th>
+                  <th style={{ ...Sth, textAlign: 'right' }}>Phí nền tảng</th>
+                  <th style={{ ...Sth, textAlign: 'right' }}>Thực nhận</th>
+                  <th style={{ ...Sth, textAlign: 'right' }}>% Tổng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { key: 'tips',     src: earnings.summary.tips,     label: '🎁 Tip'      },
+                  { key: 'fanclub',  src: earnings.summary.fanclub,  label: '👑 Fan Club' },
+                  { key: 'products', src: earnings.summary.products, label: '🛒 Sản phẩm' },
+                ].map(({ key, src, label }) => {
+                  const totalNet = Number(earnings.summary.total.net) || 1;
+                  const pct = totalNet > 0 ? ((Number(src.net) / totalNet) * 100).toFixed(1) : '0.0';
+                  const color = key === 'tips' ? '#6fcf97' : key === 'fanclub' ? '#fd79a8' : '#74b9ff';
+                  return (
+                    <tr key={key}>
+                      <td style={Std}><span style={{ fontWeight: 600, color }}>{label}</span></td>
+                      <td style={{ ...Std, textAlign: 'right', color: '#888' }}>{src.count}</td>
+                      <td style={{ ...Std, textAlign: 'right', color: '#888' }}>{fmt(src.gross)} MT</td>
+                      <td style={{ ...Std, textAlign: 'right', color: '#ff6b6b' }}>−{fmt(src.fee)} MT</td>
+                      <td style={{ ...Std, textAlign: 'right', color, fontWeight: 600 }}>{fmt(src.net)} MT</td>
+                      <td style={{ ...Std, textAlign: 'right', color: '#555' }}>{pct}%</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ borderTop: '1px solid #2a2a3a' }}>
+                  <td style={{ ...Std, fontWeight: 700, color: '#fff' }}>Tổng cộng</td>
+                  <td style={{ ...Std, textAlign: 'right', fontWeight: 700 }}>
+                    {Number(earnings.summary.tips.count) + Number(earnings.summary.fanclub.count) + Number(earnings.summary.products.count)}
+                  </td>
+                  <td style={{ ...Std, textAlign: 'right', fontWeight: 700, color: '#aaa' }}>{fmt(earnings.summary.total.gross)} MT</td>
+                  <td style={{ ...Std, textAlign: 'right', fontWeight: 700, color: '#ff6b6b' }}>−{fmt(earnings.summary.total.fee)} MT</td>
+                  <td style={{ ...Std, textAlign: 'right', fontWeight: 700, color: '#a29bfe' }}>{fmt(earnings.summary.total.net)} MT</td>
+                  <td style={{ ...Std, textAlign: 'right', color: '#555' }}>100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Top Products + Top Fans side by side ─────────────────── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+
+            {/* Top Products */}
+            <div style={S.card}>
+              <div style={S.sectionTitle}>🏆 Sản phẩm bán chạy nhất</div>
+              {!earnings.topProducts?.length
+                ? <div style={S.noData}>Chưa có đơn hàng</div>
+                : (
+                  <table style={S.table}>
+                    <thead>
+                      <tr>
+                        <th style={Sth}>#</th>
+                        <th style={Sth}>Sản phẩm</th>
+                        <th style={{ ...Sth, textAlign: 'right' }}>Đơn</th>
+                        <th style={{ ...Sth, textAlign: 'right' }}>Thực nhận</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {earnings.topProducts.map((p, i) => (
+                        <tr key={p.id}>
+                          <td style={{ ...Std, color: i < 3 ? ['#fdcb6e','#b2bec3','#e17055'][i] : '#444', fontWeight: 700 }}>
+                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                          </td>
+                          <td style={Std}>
+                            <div style={{ fontSize: 13, color: '#ddd', fontWeight: 500 }}>{p.title}</div>
+                            <div style={{ fontSize: 11, color: '#555', marginTop: 1 }}>{TYPE_LABELS[p.type]} · {fmt(p.price_mt)} MT</div>
+                          </td>
+                          <td style={{ ...Std, textAlign: 'right', color: '#74b9ff' }}>{p.order_count}</td>
+                          <td style={{ ...Std, textAlign: 'right', color: '#6fcf97', fontWeight: 600 }}>{fmt(p.net_revenue)} MT</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+            </div>
+
+            {/* Top Fans */}
+            <div style={S.card}>
+              <div style={S.sectionTitle}>👑 Top fans chi nhiều nhất</div>
+              {!earnings.topFans?.length
+                ? <div style={S.noData}>Chưa có giao dịch từ fans</div>
+                : (
+                  <table style={S.table}>
+                    <thead>
+                      <tr>
+                        <th style={Sth}>#</th>
+                        <th style={Sth}>Fan</th>
+                        <th style={{ ...Sth, textAlign: 'right' }}>Tip</th>
+                        <th style={{ ...Sth, textAlign: 'right' }}>Fan Club</th>
+                        <th style={{ ...Sth, textAlign: 'right' }}>Sản phẩm</th>
+                        <th style={{ ...Sth, textAlign: 'right' }}>Tổng</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {earnings.topFans.map((f, i) => (
+                        <tr key={f.id}>
+                          <td style={{ ...Std, color: i < 3 ? ['#fdcb6e','#b2bec3','#e17055'][i] : '#444', fontWeight: 700 }}>
+                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                          </td>
+                          <td style={Std}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {f.avatar_url
+                                ? <img src={f.avatar_url} alt="" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
+                                : <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#1e1e2e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#555' }}>👤</div>
+                              }
+                              <span style={{ fontSize: 13, color: '#ddd' }}>{f.username}</span>
+                            </div>
+                          </td>
+                          <td style={{ ...Std, textAlign: 'right', color: '#6fcf97', fontSize: 12 }}>{fmt(f.tip_gross)}</td>
+                          <td style={{ ...Std, textAlign: 'right', color: '#fd79a8', fontSize: 12 }}>{fmt(f.fc_gross)}</td>
+                          <td style={{ ...Std, textAlign: 'right', color: '#74b9ff', fontSize: 12 }}>{fmt(f.prod_gross)}</td>
+                          <td style={{ ...Std, textAlign: 'right', fontWeight: 700, color: '#a29bfe' }}>{fmt(f.total_gross)} MT</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+            </div>
+          </div>
+
+          {/* ── Transaction history ──────────────────────────────────── */}
+          <div style={S.card}>
+            <div style={S.sectionTitle}>
+              Lịch sử giao dịch
+              <span style={{ fontSize: 11, color: '#444', marginLeft: 8 }}>
+                ({earnings.transactions?.length || 0} giao dịch gần nhất)
+              </span>
+            </div>
+            {!earnings.transactions?.length
+              ? <div style={S.noData}>Chưa có giao dịch nào</div>
+              : (
+                <table style={S.table}>
+                  <thead>
+                    <tr>
+                      <th style={Sth}>Thời gian</th>
+                      <th style={Sth}>Nguồn</th>
+                      <th style={Sth}>Từ</th>
+                      <th style={Sth}>Chi tiết</th>
+                      <th style={{ ...Sth, textAlign: 'right' }}>Thu vào</th>
+                      <th style={{ ...Sth, textAlign: 'right' }}>Phí</th>
+                      <th style={{ ...Sth, textAlign: 'right' }}>Thực nhận</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {earnings.transactions.map((tx, i) => {
+                      const meta = SRC_META[tx.source] || { label: tx.source, color: '#888' };
+                      return (
+                        <tr key={i}>
+                          <td style={{ ...Std, fontSize: 12, color: '#555', whiteSpace: 'nowrap' }}>
+                            {new Date(tx.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                            {' '}
+                            <span style={{ color: '#333' }}>
+                              {new Date(tx.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </td>
+                          <td style={Std}>
+                            <span style={{
+                              padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                              background: `${meta.color}20`, color: meta.color,
+                            }}>{meta.label}</span>
+                          </td>
+                          <td style={{ ...Std, fontSize: 13, color: '#aaa' }}>{tx.from_user}</td>
+                          <td style={{ ...Std, fontSize: 12, color: '#555', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {tx.ref_title || '—'}
+                          </td>
+                          <td style={{ ...Std, textAlign: 'right', color: '#aaa', fontSize: 12 }}>{fmt(tx.gross)}</td>
+                          <td style={{ ...Std, textAlign: 'right', color: '#ff6b6b', fontSize: 12 }}>−{fmt(tx.fee)}</td>
+                          <td style={{ ...Std, textAlign: 'right', fontWeight: 600, color: meta.color }}>{fmt(tx.net)} MT</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function CreatorDashboard() {
   const { user, token, wallet } = useAuth();
   const navigate = useNavigate();
-  const [stats,    setStats]    = useState(null);
-  const [products, setProducts] = useState([]);
-  const [tiers,    setTiers]    = useState([]);
-  const [members,  setMembers]  = useState([]);
-  const [orders,   setOrders]   = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [tab,      setTab]      = useState('overview');
-  const [toast,    setToast]    = useState(null);
+  const [stats,        setStats]        = useState(null);
+  const [products,     setProducts]     = useState([]);
+  const [tiers,        setTiers]        = useState([]);
+  const [members,      setMembers]      = useState([]);
+  const [orders,       setOrders]       = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [tab,          setTab]          = useState('overview');
+  const [toast,        setToast]        = useState(null);
+  const [earnings,     setEarnings]     = useState(null);
+  const [earningsPeriod, setEarningsPeriod] = useState('30d');
+  const [earningsLoading, setEarningsLoading] = useState(false);
 
   const [prodForm, setProdForm] = useState({ title: '', description: '', type: 'ebook', price_mt: '', thumbnail_url: '', download_url: '' });
   const [tierForm, setTierForm] = useState({ name: 'Bronze', level: 1, price_mt: '', description: '', perks: '' });
@@ -144,6 +426,19 @@ export default function CreatorDashboard() {
   const showToast = (msg, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const fetchEarnings = async (period, tkn) => {
+    if (!tkn) return;
+    setEarningsLoading(true);
+    try {
+      const r = await fetch(`/api/creator/earnings?period=${period}`, {
+        headers: { Authorization: `Bearer ${tkn}` },
+      });
+      const d = await r.json();
+      setEarnings(d);
+    } catch { /* ignore */ }
+    finally { setEarningsLoading(false); }
   };
 
   useEffect(() => {
@@ -165,6 +460,12 @@ export default function CreatorDashboard() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [token, user]);
+
+  useEffect(() => {
+    if (tab === 'revenue' && token) {
+      fetchEarnings(earningsPeriod, token);
+    }
+  }, [tab, earningsPeriod, token]);
 
   const createProduct = async () => {
     if (saving) return;
@@ -390,62 +691,14 @@ export default function CreatorDashboard() {
         </div>
       )}
 
-      {/* Tab: Doanh thu 30 ngày */}
+      {/* Tab: Doanh thu */}
       {tab === 'revenue' && (
-        <div>
-          <div style={S.card}>
-            <div style={S.sectionTitle}>Doanh thu tips 30 ngày qua</div>
-            <BarChart30 data={stats.dailyEarnings30} />
-            <div style={{ marginTop: 12, display: 'flex', gap: 24 }}>
-              <div><span style={{ fontSize: 11, color: '#555' }}>Tips 30 ngày: </span><span style={{ fontWeight: 700, color: '#6fcf97' }}>{Number(revenue30 || 0).toLocaleString()} MT</span></div>
-              <div><span style={{ fontSize: 11, color: '#555' }}>Sản phẩm: </span><span style={{ fontWeight: 700, color: '#74b9ff' }}>{Number(productSalesTotal || 0).toLocaleString()} MT</span></div>
-              <div><span style={{ fontSize: 11, color: '#555' }}>Tổng: </span><span style={{ fontWeight: 700, color: '#a29bfe' }}>{totalRevenue.toLocaleString()} MT</span></div>
-            </div>
-          </div>
-          <div style={{ ...S.card, marginTop: 16 }}>
-            <div style={S.sectionTitle}>Fan Club Members ({members.length})</div>
-            {!members.length ? <div style={S.noData}>Chưa có thành viên</div> : (
-              <table style={S.table}>
-                <thead>
-                  <tr>
-                    <th style={S.th}>Thành viên</th>
-                    <th style={S.th}>Tier</th>
-                    <th style={S.th}>MT / tháng</th>
-                    <th style={S.th}>Auto-renew</th>
-                    <th style={S.th}>Gia hạn</th>
-                    <th style={S.th}>Hết hạn</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map(m => {
-                    const daysLeft = Math.ceil((new Date(m.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
-                    return (
-                      <tr key={m.id}>
-                        <td style={S.td}>{m.username}</td>
-                        <td style={S.td}>{m.tier_name}</td>
-                        <td style={S.td}>{Number(m.price_mt).toLocaleString()} MT</td>
-                        <td style={S.td}>
-                          <span style={{
-                            padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                            background: m.auto_renew ? '#6C5CE720' : '#22222a',
-                            color: m.auto_renew ? '#a29bfe' : '#444',
-                          }}>
-                            {m.auto_renew ? '🔄 Bật' : '—'}
-                          </span>
-                        </td>
-                        <td style={S.td}>{m.renewal_count || 0} lần</td>
-                        <td style={{ ...S.td, color: daysLeft <= 5 ? '#fdcb6e' : '#ccc' }}>
-                          {new Date(m.expires_at).toLocaleDateString('vi-VN')}
-                          {daysLeft <= 5 && <span style={{ fontSize: 11, color: '#fdcb6e', marginLeft: 4 }}>({daysLeft}ngày)</span>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
+        <EarningsTab
+          earnings={earnings}
+          loading={earningsLoading}
+          period={earningsPeriod}
+          onPeriodChange={setEarningsPeriod}
+        />
       )}
 
       {/* Tab: Fan Club setup */}
