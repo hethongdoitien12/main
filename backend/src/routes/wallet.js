@@ -7,6 +7,7 @@ import { createPayment as zaloCreate, verifyIPN as zaloVerify } from '../service
 import { notify } from '../services/notifier.js';
 import { sendToUser, broadcast } from '../services/sse.js';
 import { postActivity, checkMilestone, A } from '../services/activity.js';
+import { AchievementService } from '../services/achievement.js';
 
 const router = Router();
 
@@ -305,6 +306,8 @@ router.post('/tip', authMiddleware, async (req, res) => {
           metadata:      { message: message || null, receiverAmount: result.receiverAmount },
         });
         checkMilestone(receiver_id);
+        AchievementService.checkUserAchievements(req.user.id, { action: 'tip' }).catch(() => {});
+        AchievementService.checkCreatorAchievements(receiver_id, { action: 'receive_tip' }).catch(() => {});
       }).catch(() => {});
 
     res.json({ success: true, tip: result.tip, receiver_amount: result.receiverAmount, platform_fee: result.platformFee });

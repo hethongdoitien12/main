@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { LedgerService } from '../services/ledger.js';
 import { notify } from '../services/notifier.js';
 import { postActivity, checkMilestone, A } from '../services/activity.js';
+import { AchievementService } from '../services/achievement.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -186,6 +187,8 @@ router.post('/join/:tierId', authMiddleware, async (req, res) => {
       metadata:      { tierId, tierName: tier.name, creatorName: tier.creator_name },
     }).catch(() => {});
     checkMilestone(tier.creator_id).catch(() => {});
+    AchievementService.checkUserAchievements(req.user.id, { action: 'join_fanclub' }).catch(() => {});
+    AchievementService.checkCreatorAchievements(tier.creator_id, { action: 'fanclub_member' }).catch(() => {});
 
     res.json({ success: true, membership, tier_name: tier.name, expires_at: expiresAt });
   } catch (err) {

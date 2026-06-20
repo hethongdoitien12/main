@@ -255,6 +255,28 @@ xu-economy/
 
 ---
 
+### ✅ TASK 20 — Phase 13: Achievement & Badge System (2026-06-20)
+- [x] **DB: Bảng `achievements`** — id, code, title, description, icon, category (USER/CREATOR/FANCLUB/MARKETPLACE/SOCIAL), reward_mt, condition_type, condition_value
+- [x] **DB: Bảng `user_achievements`** — user_id, achievement_id, unlocked_at; UNIQUE(user_id, achievement_id)
+- [x] **DB: 15 achievements seed** — FIRST_LOGIN, FIRST_TIP, BIG_SUPPORTER, SUPER_FAN, SHOPPER, POWER_BUYER, FIRST_EARNING, FIRST_SALE, BESTSELLER, TOP_CREATOR, POPULAR_CREATOR, FIRST_MEMBER, FANCLUB_50, VERIFIED_CREATOR, FEATURED_CREATOR
+- [x] **DB: Ledger type `earn_achievement`** — thêm vào constraint trong migrate.js
+- [x] **Backend: `AchievementService`** (`backend/src/services/achievement.js`) — `checkUserAchievements()`, `checkCreatorAchievements()`, `unlockAchievement()` (idempotent, trao thưởng MT, notify, activity feed)
+- [x] **Backend: `GET /api/achievements`** — tất cả achievements + trạng thái unlock của user hiện tại
+- [x] **Backend: `GET /api/achievements/my`** — achievements của user hiện tại (có unlocked_at)
+- [x] **Backend: `GET /api/achievements/user/:id`** — public, xem achievements của user bất kỳ
+- [x] **Hook FIRST_LOGIN** trong `auth.js` — fire-and-forget sau login thành công
+- [x] **Hook FIRST_TIP, BIG_SUPPORTER** trong `wallet.js` — sau tip; **FIRST_EARNING, POPULAR_CREATOR, TOP_CREATOR** qua checkCreatorAchievements
+- [x] **Hook SUPER_FAN** trong `fanclub.js` — user join fanclub; **FIRST_MEMBER, FANCLUB_50** cho creator
+- [x] **Hook SHOPPER, POWER_BUYER** trong `creatorProducts.js` — user mua product; **FIRST_SALE, BESTSELLER** cho creator
+- [x] **Hook VERIFIED_CREATOR, FEATURED_CREATOR** trong `admin.js` — khi admin xác minh/featured creator
+- [x] **Frontend: Page `Achievements.jsx`** (`/achievements`) — 3 tab (Tất cả/Đã mở/Chưa mở), stat row (đã mở/MT kiếm được/%), grid cards có icon/title/desc/reward/badge mở khóa+ngày
+- [x] **Frontend: Route `/achievements`** trong `App.jsx`
+- [x] **Frontend: Sidebar** — thêm "🏆 Thành tựu" vào section "Tôi" trong `Layout.jsx`
+- [x] **Frontend: `Profile.jsx`** — hiển thị 5 thành tựu gần nhất + link "Xem tất cả →"
+- [x] **Frontend: `CreatorProfile.jsx`** — component `CreatorBadges` trong tab Tổng quan, hiển thị tất cả thành tựu đã mở của creator
+
+---
+
 ### ✅ TASK 19 — Phase 12: Activity Feed & Social Activity System (2026-06-19)
 - [x] **DB: Bảng `activity_feed`** — id, actor_id/username/avatar, activity_type, target_id/name, amount_mt, metadata, created_at; 3 index (created_at DESC, actor_id, activity_type)
 - [x] **Backend: `ActivityService`** (`backend/src/services/activity.js`) — `postActivity()`, `checkMilestone()`, hằng số `A.*`

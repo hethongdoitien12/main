@@ -27,6 +27,7 @@ import LandingPage from './pages/LandingPage.jsx';
 import PublicCreators from './pages/PublicCreators.jsx';
 import PublicCreatorProfile from './pages/PublicCreatorProfile.jsx';
 import ActivityFeed from './pages/ActivityFeed.jsx';
+import Achievements from './pages/Achievements.jsx';
 
 const styles = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="marketplace/:id" element={<ProductDetail />} />
           <Route path="activity" element={<ActivityFeed />} />
+          <Route path="achievements" element={<Achievements />} />
           </Route>
         </Routes>
       </BrowserRouter>

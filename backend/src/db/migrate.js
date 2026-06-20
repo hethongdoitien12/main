@@ -622,6 +622,68 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Achievements
+CREATE TABLE IF NOT EXISTS achievements (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code          VARCHAR(50) UNIQUE NOT NULL,
+  title         VARCHAR(100) NOT NULL,
+  description   TEXT,
+  icon          VARCHAR(10) DEFAULT '🏆',
+  category      VARCHAR(30) NOT NULL CHECK (category IN ('USER','CREATOR','FANCLUB','MARKETPLACE','SOCIAL')),
+  requirement   JSONB DEFAULT '{}',
+  reward_mt     BIGINT DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- User Achievements (unlocked)
+CREATE TABLE IF NOT EXISTS user_achievements (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  achievement_id UUID NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
+  unlocked_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, achievement_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id, unlocked_at DESC);
+
+-- Seed achievements (idempotent)
+INSERT INTO achievements (code, title, description, icon, category, requirement, reward_mt) VALUES
+  ('FIRST_LOGIN',      'Chào mừng!',             'Đăng nhập lần đầu tiên',         '👋', 'USER',        '{"action":"login"}',                    50),
+  ('FIRST_TIP',        'Người hỗ trợ',           'Tip cho creator lần đầu tiên',    '💝', 'USER',        '{"action":"tip","count":1}',             100),
+  ('BIG_SUPPORTER',    'Fan Cuồng',               'Tip tổng cộng 5.000 MT',          '🔥', 'USER',        '{"action":"tip_total","amount":5000}',   250),
+  ('SUPER_FAN',        'Super Fan',               'Tham gia Fan Club lần đầu',        '👑', 'FANCLUB',     '{"action":"join_fanclub","count":1}',    100),
+  ('SHOPPER',          'Tay Mua Sắm',             'Mua sản phẩm đầu tiên',           '🛍', 'MARKETPLACE', '{"action":"buy_product","count":1}',     100),
+  ('POWER_BUYER',      'Tay Mua Pro',             'Mua 10 sản phẩm',                 '💎', 'MARKETPLACE', '{"action":"buy_product","count":10}',    500),
+  ('FIRST_EARNING',    'Bắt Đầu Kiếm Tiền',      'Kiếm được 1.000 MT đầu tiên',     '💰', 'CREATOR',     '{"action":"earn","amount":1000}',        100),
+  ('POPULAR_CREATOR',  'Creator Nổi Tiếng',       'Nhận 100 lượt tip',               '⭐', 'CREATOR',     '{"action":"receive_tip","count":100}',   500),
+  ('TOP_CREATOR',      'Top Creator',             'Đạt 10.000 MT doanh thu',         '🚀', 'CREATOR',     '{"action":"revenue","amount":10000}',   1000),
+  ('VERIFIED_CREATOR', 'Creator Xác Minh',        'Được xác minh bởi nền tảng',      '✔', 'CREATOR',     '{"action":"verified"}',                   0),
+  ('FEATURED_CREATOR', 'Creator Nổi Bật',         'Được Featured bởi nền tảng',      '🌟', 'CREATOR',     '{"action":"featured"}',                   0),
+  ('FIRST_MEMBER',     'Fan Club Khởi Đầu',       'Có thành viên Fan Club đầu tiên', '🎉', 'FANCLUB',     '{"action":"fanclub_member","count":1}',  100),
+  ('FANCLUB_50',       'Fan Club Lớn Mạnh',       'Đạt 50 thành viên Fan Club',      '🎊', 'FANCLUB',     '{"action":"fanclub_member","count":50}', 500),
+  ('FIRST_SALE',       'Người Bán Đầu Tiên',      'Bán được sản phẩm đầu tiên',      '🏪', 'MARKETPLACE', '{"action":"sell_product","count":1}',    100),
+  ('BESTSELLER',       'Bestseller',              'Nhận 100 đơn hàng',               '🏆', 'MARKETPLACE', '{"action":"sell_product","count":100}', 1000)
+ON CONFLICT (code) DO NOTHING;
+
+-- earn_achievement ledger type (nếu chưa có)
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'ledger_entries_type_check'
+      AND check_clause LIKE '%earn_achievement%'
+  ) THEN
+    ALTER TABLE ledger_entries DROP CONSTRAINT IF EXISTS ledger_entries_type_check;
+    ALTER TABLE ledger_entries ADD CONSTRAINT ledger_entries_type_check CHECK (type IN (
+      'deposit','withdrawal',
+      'earn_quest','earn_game','earn_referral','earn_content','earn_checkin','earn_achievement',
+      'spend_ticket','spend_item','spend_agent','spend_music','spend_boost',
+      'tip_sent','tip_received',
+      'membership_purchase','membership_income',
+      'product_purchase','product_sale',
+      'expire','refund','admin_adjust'
+    ));
+  END IF;
+END $$;
+
 -- Activity Feed
 CREATE TABLE IF NOT EXISTS activity_feed (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

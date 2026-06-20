@@ -28,6 +28,29 @@ function tagoAct(ts) {
   if (d < 86400) return `${Math.floor(d / 3600)}h`;
   return `${Math.floor(d / 86400)}d`;
 }
+function CreatorBadges({ creatorId }) {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    if (!creatorId) return;
+    fetch(`/api/achievements/user/${creatorId}`)
+      .then(r => r.json())
+      .then(d => setItems((d.achievements || []).filter(a => a.unlocked)))
+      .catch(() => {});
+  }, [creatorId]);
+  if (!items.length) return <div style={{ color: '#333', fontSize: 13, textAlign: 'center', padding: '1rem 0' }}>Chưa có thành tựu nào</div>;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {items.map(a => (
+        <div key={a.id} title={`${a.title}: ${a.description}`}
+          style={{ background: '#13131f', border: '1px solid #2e2e44', borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'default' }}>
+          <span style={{ fontSize: 18 }}>{a.icon || '🏆'}</span>
+          <span style={{ fontSize: 12, color: '#bbb', fontWeight: 600 }}>{a.title}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RecentActivity({ creatorId }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -400,6 +423,10 @@ export default function CreatorProfile() {
           <div style={S.card}>
             <div style={S.sectionTitle}>📡 Hoạt động gần đây</div>
             <RecentActivity creatorId={creator.id} />
+          </div>
+          <div style={S.card}>
+            <div style={S.sectionTitle}>🏅 Thành tựu & Huy hiệu</div>
+            <CreatorBadges creatorId={creator.id} />
           </div>
           <div style={S.card}>
             <div style={S.sectionTitle}>🎁 Quà tặng gần đây</div>

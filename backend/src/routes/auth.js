@@ -4,6 +4,7 @@ import { query } from '../db/pool.js';
 import { generateToken } from '../middleware/auth.js';
 import { LedgerService } from '../services/ledger.js';
 import { sendOtpEmail } from '../services/email.js';
+import { AchievementService } from '../services/achievement.js';
 
 const router = Router();
 
@@ -159,6 +160,7 @@ router.post('/login', async (req, res) => {
     const token = generateToken(user.id, user.role);
     const { password_hash, ...safeUser } = user;
     res.json({ user: safeUser, token });
+    AchievementService.checkUserAchievements(user.id, { action: 'login' }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

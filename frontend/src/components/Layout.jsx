@@ -78,8 +78,9 @@ const NAV_SECTIONS = [
       { to: '/quests',      label: 'Nhiệm vụ',    icon: '◆' },
       { to: '/checkin',     label: 'Điểm danh',   icon: '🗓' },
       { to: '/referral',    label: 'Giới thiệu',  icon: '◇' },
-      { to: '/memberships', label: 'Fan Club',     icon: '👑' },
-      { to: '/profile',     label: 'Hồ sơ',       icon: '◉' },
+      { to: '/memberships',   label: 'Fan Club',    icon: '👑' },
+      { to: '/achievements',  label: 'Thành tựu',  icon: '🏆' },
+      { to: '/profile',       label: 'Hồ sơ',      icon: '◉' },
     ],
   },
   {

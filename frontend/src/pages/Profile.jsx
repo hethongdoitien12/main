@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
+import { Link } from 'react-router-dom';
 
 const S = {
   h1: { fontSize: 24, fontWeight: 700, color: '#fff', marginBottom: '1.75rem' },
@@ -53,6 +54,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
 
+  // Achievements
+  const [recentAch, setRecentAch] = useState([]);
+
   // KYC state
   const [kyc, setKyc] = useState(null);
   const [kycFullName, setKycFullName] = useState('');
@@ -72,6 +76,14 @@ export default function Profile() {
         setBio(data.bio || '');
       })
       .catch(() => {});
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    api.get('/achievements/my').then(d => {
+      const list = (d.achievements || []).filter(a => a.unlocked_at).sort((a, b) => new Date(b.unlocked_at) - new Date(a.unlocked_at)).slice(0, 5);
+      setRecentAch(list);
+    }).catch(() => {});
   }, [token]);
 
   const loadKyc = useCallback(() => {
@@ -218,6 +230,30 @@ export default function Profile() {
               <div style={{ fontSize: 11, color: '#555' }}>người</div>
             </div>
           </div>
+
+          {/* Achievements mini-section */}
+          {recentAch.length > 0 && (
+            <div style={{ ...S.card, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#aaa' }}>🏆 Thành tựu gần đây</div>
+                <Link to="/achievements" style={{ fontSize: 12, color: '#a29bfe', textDecoration: 'none' }}>Xem tất cả →</Link>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {recentAch.map(a => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#13131f', borderRadius: 8, border: '1px solid #1e1e2e' }}>
+                    <span style={{ fontSize: 22 }}>{a.icon || '🏆'}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{a.title}</div>
+                      <div style={{ fontSize: 11, color: '#555' }}>{new Date(a.unlocked_at).toLocaleDateString('vi-VN')}</div>
+                    </div>
+                    {parseInt(a.reward_mt) > 0 && (
+                      <span style={{ fontSize: 11, color: '#a29bfe', fontWeight: 700 }}>+{parseInt(a.reward_mt).toLocaleString()} MT</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* KYC Section */}
           <div style={S.kycCard}>

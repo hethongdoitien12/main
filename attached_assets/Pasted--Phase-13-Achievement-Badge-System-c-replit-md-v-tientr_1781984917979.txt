@@ -1,0 +1,309 @@
+# Phase 13 — Achievement & Badge System
+
+Đọc replit.md và tientrinhethong.md trước.
+
+Mục tiêu:
+
+Tạo hệ thống thành tựu để tăng giữ chân user và creator.
+
+---
+
+## Database
+
+achievements
+
+Fields:
+
+- id
+- code
+- title
+- description
+- icon
+- category
+- requirement
+- reward_mt
+- created_at
+
+---
+
+user_achievements
+
+Fields:
+
+- id
+- user_id
+- achievement_id
+- unlocked_at
+
+Unique:
+
+(user_id, achievement_id)
+
+---
+
+## Categories
+
+USER
+
+CREATOR
+
+FANCLUB
+
+MARKETPLACE
+
+SOCIAL
+
+---
+
+## User Achievements
+
+FIRST_LOGIN
+
+Đăng nhập lần đầu
+
+Reward:
+50 MT
+
+---
+
+FIRST_TIP
+
+Tip lần đầu
+
+Reward:
+100 MT
+
+---
+
+BIG_SUPPORTER
+
+Tip tổng cộng 5.000 MT
+
+Reward:
+250 MT
+
+---
+
+SUPER_FAN
+
+Tham gia Fan Club
+
+Reward:
+100 MT
+
+---
+
+SHOPPER
+
+Mua sản phẩm đầu tiên
+
+Reward:
+100 MT
+
+---
+
+POWER_BUYER
+
+Mua 10 sản phẩm
+
+Reward:
+500 MT
+
+---
+
+## Creator Achievements
+
+FIRST_EARNING
+
+Kiếm 1.000 MT đầu tiên
+
+Reward:
+100 MT
+
+---
+
+POPULAR_CREATOR
+
+100 lượt tip
+
+Reward:
+500 MT
+
+---
+
+TOP_CREATOR
+
+10.000 MT doanh thu
+
+Reward:
+1000 MT
+
+---
+
+VERIFIED_CREATOR
+
+Được xác minh
+
+Reward:
+0
+
+---
+
+FEATURED_CREATOR
+
+Được Featured
+
+Reward:
+0
+
+---
+
+## Fan Club Achievements
+
+FIRST_MEMBER
+
+Có thành viên Fan Club đầu tiên
+
+Reward:
+100 MT
+
+---
+
+FANCLUB_50
+
+Đạt 50 thành viên
+
+Reward:
+500 MT
+
+---
+
+## Marketplace Achievements
+
+FIRST_SALE
+
+Bán sản phẩm đầu tiên
+
+Reward:
+100 MT
+
+---
+
+BESTSELLER
+
+100 đơn hàng
+
+Reward:
+1000 MT
+
+---
+
+## Backend
+
+Create service:
+
+AchievementService
+
+Functions:
+
+- checkUserAchievements()
+- checkCreatorAchievements()
+
+Auto check after:
+
+- Login
+- Tip
+- Product purchase
+- Product sale
+- Fan Club join
+- Revenue update
+
+---
+
+## Rewards
+
+When unlocked:
+
+- Add MT reward
+- Create ledger entry
+- Create notification
+- Create activity feed event
+
+---
+
+## Frontend
+
+Create page:
+
+/achievements
+
+Tabs:
+
+- Unlocked
+- Locked
+- All
+
+Display:
+
+- Icon
+- Title
+- Description
+- Reward
+- Progress
+
+---
+
+## Profile
+
+Show:
+
+Recent Achievements
+
+Latest 5 unlocked.
+
+---
+
+## Creator Profile
+
+Show:
+
+Creator Achievements
+
+Badges earned.
+
+---
+
+## Notifications
+
+When unlocked:
+
+🎉 Achievement Unlocked
+
+Example:
+
+"First Tip completed. Reward: 100 MT"
+
+---
+
+## Demo Data
+
+Generate unlocked achievements
+for demo accounts.
+
+---
+
+## Acceptance Tests
+
+1. First tip unlocks achievement.
+2. Reward MT credited.
+3. Notification appears.
+4. Activity feed created.
+5. Profile shows badge.
+6. No duplicate unlocks.
+
+After completion:
+
+- Test backend
+- Test frontend
+- Update tientrinhethong.md
+- Mark Phase 13 completed

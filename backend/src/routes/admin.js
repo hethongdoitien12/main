@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
 import { postActivity, A } from '../services/activity.js';
+import { AchievementService } from '../services/achievement.js';
 import { query } from '../db/pool.js';
 import { clearConfigCache } from '../services/ledger.js';
 
@@ -951,6 +952,7 @@ router.post('/creator/:id/verify', async (req, res) => {
         type: A.CREATOR_VERIFIED, targetName: user.username, amountMt: 0,
         metadata: { note: note || null },
       }).catch(() => {});
+      AchievementService.checkCreatorAchievements(user.id, { action: 'verified' }).catch(() => {});
     }
     res.json({ success: true, user });
   } catch (err) {
@@ -977,6 +979,7 @@ router.post('/creator/:id/featured', async (req, res) => {
         type: A.CREATOR_FEATURED, targetName: user.username, amountMt: 0,
         metadata: {},
       }).catch(() => {});
+      AchievementService.checkCreatorAchievements(user.id, { action: 'featured' }).catch(() => {});
     }
     res.json({ success: true, user });
   } catch (err) {

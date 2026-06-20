@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { LedgerService } from '../services/ledger.js';
 import { notify } from '../services/notifier.js';
 import { postActivity, checkMilestone, A } from '../services/activity.js';
+import { AchievementService } from '../services/achievement.js';
 
 const router = Router();
 const PLATFORM_FEE = 0.10;
@@ -179,6 +180,8 @@ router.post('/:id/buy', authMiddleware, async (req, res) => {
       metadata:      { creatorId: product.creator_id, productType: product.type },
     }).catch(() => {});
     checkMilestone(product.creator_id).catch(() => {});
+    AchievementService.checkUserAchievements(req.user.id, { action: 'buy_product' }).catch(() => {});
+    AchievementService.checkCreatorAchievements(product.creator_id, { action: 'sell_product' }).catch(() => {});
 
     res.json({ success: true, order, download_url: product.download_url });
   } catch (err) {
