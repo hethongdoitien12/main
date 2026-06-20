@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../api.js';
+import { useAuth } from '../hooks/useAuth.jsx';
 
 const S = {
   page: { maxWidth: 900, margin: '0 auto' },
@@ -78,15 +78,19 @@ function fmt(date) {
 }
 
 export default function Achievements() {
+  const { token } = useAuth();
   const [achievements, setAchievements] = useState([]);
   const [tab, setTab] = useState('Tất cả');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/achievements').then(d => {
-      setAchievements(d.achievements || []);
-    }).finally(() => setLoading(false));
-  }, []);
+    if (!token) return;
+    fetch('/api/achievements', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setAchievements(d.achievements || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [token]);
 
   const unlocked = achievements.filter(a => a.unlocked);
   const locked = achievements.filter(a => !a.unlocked);

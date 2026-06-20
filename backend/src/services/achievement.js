@@ -1,6 +1,7 @@
 import { query } from '../db/pool.js';
 import { notify } from './notifier.js';
 import { postActivity } from './activity.js';
+import { LedgerService } from './ledger.js';
 import { v4 as uuidv4 } from 'uuid';
 
 async function unlockAchievement(userId, achievement, user) {
@@ -18,14 +19,14 @@ async function unlockAchievement(userId, achievement, user) {
     );
 
     if (parseInt(achievement.reward_mt) > 0) {
-      const ledgerKey = `earn_achievement:${userId}:${achievement.code}`;
-      await query(`
-        SELECT process_transaction(
-          $1, $2, 'earn_achievement', $3, NULL, NULL,
-          $4, NULL
-        )
-      `, [ledgerKey, userId, parseInt(achievement.reward_mt),
-          `Thành tựu: ${achievement.title} (+${achievement.reward_mt} MT)`]);
+      await LedgerService.transact({
+        userId,
+        amount: parseInt(achievement.reward_mt),
+        type: 'earn_achievement',
+        idempotencyKey: `earn_achievement:${userId}:${achievement.code}`,
+        description: `Thành tựu: ${achievement.title} (+${achievement.reward_mt} MT)`,
+        metadata: { achievement_code: achievement.code },
+      });
     }
 
     await notify({

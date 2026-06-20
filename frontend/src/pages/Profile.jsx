@@ -80,10 +80,12 @@ export default function Profile() {
 
   useEffect(() => {
     if (!token) return;
-    api.get('/achievements/my').then(d => {
-      const list = (d.achievements || []).filter(a => a.unlocked_at).sort((a, b) => new Date(b.unlocked_at) - new Date(a.unlocked_at)).slice(0, 5);
-      setRecentAch(list);
-    }).catch(() => {});
+    fetch('/api/achievements/my', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        const list = (d.achievements || []).filter(a => a.unlocked_at).sort((a, b) => new Date(b.unlocked_at) - new Date(a.unlocked_at)).slice(0, 5);
+        setRecentAch(list);
+      }).catch(() => {});
   }, [token]);
 
   const loadKyc = useCallback(() => {
