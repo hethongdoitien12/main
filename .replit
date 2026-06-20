@@ -44,12 +44,13 @@ externalPort = 80
 [userenv.shared]
 PORT = "3001"
 FRONTEND_URL = "http://localhost:5000"
-NODE_ENV = "development"
+NODE_ENV = "production"
 MOMO_PARTNER_CODE = "MOMO_TEST"
 MOMO_ENDPOINT = "https://test-payment.momo.vn"
 ZALOPAY_APP_ID = "2553"
 ZALOPAY_ENDPOINT = "https://sb-openapi.zalopay.vn"
 BACKEND_URL = "https://200572ca-3d8a-441c-ac4a-556d5d4879dd-00-2hqzoidsf73mh.pike.replit.dev"
+MOMO_ACCESS_KEY = "F8BBA842ECF85"
 
 [deployment]
 deploymentTarget = "cloudrun"
