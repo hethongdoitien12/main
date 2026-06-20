@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useNavigate } from 'react-router-dom';
+import { SkeletonCard, SkeletonGrid } from '../components/Skeleton.jsx';
 
 const TYPE_LABELS = {
   ebook:'📚 eBook', template:'📐 Template', preset:'🎨 Preset',
@@ -184,11 +185,7 @@ export default function Marketplace() {
           </div>
 
           {loading ? (
-            <div style={{ ...S.grid, opacity: .4 }}>
-              {Array(8).fill(0).map((_, i) => (
-                <div key={i} style={{ ...S.card, height: 280 }} />
-              ))}
-            </div>
+            <SkeletonGrid count={8} columns="repeat(auto-fill,minmax(240px,1fr))" />
           ) : products.length === 0 ? (
             <div style={S.empty}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🛒</div>

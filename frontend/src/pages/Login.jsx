@@ -49,11 +49,13 @@ export default function Login() {
         <div style={S.group}>
           <label style={S.label}>Email</label>
           <input style={S.input} type="email" placeholder="email@example.com" value={form.email}
+            autoComplete="email"
             onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
         </div>
         <div style={S.group}>
           <label style={S.label}>Mật khẩu</label>
           <input style={S.input} type="password" placeholder="••••••••" value={form.password}
+            autoComplete="current-password"
             onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
         </div>
         <button style={{ ...S.btn, opacity: loading ? .7 : 1 }} disabled={loading} type="submit">

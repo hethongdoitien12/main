@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { SkeletonGrid, SkeletonCard } from '../components/Skeleton.jsx';
 
 const CAT_LABEL = {
   badge: '🏅 Badge',
@@ -89,8 +90,11 @@ export default function Shop() {
 
   useEffect(() => {
     if (!token) return;
-    api.shop.items(token).then(setItems).catch(console.error);
-    api.shop.myItems(token).then(setMyItems).catch(console.error);
+    setLoading(true);
+    Promise.all([
+      api.shop.items(token).then(setItems).catch(() => {}),
+      api.shop.myItems(token).then(setMyItems).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, [token]);
 
   const showToast = (msg, type = 'success') => {
@@ -153,7 +157,13 @@ export default function Shop() {
             ))}
           </div>
 
-          {Object.entries(grouped).map(([c, list]) => (
+          {loading && (
+            <SkeletonGrid columns={3}>
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+            </SkeletonGrid>
+          )}
+
+          {!loading && Object.entries(grouped).map(([c, list]) => (
             <div key={c}>
               <div style={S.section}>{CAT_LABEL[c]}</div>
               <div style={S.grid}>

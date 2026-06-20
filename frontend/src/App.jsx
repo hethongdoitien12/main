@@ -2,8 +2,10 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Layout from './components/Layout.jsx';
 import LandingPage from './pages/LandingPage.jsx';
+import NotFound from './pages/NotFound.jsx';
 import PublicCreators from './pages/PublicCreators.jsx';
 import PublicCreatorProfile from './pages/PublicCreatorProfile.jsx';
 
@@ -82,43 +84,47 @@ const HomeRoute = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login"           element={<Login />} />
-              <Route path="/register"        element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/payment/result"  element={<PaymentResult />} />
-              <Route path="/explore"         element={<PublicCreators />} />
-              <Route path="/explore/:id"     element={<PublicCreatorProfile />} />
-              <Route path="/" element={<HomeRoute />}>
-                <Route index                      element={<Dashboard />} />
-                <Route path="wallet"              element={<Wallet />} />
-                <Route path="quests"              element={<Quests />} />
-                <Route path="history"             element={<History />} />
-                <Route path="gifting"             element={<Gifting />} />
-                <Route path="referral"            element={<Referral />} />
-                <Route path="profile"             element={<Profile />} />
-                <Route path="leaderboard"         element={<Leaderboard />} />
-                <Route path="top-creators"        element={<TopCreators />} />
-                <Route path="checkin"             element={<Checkin />} />
-                <Route path="creator"             element={<CreatorDashboard />} />
-                <Route path="shop"                element={<Shop />} />
-                <Route path="admin"               element={<Admin />} />
-                <Route path="creators"            element={<Creators />} />
-                <Route path="creator/:id"         element={<CreatorProfile />} />
-                <Route path="memberships"         element={<MyMemberships />} />
-                <Route path="marketplace"         element={<Marketplace />} />
-                <Route path="marketplace/:id"     element={<ProductDetail />} />
-                <Route path="activity"            element={<ActivityFeed />} />
-                <Route path="achievements"        element={<Achievements />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </ToastProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login"           element={<Login />} />
+                <Route path="/register"        element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/payment/result"  element={<PaymentResult />} />
+                <Route path="/explore"         element={<PublicCreators />} />
+                <Route path="/explore/:id"     element={<PublicCreatorProfile />} />
+                <Route path="/" element={<HomeRoute />}>
+                  <Route index                      element={<Dashboard />} />
+                  <Route path="wallet"              element={<Wallet />} />
+                  <Route path="quests"              element={<Quests />} />
+                  <Route path="history"             element={<History />} />
+                  <Route path="gifting"             element={<Gifting />} />
+                  <Route path="referral"            element={<Referral />} />
+                  <Route path="profile"             element={<Profile />} />
+                  <Route path="leaderboard"         element={<Leaderboard />} />
+                  <Route path="top-creators"        element={<TopCreators />} />
+                  <Route path="checkin"             element={<Checkin />} />
+                  <Route path="creator"             element={<CreatorDashboard />} />
+                  <Route path="shop"                element={<Shop />} />
+                  <Route path="admin"               element={<Admin />} />
+                  <Route path="creators"            element={<Creators />} />
+                  <Route path="creator/:id"         element={<CreatorProfile />} />
+                  <Route path="memberships"         element={<MyMemberships />} />
+                  <Route path="marketplace"         element={<Marketplace />} />
+                  <Route path="marketplace/:id"     element={<ProductDetail />} />
+                  <Route path="activity"            element={<ActivityFeed />} />
+                  <Route path="achievements"        element={<Achievements />} />
+                  <Route path="*"                   element={<NotFound />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

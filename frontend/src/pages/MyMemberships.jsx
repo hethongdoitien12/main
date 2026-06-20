@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext.jsx';
+import { SkeletonRow } from '../components/Skeleton.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 
 const TIER_COLORS = {
   1: { border: '#cd7f3250', bg: '#cd7f3208', text: '#cd7f32', icon: '🥉' },
@@ -59,17 +62,12 @@ const S = {
 export default function MyMemberships() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [memberships, setMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null);
   const [confirmCancel, setConfirmCancel] = useState(null);
   const [toggling, setToggling] = useState(null);
   const [cancelling, setCancelling] = useState(false);
-
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3500);
-  };
 
   const load = async () => {
     try {
@@ -80,7 +78,7 @@ export default function MyMemberships() {
       if (!r.ok) throw new Error(d.error);
       setMemberships(d.memberships || []);
     } catch (e) {
-      showToast(e.message, false);
+      addToast('error', e.message);
     } finally {
       setLoading(false);
     }
@@ -100,9 +98,9 @@ export default function MyMemberships() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setMemberships(prev => prev.map(m => m.id === id ? { ...m, auto_renew: d.auto_renew } : m));
-      showToast(d.auto_renew ? '🔄 Đã bật tự động gia hạn' : '⏸ Đã tắt tự động gia hạn');
+      addToast('success', d.auto_renew ? '🔄 Đã bật tự động gia hạn' : '⏸ Đã tắt tự động gia hạn');
     } catch (e) {
-      showToast(e.message, false);
+      addToast('error', e.message);
     } finally {
       setToggling(null);
     }
@@ -119,10 +117,10 @@ export default function MyMemberships() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setMemberships(prev => prev.map(m => m.id === confirmCancel.id ? { ...m, status: 'cancelled', auto_renew: false } : m));
-      showToast('✅ Đã hủy membership. Quyền lợi còn đến hết hạn.');
+      addToast('success', '✅ Đã hủy membership. Quyền lợi còn đến hết hạn.');
       setConfirmCancel(null);
     } catch (e) {
-      showToast(e.message, false);
+      addToast('error', e.message);
     } finally {
       setCancelling(false);
     }
@@ -131,11 +129,15 @@ export default function MyMemberships() {
   const activeMemberships   = memberships.filter(m => m.status === 'active');
   const inactiveMemberships = memberships.filter(m => m.status !== 'active');
 
-  if (loading) return <div style={{ color: '#555', padding: '2rem' }}>Đang tải...</div>;
+  if (loading) return (
+    <div>
+      <div style={S.h1}>Fan Club của tôi</div>
+      {[1, 2, 3].map(i => <SkeletonRow key={i} style={{ marginBottom: 16, height: 100, borderRadius: 14 }} />)}
+    </div>
+  );
 
   return (
     <div>
-      {toast && <div style={S.toast(toast.ok)}>{toast.msg}</div>}
 
       {confirmCancel && (
         <div style={S.modalOverlay} onClick={() => setConfirmCancel(null)}>

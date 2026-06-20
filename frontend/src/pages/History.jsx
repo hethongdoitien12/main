@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
+import { SkeletonRow } from '../components/Skeleton.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 
 const TX_LABELS = {
   deposit:'Nạp tiền', withdrawal:'Rút tiền', earn_quest:'Quest', earn_game:'Chơi game',
@@ -84,8 +86,11 @@ export default function History() {
         ))}
       </div>
       <div style={S.card}>
+        {loading && txs.length === 0 && (
+          [1,2,3,4,5].map(i => <SkeletonRow key={i} style={{ margin: '12px 16px', height: 42, borderRadius: 8 }} />)
+        )}
         {txs.length === 0 && !loading && (
-          <div style={{ padding:'2rem', textAlign:'center', color:'#444', fontSize:13 }}>Chưa có giao dịch nào</div>
+          <EmptyState icon="◎" title="Chưa có giao dịch nào" subtitle="Các giao dịch MT sẽ hiển thị ở đây." />
         )}
         {txs.map(tx => {
           const pos = Number(tx.amount) > 0;

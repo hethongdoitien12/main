@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { SkeletonRow } from '../components/Skeleton.jsx';
 
 const PERIODS = [
   { value: 'alltime', label: '🏆 Tất cả' },
@@ -114,7 +115,7 @@ export default function Leaderboard() {
 
       <div style={S.card}>
         {loading && (
-          <div style={S.empty}>Đang tải...</div>
+          [1,2,3,4,5,6,7,8].map(i => <SkeletonRow key={i} style={{ margin: '0 16px', borderRadius: 0 }} />)
         )}
 
         {!loading && entries.length === 0 && (

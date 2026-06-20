@@ -268,6 +268,19 @@ xu-economy/
 
 ---
 
+### ✅ TASK 21 — Phase 14: Final Polish Sprint (2026-06-20)
+- [x] **404 Page** — `frontend/src/pages/NotFound.jsx`; hiển thị khi URL không tồn tại; nút quay về Dashboard
+- [x] **Error Boundary** — `frontend/src/components/ErrorBoundary.jsx`; bọc toàn bộ app; hiển thị friendly error UI thay vì crash trắng trang
+- [x] **Loading Skeletons** — `SkeletonGrid`, `SkeletonCard`, `SkeletonRow`, `SkeletonText`, `SkeletonStat`, `SkeletonBox`; dùng shimmer animation; hỗ trợ `children`, `style`, `columns` number/string props
+- [x] **Empty States** — `EmptyState` component; dùng trong Shop, Quests, History, Achievements, MyMemberships
+- [x] **Toast Migration** — MyMemberships.jsx, Quests.jsx: migrate từ local toast state sang global `useToast()` hook
+- [x] **AutoComplete Attributes** — Login.jsx, Register.jsx: thêm `autoComplete="email"`, `autoComplete="current-password"`, `autoComplete="new-password"` đúng chuẩn HTML5
+- [x] **Mobile Responsive Grids** — `CreatorDashboard.jsx`: grid3/grid4/grid2 đổi sang `auto-fit minmax()` để responsive trên mobile
+- [x] **Skeleton Loading** — Shop.jsx, Quests.jsx, History.jsx, MyMemberships.jsx, Leaderboard.jsx: hiển thị skeleton khi đang tải data
+- [x] **Route Wildcard** — `App.jsx`: `<Route path="*" element={<NotFound />} />` cả nested lẫn top-level routes
+
+---
+
 ### ✅ TASK 20 — Phase 13: Achievement & Badge System (2026-06-20)
 - [x] **DB: Bảng `achievements`** — id, code, title, description, icon, category (USER/CREATOR/FANCLUB/MARKETPLACE/SOCIAL), reward_mt, condition_type, condition_value
 - [x] **DB: Bảng `user_achievements`** — user_id, achievement_id, unlocked_at; UNIQUE(user_id, achievement_id)

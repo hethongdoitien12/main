@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
+import { useToast } from '../context/ToastContext.jsx';
+import { SkeletonCard, SkeletonGrid } from '../components/Skeleton.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 
 const daysUntil = (dateStr) => {
   const diff = new Date(dateStr).getTime() - Date.now();
@@ -31,17 +34,13 @@ const S = {
 
 export default function Quests() {
   const { token, refreshWallet } = useAuth();
+  const { addToast } = useToast();
   const [quests, setQuests] = useState([]);
-  const [expiryBatches, setExpiryBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(null);
-  const [toast, setToast] = useState(null);
 
   const load = () => Promise.all([
-    api.quests.list(token).then(setQuests).catch(()=>{}),
-    api.wallet.transactions({ type: 'earn_quest', limit: 10 }, token)
-      .then(() => {})
-      .catch(() => {}),
+    api.quests.list(token).then(setQuests).catch(() => {}),
   ]).finally(() => setLoading(false));
 
   useEffect(() => { if (token) load(); }, [token]);
@@ -50,17 +49,20 @@ export default function Quests() {
     setClaiming(questId);
     try {
       const r = await api.quests.claim(questId, token);
-      setToast(`+${r.rewardXu.toLocaleString()} MT đã vào ví!`);
-      setTimeout(() => setToast(null), 3000);
+      addToast('success', `+${r.rewardXu.toLocaleString()} MT đã vào ví!`);
       await refreshWallet();
       await load();
     } catch (err) {
-      setToast(`Lỗi: ${err.message}`);
-      setTimeout(() => setToast(null), 3000);
+      addToast('error', err.message);
     } finally { setClaiming(null); }
   };
 
-  if (loading) return <div style={{color:'#444',padding:'2rem'}}>Đang tải nhiệm vụ...</div>;
+  if (loading) return (
+    <div>
+      <div style={S.h1}>Nhiệm vụ kiếm MT</div>
+      <SkeletonGrid columns={3}><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /></SkeletonGrid>
+    </div>
+  );
 
   return (
     <div>
@@ -106,11 +108,10 @@ export default function Quests() {
             </div>
           );
         })}
-        {quests.length === 0 && (
-          <div style={{ color:'#444', fontSize:13, padding:'2rem' }}>Chưa có nhiệm vụ nào.</div>
-        )}
       </div>
-      {toast && <div style={S.toast}>{toast}</div>}
+      {quests.length === 0 && (
+        <EmptyState icon="◆" title="Chưa có nhiệm vụ nào" subtitle="Quay lại sau để nhận các nhiệm vụ mới!" />
+      )}
     </div>
   );
 }

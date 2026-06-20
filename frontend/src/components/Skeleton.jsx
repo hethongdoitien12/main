@@ -57,17 +57,17 @@ export function SkeletonStat() {
   );
 }
 
-export function SkeletonGrid({ count = 4, Component = SkeletonCard, columns = 'repeat(auto-fill,minmax(240px,1fr))', gap = 14 }) {
+export function SkeletonGrid({ count = 4, Component = SkeletonCard, columns = 'repeat(auto-fill,minmax(240px,1fr))', gap = 14, children }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: columns, gap }}>
-      {Array.from({ length: count }).map((_, i) => <Component key={i} />)}
+    <div style={{ display: 'grid', gridTemplateColumns: typeof columns === 'number' ? `repeat(${columns},1fr)` : columns, gap }}>
+      {children || Array.from({ length: count }).map((_, i) => <Component key={i} />)}
     </div>
   );
 }
 
-export function SkeletonRow() {
+export function SkeletonRow({ style = {} }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #111' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #111', ...style }}>
       <SkeletonBox w={36} h={36} radius={18} />
       <div style={{ flex: 1 }}>
         <SkeletonBox h={13} w="50%" style={{ marginBottom: 5 }} />

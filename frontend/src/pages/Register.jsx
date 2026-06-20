@@ -119,11 +119,11 @@ export default function Register() {
             </div>
             <div style={S.group}>
               <label style={S.label}>Email</label>
-              <input style={S.input} type="email" placeholder="email@example.com" value={form.email} onChange={set('email')} required />
+              <input style={S.input} type="email" placeholder="email@example.com" value={form.email} autoComplete="email" onChange={set('email')} required />
             </div>
             <div style={S.group}>
               <label style={S.label}>Mật khẩu</label>
-              <input style={S.input} type="password" placeholder="ít nhất 6 ký tự" value={form.password} onChange={set('password')} required minLength={6} />
+              <input style={S.input} type="password" placeholder="ít nhất 6 ký tự" value={form.password} autoComplete="new-password" onChange={set('password')} required minLength={6} />
             </div>
             <div style={S.group}>
               <label style={S.label}>Mã giới thiệu (tuỳ chọn)</label>
