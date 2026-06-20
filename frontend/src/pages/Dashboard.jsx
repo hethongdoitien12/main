@@ -3,6 +3,67 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
 
+const ONBOARD_STEPS = [
+  { icon: '◉', label: 'Hoàn thiện hồ sơ',      to: '/profile',     done: (u, w) => !!(u?.bio) },
+  { icon: '◎', label: 'Nạp MT đầu tiên',         to: '/wallet',      done: (u, w) => (w?.total_earned || 0) > 0 },
+  { icon: '🌟', label: 'Khám phá Creator',        to: '/creators',    done: (u, w) => false },
+  { icon: '♥', label: 'Gửi quà hoặc mua sản phẩm', to: '/gifting',  done: (u, w) => (w?.total_spent || 0) > 0 },
+];
+
+function OnboardingBanner({ user, wallet }) {
+  const [dismissed, setDismissed] = useState(() => {
+    return localStorage.getItem('onboard_dismissed') === '1';
+  });
+  if (dismissed) return null;
+  const steps = ONBOARD_STEPS.map(s => ({ ...s, isDone: s.done(user, wallet) }));
+  const allDone = steps.every(s => s.isDone);
+  if (allDone) return null;
+  const completed = steps.filter(s => s.isDone).length;
+  const pct = Math.round(completed / steps.length * 100);
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg,#0f0e20,#13131f)',
+      border: '1px solid #6C5CE740', borderRadius: 14,
+      padding: '1.25rem 1.5rem', marginBottom: '1.5rem', position: 'relative',
+    }}>
+      <button onClick={() => { setDismissed(true); localStorage.setItem('onboard_dismissed','1'); }}
+        style={{ position:'absolute', top:12, right:12, background:'none', border:'none', color:'#444', fontSize:16, cursor:'pointer', padding:4 }}>✕</button>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, flexWrap:'wrap' }}>
+        <span style={{ fontSize:20 }}>🚀</span>
+        <div>
+          <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>Bắt đầu với MT Economy</div>
+          <div style={{ fontSize:12, color:'#555' }}>{completed}/{steps.length} bước hoàn thành</div>
+        </div>
+        <div style={{ marginLeft:'auto', minWidth:80 }}>
+          <div style={{ height:6, background:'#1e1e2e', borderRadius:6, overflow:'hidden' }}>
+            <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#6C5CE7,#a29bfe)', borderRadius:6, transition:'width .4s' }} />
+          </div>
+          <div style={{ fontSize:11, color:'#a29bfe', marginTop:4, textAlign:'right', fontWeight:700 }}>{pct}%</div>
+        </div>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:8 }}>
+        {steps.map((s,i) => (
+          <Link key={i} to={s.to} style={{
+            display:'flex', alignItems:'center', gap:8, padding:'8px 12px',
+            background: s.isDone ? '#0e2a1e' : '#13131f',
+            border: `1px solid ${s.isDone ? '#6fcf9730' : '#1e1e2e'}`,
+            borderRadius:8, textDecoration:'none', transition:'border-color .2s',
+          }}>
+            <div style={{
+              width:22, height:22, borderRadius:'50%', flexShrink:0,
+              background: s.isDone ? '#6fcf97' : '#1e1e2e',
+              border: `1px solid ${s.isDone ? '#6fcf97' : '#2e2e44'}`,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:11, color: s.isDone ? '#0a0a0f' : '#555', fontWeight:700,
+            }}>{s.isDone ? '✓' : i+1}</div>
+            <span style={{ fontSize:12, color: s.isDone ? '#6fcf97' : '#bbb', fontWeight: s.isDone ? 400 : 500, lineHeight:1.3 }}>{s.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const S = {
   h1: { fontSize: 24, fontWeight: 700, color: '#fff', marginBottom: 4 },
   sub: { color: '#666', fontSize: 14, marginBottom: '2rem' },
@@ -241,6 +302,9 @@ export default function Dashboard() {
     <div>
       <div style={S.h1}>Xin chào, {user?.username} 👋</div>
       <div style={S.sub}>Tổng quan tài khoản MT của bạn</div>
+
+      {/* Onboarding */}
+      <OnboardingBanner user={user} wallet={wallet} />
 
       {/* Check-in card */}
       <CheckinCard token={token} onCheckin={handleCheckin} />

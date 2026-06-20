@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import api from '../api.js';
 import { Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext.jsx';
 
 const S = {
   h1: { fontSize: 24, fontWeight: 700, color: '#fff', marginBottom: '1.75rem' },
@@ -47,6 +48,7 @@ const S = {
 
 export default function Profile() {
   const { user, token, login } = useAuth();
+  const { addToast } = useToast();
   const [profile, setProfile] = useState(null);
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -109,9 +111,11 @@ export default function Profile() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setKycMsg({ type: 'success', text: '📋 Đã nộp hồ sơ KYC! Admin sẽ xem xét trong 1-2 ngày.' });
+      addToast('info', '📋 Hồ sơ KYC đã được nộp! Chờ xét duyệt 1-2 ngày.');
       loadKyc();
     } catch (err) {
       setKycMsg({ type: 'error', text: err.message });
+      addToast('error', err.message);
     } finally { setKycSaving(false); }
   };
 
@@ -127,11 +131,13 @@ export default function Profile() {
       if (!res.ok) throw new Error(data.error);
       setProfile(prev => ({ ...prev, ...data }));
       setMsg({ type: 'success', text: 'Đã cập nhật hồ sơ!' });
+      addToast('success', '✅ Hồ sơ đã được cập nhật!');
       // Cập nhật localStorage
       const stored = JSON.parse(localStorage.getItem('xu_user') || '{}');
       localStorage.setItem('xu_user', JSON.stringify({ ...stored, username: data.username, avatar_url: data.avatar_url }));
     } catch (err) {
       setMsg({ type: 'error', text: err.message });
+      addToast('error', err.message);
     } finally { setSaving(false); }
   };
 

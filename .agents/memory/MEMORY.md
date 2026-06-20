@@ -4,3 +4,4 @@
 - [XU Expiry design](xu-expiry-design.md) — bảng `xu_expiry_batches` theo dõi từng lô XU khuyến mãi; cron 01:00 GMT+7 hằng ngày; XU deposit không expire, chỉ earn_quest/earn_referral
 - [authMiddleware query param](auth-queryparam.md) — authMiddleware hỗ trợ token từ query param để dùng cho window.open export/download
 - [KYC columns](kyc-migration.md) — kyc_status/kyc_full_name/kyc_id_number/kyc_submitted_at/kyc_verified_at/kyc_photo_url đều có trong migrate.js dưới dạng DO $$ IF NOT EXISTS ALTER TABLE
+- [Phase 14 UX components](phase14-ux.md) — ToastContext/Skeleton/EmptyState đã build; useToast() hook; OnboardingBanner dùng localStorage key `onboard_dismissed`; Gifting.jsx có addToast riêng (KHÔNG dùng global context)

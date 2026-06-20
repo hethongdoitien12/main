@@ -255,6 +255,19 @@ xu-economy/
 
 ---
 
+### ✅ TASK 21 — Phase 14: Polish, UX & Production Readiness (2026-06-20)
+- [x] **Global Toast System** — `frontend/src/context/ToastContext.jsx`; 4 loại: success/error/warn/info; auto-dismiss 4s; stack tối đa 5 toast; fixed bottom-right; animation slide+fade; `useToast()` hook export
+- [x] **Skeleton Loading Components** — `frontend/src/components/Skeleton.jsx`; SkeletonBox/Text/Card/Stat/Grid/Row; shimmer animation via CSS keyframe; dùng thay `Đang tải...` text
+- [x] **Empty State Component** — `frontend/src/components/EmptyState.jsx`; icon/title/subtitle/action props; consistent no-data UI
+- [x] **React.lazy + Suspense** — tất cả page routes trong `App.jsx` dùng lazy import; PageLoader spinner hiển thị khi chờ chunk load; giảm initial bundle size
+- [x] **Mobile Responsive Layout** — `Layout.jsx`: `useIsMobile()` hook (<768px), hamburger menu, sidebar overlay, mobile topbar với balance display, đóng sidebar khi navigate
+- [x] **Onboarding Banner** — `Dashboard.jsx`: component `OnboardingBanner` hiện khi user mới (chưa hoàn thành steps); progress bar %; 4 bước (profile/nạp/creator/mua); tắt được (localStorage `onboard_dismissed`), tự ẩn khi all done
+- [x] **Toast Integration** — `Profile.jsx`: toast khi save hồ sơ thành công/lỗi, nộp KYC; `Gifting.jsx` đã có `addToast` sẵn
+- [x] **Page Title** — `index.html`: cập nhật `<title>MT Economy — Nền tảng Creator Economy</title>`
+- [x] **`.env.example`** — file mẫu với tất cả biến env cần thiết
+
+---
+
 ### ✅ TASK 20 — Phase 13: Achievement & Badge System (2026-06-20)
 - [x] **DB: Bảng `achievements`** — id, code, title, description, icon, category (USER/CREATOR/FANCLUB/MARKETPLACE/SOCIAL), reward_mt, condition_type, condition_value
 - [x] **DB: Bảng `user_achievements`** — user_id, achievement_id, unlocked_at; UNIQUE(user_id, achievement_id)

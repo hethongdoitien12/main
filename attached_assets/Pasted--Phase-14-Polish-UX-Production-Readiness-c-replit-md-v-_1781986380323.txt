@@ -1,0 +1,187 @@
+# Phase 14 — Polish, UX & Production Readiness
+
+Đọc replit.md và tientrinhethong.md trước.
+
+Mục tiêu:
+
+Biến MT Economy từ project demo thành sản phẩm hoàn chỉnh.
+
+---
+
+## 1. Mobile Responsive
+
+Kiểm tra toàn bộ:
+
+- Dashboard
+- Wallet
+- Tip & Gift
+- Marketplace
+- Creator Profile
+- Fan Club
+- Leaderboard
+- Activity Feed
+- Achievements
+- Admin
+
+Fix:
+
+- Overflow
+- Sidebar mobile
+- Buttons quá nhỏ
+- Tables trên mobile
+
+---
+
+## 2. Empty States
+
+Thêm giao diện khi không có dữ liệu.
+
+Ví dụ:
+
+No products yet.
+No notifications.
+No activities.
+No fans.
+No achievements.
+
+Thêm CTA phù hợp.
+
+---
+
+## 3. Loading States
+
+Thêm:
+
+- Skeleton loaders
+- Loading spinners
+- Disabled buttons khi submit
+
+---
+
+## 4. Error Handling
+
+Hiển thị:
+
+- Toast success
+- Toast error
+- Network error
+- Validation messages
+
+Không dùng alert().
+
+---
+
+## 5. Onboarding
+
+Lần đầu đăng nhập:
+
+Bước 1:
+Hoàn thiện hồ sơ.
+
+Bước 2:
+Nhận MT đầu tiên.
+
+Bước 3:
+Khám phá Creator.
+
+Bước 4:
+Mua sản phẩm hoặc gửi quà.
+
+---
+
+## 6. Search Improvements
+
+Thêm tìm kiếm cho:
+
+- Creators
+- Products
+- Fan Clubs
+
+Debounce 300ms.
+
+---
+
+## 7. Notifications Center
+
+Thêm:
+
+- Mark as read
+- Mark all as read
+- Notification categories
+
+---
+
+## 8. Performance
+
+- Lazy loading pages
+- Pagination
+- Memoization
+- Optimize queries
+- Reduce re-renders
+
+---
+
+## 9. Security
+
+- Validate inputs
+- Sanitize HTML
+- Protect admin routes
+- Prevent duplicate requests
+- Rate limit APIs
+
+---
+
+## 10. Production Settings
+
+Create:
+
+.env.example
+
+Document:
+
+- DATABASE_URL
+- JWT_SECRET
+- MOMO keys
+- RESEND keys
+- SUPABASE keys
+
+---
+
+## 11. Seed Data
+
+Ensure:
+
+npm run seed-demo
+
+works safely multiple times.
+
+---
+
+## 12. Documentation
+
+Update:
+
+tientrinhethong.md
+
+Add:
+
+- Features completed
+- API overview
+- Database overview
+- Deployment guide
+- Demo accounts
+
+---
+
+## Acceptance Tests
+
+1. Mobile works.
+2. Empty states work.
+3. No console errors.
+4. No broken routes.
+5. No major UI bugs.
+6. Demo accounts still work.
+7. Seed script works.
+8. All major flows tested.
+
+Mark Phase 14 completed.
