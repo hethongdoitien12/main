@@ -6,9 +6,6 @@ echo "🚀 Khởi động MT Economy..."
 echo "📦 Cài dependencies backend..."
 cd "$ROOT/backend" && npm install --silent
 
-echo "📦 Cài dependencies frontend..."
-cd "$ROOT/frontend" && npm install --silent
-
 echo "🗄️  Chạy migration database..."
 cd "$ROOT/backend" && npm run migrate
 
@@ -19,7 +16,7 @@ echo "⚡ Chạy Backend (port 3001)..."
 cd "$ROOT/backend" && npm run dev &
 
 echo "🎨 Chạy Frontend (port 5000)..."
-cd "$ROOT/frontend" && npm run dev &
+cd "$ROOT/frontend" && node "$ROOT/node_modules/vite/bin/vite.js" --port 5000 --host 0.0.0.0 &
 
 echo "✅ Hệ thống đang chạy!"
 echo "   Backend:  http://localhost:3001"
